@@ -11,12 +11,12 @@ module.exports = {
             await replyTeamNotRegistered(interaction)
             return
         }
-        let lineup = retrieveLineup(interaction, team)
+        let lineup = retrieveLineup(interaction.channelId, team)
         if (!lineup) {
             await replyLineupNotSetup(interaction)
             return
         }
 
-        await interaction.reply({ content: `Current lineup size is ${lineup.size}`, components: createLineupComponents(lineup, interaction.user.id) });
+        await interaction.reply({ content: `Current lineup size is ${lineup.size}`, components: createLineupComponents(lineup, interaction.user.id) })
     },
 };

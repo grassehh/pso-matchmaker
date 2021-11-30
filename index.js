@@ -1,9 +1,6 @@
 const fs = require('fs')
 const { Client, Collection, Intents, MessageActionRow, MessageEmbed, MessageButton } = require('discord.js');
-const mongoose = require('mongoose')
-const { Team, Lineup, LineupQueue, PlayerRole } = require('./mongoSchema.js')
 const dotenv = require('dotenv');
-const { retrieveLineup } = require('./services.js');
 
 dotenv.config()
 
@@ -22,7 +19,7 @@ for (const file of commandFiles) {
 	client.commands.set(command.data.name, command);
 }
 
-//Fetch and registers all even handlers
+//Fetch and registers all event handlers
 const eventFiles = fs.readdirSync('./events').filter(file => file.endsWith('.js'));
 for (const file of eventFiles) {
 	const event = require(`./events/${file}`);

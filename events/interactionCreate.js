@@ -36,8 +36,8 @@ module.exports = {
                     tag: interaction.user.toString()
                 }
                 team.save()
-                interaction.message.delete()
-                interaction.reply({ content: `Current lineup size is ${lineup.size}`, components: createLineupComponents(lineup, interaction.user.id) })
+                await interaction.message.delete()
+                await interaction.reply({ content: `Current lineup size is ${lineup.size}`, components: createLineupComponents(lineup, interaction.user.id) })
                 return
             }
 
@@ -47,8 +47,8 @@ module.exports = {
                     existingPlayerRole.user = null
                 }
                 team.save()
-                interaction.message.delete()
-                interaction.reply({ content: `Current lineup size is ${lineup.size}`, components: createLineupComponents(lineup, interaction.user.id) })
+                await interaction.message.delete()
+                await interaction.reply({ content: `Current lineup size is ${lineup.size}`, components: createLineupComponents(lineup, interaction.user.id) })
                 return
             }
 
@@ -63,7 +63,7 @@ module.exports = {
                         .setDisabled(true)
                 )
                 //interaction.message.delete()
-                interaction.reply({ components: [teamsComponents] })
+                await interaction.reply({ components: [teamsComponents] })
                 return
             }
             return

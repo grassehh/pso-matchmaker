@@ -7,7 +7,6 @@ module.exports = {
         .setName('info')
         .setDescription('Give information about your team'),
     async execute(interaction) {
-        console.log("retrieve tream " + interaction.guildId)
         let team = await retrieveTeam(interaction.guildId)
         
         if (!team) {
