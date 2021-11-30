@@ -78,12 +78,19 @@ module.exports = {
                                 .setStyle('DANGER')
                         )
 
-                    await channel.send({ embeds: [challengeEmbed], components: [challengeActionRow] })
+                    let sentMessage = await channel.send({ embeds: [challengeEmbed], components: [challengeActionRow] })
+                    let cancelChallengeRow = new MessageActionRow()
+                        .addComponents(
+                            new MessageButton()
+                                .setCustomId(`cancel_challenge_${channel.id}|${sentMessage.id}`)
+                                .setLabel(`Cancel Request`)
+                                .setStyle('DANGER')
+                        )
                     await interaction.message.edit({ components: [] })
-                    await interaction.reply(`💬 You have sent a challenge request to the team '${opponentLineupQueue.team.name}'. Please wait for his answer.`)
+                    await interaction.reply({ content: `💬 You have sent a challenge request to the team '${opponentLineupQueue.team.name}'. You can either wait for his answer, or cancel your request.`, components: [cancelChallengeRow] })
                     return
                 }
-                
+
                 if (interaction.customId.startsWith('accept_challenge_')) {
                     let channelId = interaction.customId.substring(17);
                     let opponentTeam = await findTeamByChannelId(channelId)
@@ -104,9 +111,21 @@ module.exports = {
 
                 if (interaction.customId.startsWith('refuse_challenge_')) {
                     let guildId = interaction.customId.substring(17);
-                    let team = await findTeamByGuildId(guildId)                    
+                    let team = await findTeamByGuildId(guildId)
                     await interaction.message.edit({ components: [] })
                     await interaction.reply(`You have refused to challenge the team '${team.name}''`)
+                    return
+                }
+
+                if (interaction.customId.startsWith('cancel_challenge_')) {
+                    let ids = interaction.customId.substring(17).split('|')
+                    let channelId = ids[0]
+                    let messageId = ids[1]
+                    let channel = await interaction.client.channels.fetch(channelId)
+                    await channel.messages.edit(messageId, {components: []})
+                    await channel.send("The team has cancel the challenge request")                    
+                    await interaction.message.edit({ components: [] })
+                    await interaction.reply(`You have cancelled your challenge request for the team '${team.name}''`)
                     return
                 }
 
