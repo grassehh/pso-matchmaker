@@ -1,6 +1,7 @@
 const { SlashCommandBuilder } = require('@discordjs/builders');
+const { LineupQueue } = require('../mongoSchema');
 const { Lineup, PlayerRole } = require('../mongoSchema');
-const { retrieveTeam, replyTeamNotRegistered, retrieveLineup, createLineupComponents } = require('../services');
+const { retrieveTeam, replyTeamNotRegistered, retrieveLineup, createLineupComponents, replyAlreadyQueued } = require('../services');
 
 module.exports = {
     data:
@@ -28,6 +29,13 @@ module.exports = {
             replyTeamNotRegistered(interaction)
             return
         }
+
+        let currentQueuedLineup = await LineupQueue.findOne({ 'lineup.channelId': interaction.channelId })
+        if (currentQueuedLineup) {
+            replyAlreadyQueued(interaction, currentQueuedLineup.lineup.size)
+            return
+        }
+
         let lineup = retrieveLineup(interaction.channelId, team)
         if (lineup == null) {
             lineup = new Lineup(
@@ -45,6 +53,6 @@ module.exports = {
             lineup.size = interaction.options.getInteger("size")
         }
         team.save()
-        await interaction.reply({ content: `New lineup has now a size of ${lineup.size}`, components: createLineupComponents(lineup, interaction.user.id) });
+        await interaction.reply({ content: `✅ New lineup has now a size of ${lineup.size}`, components: createLineupComponents(lineup, interaction.user.id) });
     },
 };

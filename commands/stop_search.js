@@ -18,9 +18,7 @@ module.exports = {
             return
         }
 
-        await LineupQueue.deleteOne({ 'lineup.channelId': channelId }).exec()
-        await interaction.reply({
-            content: `Your team is now removed from the queue`
-        })
+        await LineupQueue.deleteOne({ 'lineup.channelId': interaction.channelId }).exec()
+        await interaction.reply(`✅ Your team is now removed from the queue`)
     },
 };

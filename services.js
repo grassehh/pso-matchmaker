@@ -5,6 +5,13 @@ exports.retrieveTeam = async (guildId) => {
     return Team.findOne({ 'guildId': guildId })
 }
 
+exports.replyAlreadyQueued = async (interaction, lineupSize) => {
+    await interaction.reply({
+        content: `❌ You are already queued for ${lineupSize}v${lineupSize}. Please use the /stop_search command before using this command.`,
+        ephemeral: true
+    })
+}
+
 exports.replyTeamNotRegistered = async (interaction) => {
     await interaction.reply({
         content: 'Please register your team with the /register_team command first',
