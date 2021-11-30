@@ -29,7 +29,7 @@ module.exports = {
             }).save()
             await interaction.reply({
                 content: '✅ Your team has been registered ! You can now register lineups in your channels using the /setup_lineup command',
-                ephemeral: rue
+                ephemeral: true
             })
         } else {
             await interaction.reply({

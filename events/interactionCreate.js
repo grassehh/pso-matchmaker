@@ -1,5 +1,6 @@
 const { MessageActionRow, MessageButton } = require("discord.js");
 const { retrieveTeam, retrieveLineup, createLineupComponents } = require("../services");
+const { deleteTeam } = require("../services/teamService");
 
 module.exports = {
     name: 'interactionCreate',
@@ -19,57 +20,69 @@ module.exports = {
         }
 
         if (interaction.isButton()) {
-            let team = await retrieveTeam(interaction.guildId)
-            let lineup = await retrieveLineup(interaction.channelId, team)
+            try {
+                let team = await retrieveTeam(interaction.guildId)
+                let lineup = await retrieveLineup(interaction.channelId, team)
 
-            if (interaction.customId.startsWith("role_")) {
-                let roleName = interaction.customId.substring(5)
-                let playerRole = lineup.roles.find(role => role.name == roleName)
+                if (interaction.customId.startsWith("role_")) {
+                    let roleName = interaction.customId.substring(5)
+                    let playerRole = lineup.roles.find(role => role.name == roleName)
 
-                let existingPlayerRole = lineup.roles.find(role => role.user?.id === interaction.user.id)
-                if (existingPlayerRole != null) {
-                    existingPlayerRole.user = null
+                    let existingPlayerRole = lineup.roles.find(role => role.user?.id === interaction.user.id)
+                    if (existingPlayerRole != null) {
+                        existingPlayerRole.user = null
+                    }
+                    playerRole.user = {
+                        id: interaction.user.id,
+                        name: interaction.user.username,
+                        tag: interaction.user.toString()
+                    }
+                    team.save()
+                    await interaction.message.edit({ components: [] })
+                    await interaction.reply({ content: `Current lineup size is ${lineup.size}`, components: createLineupComponents(lineup, interaction.user.id) })
+                    return
                 }
-                playerRole.user = {
-                    id: interaction.user.id,
-                    name: interaction.user.username,
-                    tag: interaction.user.toString()
-                }
-                team.save()
-                await interaction.message.delete()
-                await interaction.reply({ content: `Current lineup size is ${lineup.size}`, components: createLineupComponents(lineup, interaction.user.id) })
-                return
-            }
 
-            if (interaction.customId === 'leaveLineup') {
-                let existingPlayerRole = lineup.roles.find(role => role.user?.id === interaction.user.id)
-                if (existingPlayerRole != null) {
-                    existingPlayerRole.user = null
+                if (interaction.customId === 'leaveLineup') {
+                    let existingPlayerRole = lineup.roles.find(role => role.user?.id === interaction.user.id)
+                    if (existingPlayerRole != null) {
+                        existingPlayerRole.user = null
+                    }
+                    team.save()
+                    await interaction.message.edit({ components: [] })
+                    await interaction.reply({ content: `Current lineup size is ${lineup.size}`, components: createLineupComponents(lineup, interaction.user.id) })
+                    return
                 }
-                team.save()
-                await interaction.message.delete()
-                await interaction.reply({ content: `Current lineup size is ${lineup.size}`, components: createLineupComponents(lineup, interaction.user.id) })
-                return
-            }
 
-            if (interaction.customId.startsWith('challenge_')) {
-                let teamChannelId = interaction.customId.substring(10);
-                let teamsComponents = new MessageActionRow().addComponents(
-                    new MessageButton()
-                        .setLabel(`Challenge request sent`)
-                        .setEmoji('⚽')
-                        .setStyle('PRIMARY')
-                        .setCustomId(`challenge_${teamChannelId}`)
-                        .setDisabled(true)
-                )
-                //interaction.message.delete()
-                await interaction.reply({ components: [teamsComponents] })
-                return
+                if (interaction.customId.startsWith('challenge_')) {
+                    let teamChannelId = interaction.customId.substring(10);
+                    let teamsComponents = new MessageActionRow().addComponents(
+                        new MessageButton()
+                            .setLabel(`Challenge request sent`)
+                            .setEmoji('⚽')
+                            .setStyle('PRIMARY')
+                            .setCustomId(`challenge_${teamChannelId}`)
+                            .setDisabled(true)
+                    )
+                    //interaction.message.delete()
+                    await interaction.reply({ components: [teamsComponents] })
+                    return
+                }
+
+                if (interaction.customId.startsWith('delete_team_yes_')) {
+                    await deleteTeam(interaction.guildId);
+                    await interaction.reply({ content: '✅ Your team has been deleted', ephemeral: true })
+                    return
+                }
+
+                if (interaction.customId.startsWith('delete_team_no_')) {
+                    await interaction.reply({ content: 'Easy peasy ! Nothing has been deleted', ephemeral: true })
+                    return
+                }
+            } catch (error) {
+                console.error(error);
+                await interaction.reply({ content: 'There was an error while executing this interaction!', ephemeral: true });
             }
-            return
         }
     }
-};
-
-
-
+}

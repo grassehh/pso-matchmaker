@@ -10,7 +10,7 @@ module.exports = {
             .setDescription('The new name of your team')
         ),
     async execute(interaction) {
-        let team = await retrieveTeam(interaction)
+        let team = await retrieveTeam(interaction.guildId)
         if (!team) {
             await replyTeamNotRegistered(interaction)
             return
@@ -18,6 +18,6 @@ module.exports = {
 
         team.name = interaction.options.getString('name')
         team.save()
-        await interaction.reply({ content: `✅ Your new team name is ${team.name}` })
+        await interaction.reply(`✅ Your new team name is ${team.name}`)
     },
 };
