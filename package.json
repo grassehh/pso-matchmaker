@@ -1,7 +1,11 @@
 {
+  "scripts": {
+    "dev": "nodemon index.ts"
+  },
   "dependencies": {
     "discord.js": "^13.3.1",
     "dotenv": "^10.0.0",
-    "mongoose": "^6.0.13"
+    "mongoose": "^6.0.13",
+    "nodemon": "^2.0.15"
   }
 }

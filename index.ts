@@ -27,8 +27,8 @@ client.on('ready', async () => {
     }
 
     commands?.create({
-        name: 'ping',
-        description: 'Replies with pong'
+        name: 'info',
+        description: 'Gives information about your team'
     })
 
     commands?.create({
@@ -40,6 +40,18 @@ client.on('ready', async () => {
                 description: 'The name of your team',
                 required: true,
                 type: DiscordJS.Constants.ApplicationCommandOptionTypes.STRING
+            },
+            {
+                name: 'team_region',
+                description: 'The region of your team',
+                required: true,
+                type: DiscordJS.Constants.ApplicationCommandOptionTypes.STRING,
+                choices: [
+                    { name: "Europe", value: "EU" },
+                    { name: "North America", value: "NA" },
+                    { name: "South America", value: "SA" },
+                    { name: "Korea", value: "AS" }
+                ]
             }
         ]
     })
@@ -120,7 +132,8 @@ client.on('interactionCreate', async (interaction) => {
             if (commandInteraction.commandName === 'register_team') {
                 new Team({
                     guildId: commandInteraction.guildId,
-                    name: commandInteraction.options.getString('team_name')
+                    name: commandInteraction.options.getString('team_name'),
+                    region: commandInteraction.options.getString('team_region')
                 }).save()
                 commandInteraction.reply({
                     content: 'Your team has been registered ! You can now register lineups in your channels using the /setup_lineup command',
@@ -143,19 +156,25 @@ client.on('interactionCreate', async (interaction) => {
             return
         }
 
-        if (commandInteraction.commandName === 'team_name') {
-            team.name = commandInteraction.options.getString('name')
-            team.save()
-            commandInteraction.reply({
-                content: `Your new team name is ${team.name}`,
+        if (commandInteraction.commandName === 'info') {
+            const teamEmbed = new MessageEmbed()
+                .setColor('#0099ff')
+                .setTitle(`Team information`)
+                .setTimestamp()
+            teamEmbed.addField('Team name', team.name)
+            teamEmbed.addField('Team region', team.region)
+            interaction.reply({
+                embeds: [teamEmbed],
                 ephemeral: true
             })
             return
         }
 
-        if (commandInteraction.commandName === 'ping') {
+        if (commandInteraction.commandName === 'team_name') {
+            team.name = commandInteraction.options.getString('name')
+            team.save()
             commandInteraction.reply({
-                content: `Your team is ${team.name}`,
+                content: `Your new team name is ${team.name}`,
                 ephemeral: true
             })
             return
@@ -198,7 +217,10 @@ client.on('interactionCreate', async (interaction) => {
         switch (commandInteraction.commandName) {
             case 'search': {
                 new LineupQueue({
-                    teamName: team.name,
+                    team: {
+                        name: team.name,
+                        region: team.region
+                    },
                     lineup: existingLineup
                 }).save()
                 commandInteraction.reply({
@@ -226,7 +248,7 @@ client.on('interactionCreate', async (interaction) => {
                 break
             }
             case 'challenges': {
-                let lineupQueues = await LineupQueue.find({ 'lineup.channelId': { '$ne': existingLineup.channelId } })
+                let lineupQueues = await LineupQueue.find({$and: [{ 'lineup.channelId': { '$ne': existingLineup.channelId } }, { 'team.region': team.region }]})
 
                 let teamsComponents = new MessageActionRow()
                 const teamsEmbed = new MessageEmbed()
@@ -238,7 +260,7 @@ client.on('interactionCreate', async (interaction) => {
                     teamsEmbed.setDescription("No Team are currently seaching for a match")
                 } else {
                     for (let lineupQueue of lineupQueues) {
-                        teamsEmbed.addField(`Team '${lineupQueue.teamName}`, `${lineupQueue.lineup.size}v${lineupQueue.lineup.size}`)
+                        teamsEmbed.addField(`Team '${lineupQueue.team.name}'`, `${lineupQueue.lineup.size}v${lineupQueue.lineup.size}`)
                         if (lineupQueue.lineup.size == existingLineup.size) {
                             console.log(lineupQueue.lineup.channelId)
                             teamsComponents.addComponents(

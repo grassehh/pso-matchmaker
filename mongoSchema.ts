@@ -37,6 +37,10 @@ const teamSchema = new mongoose.Schema({
         type: String,
         required: true
     },
+    region: {
+        type: String,
+        required: true
+    },
     lineups: {
         type: [lineupSchema],
         required: true
@@ -45,9 +49,15 @@ const teamSchema = new mongoose.Schema({
 const Team = mongoose.model('Team', teamSchema, 'teams')
 
 const lineupQueueSchema = new mongoose.Schema({
-    teamName: {
-        type: String,
-        required: true
+    team: {
+        name: {
+            type: String,
+            required: true
+        },
+        region: {
+            type: String,
+            required: true
+        }
     },
     lineup: {
         type: lineupSchema,
