@@ -18,9 +18,6 @@ module.exports = {
 
         team.name = interaction.options.getString('name')
         team.save()
-        await interaction.reply({
-            content: `Your new team name is ${team.name}`,
-            ephemeral: true
-        })
+        await interaction.reply({ content: `✅ Your new team name is ${team.name}` })
     },
 };

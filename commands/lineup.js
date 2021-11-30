@@ -15,7 +15,7 @@ module.exports = {
         if (!lineup) {
             await replyLineupNotSetup(interaction)
             return
-        }
+        }  
 
         await interaction.reply({ content: `Current lineup size is ${lineup.size}`, components: createLineupComponents(lineup, interaction.user.id) })
     },

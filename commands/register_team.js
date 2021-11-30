@@ -28,12 +28,12 @@ module.exports = {
                 region: interaction.options.getString('team_region')
             }).save()
             await interaction.reply({
-                content: 'Your team has been registered ! You can now register lineups in your channels using the /setup_lineup command',
-                ephemeral: true
+                content: '✅ Your team has been registered ! You can now register lineups in your channels using the /setup_lineup command',
+                ephemeral: rue
             })
         } else {
             await interaction.reply({
-                content: `You team is already registered as '${team.name}'. Use the /team_name command if you wish to change the name of your team.`,
+                content: `❌ You team is already registered as '${team.name}'. Use the /team_name command if you wish to change the name of your team.`,
                 ephemeral: true
             })
         }
