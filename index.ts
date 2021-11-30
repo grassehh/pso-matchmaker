@@ -266,7 +266,8 @@ client.on('interactionCreate', async (interaction) => {
                             teamsComponents.addComponents(
                                 new MessageButton()
                                     .setCustomId(`challenge_${lineupQueue.lineup.channelId}`)
-                                    .setLabel(`Challenge ${lineupQueue.teamName}`)
+                                    .setLabel(`Challenge '${lineupQueue.team.name}'`)
+                                    .setEmoji('⚽')
                                     .setStyle('PRIMARY')
                             )
                         }
@@ -319,6 +320,21 @@ client.on('interactionCreate', async (interaction) => {
             team.save();
             (interaction.message as Message).delete()
             interaction.reply({ content: `Current lineup size is ${lineup.size}`, components: createLineupComponents(lineup, interaction.user.id) })
+            return
+        }
+
+        if (buttonInteraction.customId.startsWith('challenge_')) {
+            let teamChannelId = buttonInteraction.customId.substring(10);
+            let teamsComponents = new MessageActionRow().addComponents(
+                new MessageButton()
+                    .setLabel(`Challenge request sent`)
+                    .setEmoji('⚽')
+                    .setStyle('PRIMARY')
+                    .setCustomId(`challenge_${teamChannelId}`)
+                    .setDisabled(true)
+            );
+            (interaction.message as Message).delete()
+            interaction.reply({ components: [teamsComponents] })
             return
         }
         return
