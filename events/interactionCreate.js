@@ -2,7 +2,7 @@ const { MessageActionRow, MessageButton, MessageEmbed } = require("discord.js");
 const { LineupQueue } = require("../mongoSchema");
 const { retrieveTeam, retrieveLineup, createLineupComponents } = require("../services");
 const { findLineupQueueById, findLineupQueueByChannelId } = require("../services/matchmakingService");
-const { deleteTeam } = require("../services/teamService");
+const { deleteTeam, findTeamByGuildId, findTeamByChannelId } = require("../services/teamService");
 
 module.exports = {
     name: 'interactionCreate',
@@ -62,18 +62,18 @@ module.exports = {
                     let channel = await interaction.client.channels.fetch(opponentLineupQueue.lineup.channelId)
                     const challengeEmbed = new MessageEmbed()
                         .setColor('#0099ff')
-                        .setTitle(`Team ${team.name} is challenging you for a ${opponentLineupQueue.lineup.size}v${opponentLineupQueue.lineup.size} match !`)
+                        .setTitle(`Team '${team.name}' is challenging you for a ${opponentLineupQueue.lineup.size}v${opponentLineupQueue.lineup.size} match !`)
                         .setDescription('Please ACCEPT or REFUSE the challenge.')
                         .setTimestamp()
 
                     let challengeActionRow = new MessageActionRow()
                         .addComponents(
                             new MessageButton()
-                                .setCustomId(`challenge_yes_${team.id}`)
+                                .setCustomId(`accept_challenge_${interaction.channelId}`)
                                 .setLabel(`Accept`)
                                 .setStyle('SUCCESS'),
                             new MessageButton()
-                                .setCustomId(`challenge_no_${team.id}`)
+                                .setCustomId(`refuse_challenge_${interaction.guildId}`)
                                 .setLabel(`Refuse`)
                                 .setStyle('DANGER')
                         )
@@ -81,6 +81,32 @@ module.exports = {
                     await channel.send({ embeds: [challengeEmbed], components: [challengeActionRow] })
                     await interaction.message.edit({ components: [] })
                     await interaction.reply(`💬 You have sent a challenge request to the team '${opponentLineupQueue.team.name}'. Please wait for his answer.`)
+                    return
+                }
+                
+                if (interaction.customId.startsWith('accept_challenge_')) {
+                    let channelId = interaction.customId.substring(17);
+                    let opponentTeam = await findTeamByChannelId(channelId)
+                    let opponentLineup = retrieveLineup(channelId, team)
+                    let users = opponentLineup.roles.map(role => role.user).filter(user => user)
+
+                    let lineupQueue = await findLineupQueueByChannelId(interaction.channelId)
+                    users = users.concat(lineupQueue.lineup.roles.map(role => role.user).filter(user => user))
+
+                    for (let toto of users) {
+                        let discordUser = await interaction.client.users.fetch(toto.id)
+                        discordUser.send("Match is ready !")
+                    }
+                    await interaction.message.edit({ components: [] })
+                    await interaction.reply(`⚽ You have accepted to challenge the team '${opponentTeam.name}' ! The match is ready on the LOBBY !! GOGOGO`)
+                    return
+                }
+
+                if (interaction.customId.startsWith('refuse_challenge_')) {
+                    let guildId = interaction.customId.substring(17);
+                    let team = await findTeamByGuildId(guildId)                    
+                    await interaction.message.edit({ components: [] })
+                    await interaction.reply(`You have refused to challenge the team '${team.name}''`)
                     return
                 }
 
