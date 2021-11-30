@@ -1,5 +1,7 @@
-const { MessageActionRow, MessageButton } = require("discord.js");
+const { MessageActionRow, MessageButton, MessageEmbed } = require("discord.js");
+const { LineupQueue } = require("../mongoSchema");
 const { retrieveTeam, retrieveLineup, createLineupComponents } = require("../services");
+const { findLineupQueueById, findLineupQueueByChannelId } = require("../services/matchmakingService");
 const { deleteTeam } = require("../services/teamService");
 
 module.exports = {
@@ -55,17 +57,30 @@ module.exports = {
                 }
 
                 if (interaction.customId.startsWith('challenge_')) {
-                    let teamChannelId = interaction.customId.substring(10);
-                    let teamsComponents = new MessageActionRow().addComponents(
-                        new MessageButton()
-                            .setLabel(`Challenge request sent`)
-                            .setEmoji('⚽')
-                            .setStyle('PRIMARY')
-                            .setCustomId(`challenge_${teamChannelId}`)
-                            .setDisabled(true)
-                    )
-                    //interaction.message.delete()
-                    await interaction.reply({ components: [teamsComponents] })
+                    let lineupQueueId = interaction.customId.substring(10);
+                    let opponentLineupQueue = await findLineupQueueById(lineupQueueId)
+                    let channel = await interaction.client.channels.fetch(opponentLineupQueue.lineup.channelId)
+                    const challengeEmbed = new MessageEmbed()
+                        .setColor('#0099ff')
+                        .setTitle(`Team ${team.name} is challenging you for a ${opponentLineupQueue.lineup.size}v${opponentLineupQueue.lineup.size} match !`)
+                        .setDescription('Please ACCEPT or REFUSE the challenge.')
+                        .setTimestamp()
+
+                    let challengeActionRow = new MessageActionRow()
+                        .addComponents(
+                            new MessageButton()
+                                .setCustomId(`challenge_yes_${team.id}`)
+                                .setLabel(`Accept`)
+                                .setStyle('SUCCESS'),
+                            new MessageButton()
+                                .setCustomId(`challenge_no_${team.id}`)
+                                .setLabel(`Refuse`)
+                                .setStyle('DANGER')
+                        )
+
+                    await channel.send({ embeds: [challengeEmbed], components: [challengeActionRow] })
+                    await interaction.message.edit({ components: [] })
+                    await interaction.reply(`💬 You have sent a challenge request to the team '${opponentLineupQueue.team.name}'. Please wait for his answer.`)
                     return
                 }
 

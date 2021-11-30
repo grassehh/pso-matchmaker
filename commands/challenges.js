@@ -21,7 +21,7 @@ module.exports = {
 
         let lineupQueues = await LineupQueue.find({ $and: [{ 'lineup.channelId': { '$ne': lineup.channelId } }, { 'team.region': team.region }] })
 
-        let teamsComponents = new MessageActionRow()
+        let teamsActionRow = new MessageActionRow()
         const teamsEmbed = new MessageEmbed()
             .setColor('#0099ff')
             .setTitle(`Challenging Teams (Current lineup is ${lineup.size}v${lineup.size})`)
@@ -32,10 +32,9 @@ module.exports = {
             for (let lineupQueue of lineupQueues) {
                 teamsEmbed.addField(`Team '${lineupQueue.team.name}'`, `${lineupQueue.lineup.size}v${lineupQueue.lineup.size}`)
                 if (lineupQueue.lineup.size == lineup.size) {
-                    console.log(lineupQueue.lineup.channelId)
-                    teamsComponents.addComponents(
+                    teamsActionRow.addComponents(
                         new MessageButton()
-                            .setCustomId(`challenge_${lineupQueue.lineup.channelId}`)
+                            .setCustomId(`challenge_${lineupQueue.id}`)
                             .setLabel(`Challenge '${lineupQueue.team.name}'`)
                             .setEmoji('⚽')
                             .setStyle('PRIMARY')
@@ -45,10 +44,10 @@ module.exports = {
             teamsEmbed.setFooter("Note: You can only challenge team with the same lineup size")
         }
 
-        if (teamsComponents.components.length === 0) {
+        if (teamsActionRow.components.length === 0) {
             await interaction.reply({ embeds: [teamsEmbed] })
         } else {
-            await interaction.reply({ embeds: [teamsEmbed], components: [teamsComponents] })
+            await interaction.reply({ embeds: [teamsEmbed], components: [teamsActionRow] })
         }
     },
 };
