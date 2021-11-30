@@ -62,6 +62,11 @@ const lineupQueueSchema = new mongoose.Schema({
     lineup: {
         type: lineupSchema,
         required: true
+    },
+    reserved: {
+        type: Boolean,
+        required: true,
+        default: false
     }
 })
 exports.LineupQueue = mongoose.model('LineupQueue', lineupQueueSchema, 'lineup-queue')

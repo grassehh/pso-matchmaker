@@ -1,7 +1,6 @@
 const { MessageActionRow, MessageButton, MessageEmbed } = require("discord.js");
-const { LineupQueue } = require("../mongoSchema");
 const { retrieveTeam, retrieveLineup, createLineupComponents } = require("../services");
-const { findLineupQueueById, findLineupQueueByChannelId } = require("../services/matchmakingService");
+const { findLineupQueueByChannelId, reserveAndGetLineupQueueById } = require("../services/matchmakingService");
 const { deleteTeam, findTeamByGuildId, findTeamByChannelId } = require("../services/teamService");
 
 module.exports = {
@@ -58,7 +57,7 @@ module.exports = {
 
                 if (interaction.customId.startsWith('challenge_')) {
                     let lineupQueueId = interaction.customId.substring(10);
-                    let opponentLineupQueue = await findLineupQueueById(lineupQueueId)
+                    let opponentLineupQueue = await reserveAndGetLineupQueueById(lineupQueueId)
                     let channel = await interaction.client.channels.fetch(opponentLineupQueue.lineup.channelId)
                     const challengeEmbed = new MessageEmbed()
                         .setColor('#0099ff')

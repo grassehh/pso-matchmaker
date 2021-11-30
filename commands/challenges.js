@@ -2,6 +2,7 @@ const { SlashCommandBuilder } = require('@discordjs/builders');
 const { MessageActionRow, MessageEmbed, MessageButton } = require('discord.js');
 const { LineupQueue } = require('../mongoSchema');
 const { retrieveTeam, replyTeamNotRegistered, replyLineupNotSetup, retrieveLineup } = require('../services');
+const { findAvailableLineupQueues } = require('../services/matchmakingService');
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -19,8 +20,7 @@ module.exports = {
             return
         }
 
-        let lineupQueues = await LineupQueue.find({ $and: [{ 'lineup.channelId': { '$ne': lineup.channelId } }, { 'team.region': team.region }] })
-
+        let lineupQueues = await findAvailableLineupQueues(lineup.channelId, team.region)
         let teamsActionRow = new MessageActionRow()
         const teamsEmbed = new MessageEmbed()
             .setColor('#0099ff')
