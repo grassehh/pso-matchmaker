@@ -65,7 +65,7 @@ module.exports = {
                     if (lineupQueue.lineup.name) {
                         lineupFieldValue += ` (lineup ${lineupQueue.lineup.name})`
                     }
-                    lineupsEmbed.addField(`Team '${lineupQueue.team.name}`, lineupFieldValue, i % 4 !== 0)
+                    lineupsEmbed.addField(`Team '${lineupQueue.team.name}'`, lineupFieldValue, i % 4 !== 0)
                     if (lineupQueue.lineup.size == lineup.size) {
                         teamsActionRow.addComponents(
                             new MessageButton()

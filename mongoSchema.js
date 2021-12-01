@@ -28,6 +28,11 @@ const lineupSchema = new mongoose.Schema({
         type: String,
         required: false,
         default: ""
+    },
+    autoSearch: {
+        type: Boolean,
+        required: false,
+        default: false
     }
 })
 
@@ -69,6 +74,10 @@ const lineupQueueSchema = new mongoose.Schema({
 exports.LineupQueue = mongoose.model('LineupQueue', lineupQueueSchema, 'lineup-queues')
 
 const challengeSchema = new mongoose.Schema({
+    initiatingUser: {
+        type: Object,
+        required: true
+    },
     initiatingTeam: {
         type: lineupQueueSchema
     },

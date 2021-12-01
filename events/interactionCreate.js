@@ -1,6 +1,6 @@
 const { LineupQueue, Challenge } = require("../mongoSchema");
-const { retrieveTeam, retrieveLineup, createLineupComponents, createDecideChallengeReply, createCancelChallengeReply } = require("../services");
-const { reserveAndGetLineupQueueById, findChallengeById, freeLineupQueueById, reserveAndGetLineupQueueByChannelId, findChallengeByGuildId } = require("../services/matchmakingService");
+const { retrieveTeam, retrieveLineup, createLineupComponents, createDecideChallengeReply, createCancelChallengeReply, replyAlreadyQueued } = require("../services");
+const { reserveAndGetLineupQueueById, findChallengeById, freeLineupQueueById, reserveAndGetLineupQueueByChannelId, findChallengeByGuildId, findLineupQueueByChannelId } = require("../services/matchmakingService");
 const { deleteTeam, clearLineup, updateLineupQueueRole } = require("../services/teamService");
 
 module.exports = {
@@ -29,6 +29,11 @@ module.exports = {
                     let roleName = interaction.customId.substring(5)
                     let playerRole = lineup.roles.find(role => role.name == roleName)
 
+                    if (playerRole.user) {
+                        await interaction.reply({ content: 'A player is already signed at this position', ephemeral: true })
+                        return
+                    }
+
                     let existingPlayerRole = lineup.roles.find(role => role.user?.id === interaction.user.id)
                     if (existingPlayerRole != null) {
                         existingPlayerRole.user = null
@@ -36,13 +41,27 @@ module.exports = {
                     playerRole.user = {
                         id: interaction.user.id,
                         name: interaction.user.username,
-                        tag: interaction.user.toString()
+                        mention: interaction.user.toString()
+                    }
+                    await team.save()
+                    await updateLineupQueueRole(interaction.guildId, interaction.channelId, playerRole)
+                    await interaction.message.edit({ components: [] })
+
+                    if (lineup.autoSearch === true && lineup.roles.filter(role => role.user != null).length === lineup.roles.length) {
+                        let lineupQueue = await findLineupQueueByChannelId(interaction.channelId)
+                        if (lineupQueue) {
+                            await replyAlreadyQueued(interaction, lineupQueue.lineup.size)
+                            return
+                        }
+                        await new LineupQueue({
+                            team: team,
+                            lineup: lineup
+                        }).save()
+                        await interaction.reply(`Player ${interaction.user} signed into the lineup as ${roleName}. Your lineup is full, it is now queued for ${lineup.size}v${lineup.size} !`)
+                        return
                     }
 
-                    await updateLineupQueueRole(interaction.guildId, interaction.channelId, playerRole)
-                    await team.save()
-                    await interaction.message.edit({ components: [] })
-                    await interaction.reply({ content: `Current lineup size is ${lineup.size}`, components: createLineupComponents(lineup, interaction.user.id) })
+                    await interaction.reply({ content: `Player ${interaction.user} signed into the lineup as ${roleName}`, components: createLineupComponents(lineup, interaction.user.id) })
                     return
                 }
 
@@ -53,7 +72,14 @@ module.exports = {
                     }
                     await team.save()
                     await interaction.message.edit({ components: [] })
-                    await interaction.reply({ content: `Current lineup size is ${lineup.size}`, components: createLineupComponents(lineup, interaction.user.id) })
+
+                    if (lineup.autoSearch === true && lineup.roles.filter(role => role.user != null).length === lineup.roles.length - 1) {
+                        await LineupQueue.deleteOne({ 'lineup.channelId': interaction.channelId })
+                        await interaction.reply({ content: `Player ${interaction.user} left the ${existingPlayerRole.name} position. Your team is no longer in the queue !`, components: createLineupComponents(lineup, interaction.user.id) })
+                        return
+                    }
+
+                    await interaction.reply({ content: `Player ${interaction.user} left the ${existingPlayerRole.name} position`, components: createLineupComponents(lineup, interaction.user.id) })
                     return
                 }
 
@@ -61,9 +87,14 @@ module.exports = {
                     let lineupQueueId = interaction.customId.substring(10);
                     let opponentLineupQueue = await reserveAndGetLineupQueueById(lineupQueueId)
 
+                    if (!opponentLineupQueue) {
+                        interaction.reply({ content: "❌ This team is no longer challenging", ephemeral: true })
+                        return
+                    }
+
                     let opponentChallenge = await findChallengeByGuildId(opponentLineupQueue.team.guildId)
                     if (opponentChallenge) {
-                        interaction.reply({ content: "This team is negociating a challenge", ephemeral: true })
+                        interaction.reply({ content: "❌ This team is negociating a challenge", ephemeral: true })
                         return
                     }
 
@@ -79,6 +110,11 @@ module.exports = {
                         })
                     }
                     let challenge = new Challenge({
+                        initiatingUser: {
+                            id: interaction.user.id,
+                            name: interaction.user.username,
+                            mention: interaction.user.toString()
+                        },
                         initiatingTeam: lineupQueue,
                         challengedTeam: opponentLineupQueue
                     })
@@ -115,7 +151,7 @@ module.exports = {
 
                     let initiatingTeamChannel = await interaction.client.channels.fetch(challenge.initiatingTeam.lineup.channelId)
                     await initiatingTeamChannel.messages.edit(challenge.initiatingMessageId, { components: [] })
-                    initiatingTeamChannel.send(`⚽ The team '${challenge.challengedTeam.team.name} has accepted your challenge request ! The match is ready on the LOBBY !! GOGOGO`)
+                    initiatingTeamChannel.send(`⚽ The team '${challenge.challengedTeam.team.name}' has accepted your challenge request ! The match is ready on the LOBBY !! GOGOGO`)
 
                     await interaction.message.edit({ components: [] })
                     await interaction.reply(`⚽ You have accepted to challenge the team '${challenge.challengedTeam.team.name}' ! The match is ready on the LOBBY !! GOGOGO`)

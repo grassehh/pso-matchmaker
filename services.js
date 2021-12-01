@@ -52,7 +52,7 @@ exports.createDecideChallengeReply = (challenge) => {
     const challengeEmbed = new MessageEmbed()
         .setColor('#0099ff')
         .setTitle(`Team '${challenge.initiatingTeam.team.name}' is challenging you for a ${challenge.initiatingTeam.lineup.size}v${challenge.initiatingTeam.lineup.size} match !`)
-        .setDescription('Please ACCEPT or REFUSE the challenge.')
+        .setDescription(`Contact ${challenge.initiatingUser.mention} if you want to arrange further.`)
         .setTimestamp()
     let challengeActionRow = new MessageActionRow()
         .addComponents(

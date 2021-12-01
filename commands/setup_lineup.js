@@ -24,7 +24,10 @@ module.exports = {
             )
             .addStringOption(option => option.setName('name')
                 .setRequired(false)
-                .setDescription('Sets a name for this lineup. Useful if you have multiple lineups inside your team')),
+                .setDescription('Sets a name for this lineup. Useful if you have multiple lineups inside your team'))
+            .addBooleanOption(option => option.setName('auto_search')
+                .setRequired(false)
+                .setDescription('Indicates if this lineup should automatically sign into the matchmaking once it is filled')),
     async execute(interaction) {
         let team = await retrieveTeam(interaction.guildId)
         if (!team) {
@@ -47,7 +50,8 @@ module.exports = {
                 channelId: interaction.channelId,
                 size: lineupSize,
                 roles: newPlayerRoles,
-                name: newLineupName
+                name: newLineupName,
+                autoSearch: interaction.options.getBoolean("auto_search")
             }
             team.lineups.push(lineup)
         } else {
