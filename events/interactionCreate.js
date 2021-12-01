@@ -135,6 +135,9 @@ module.exports = {
                     await LineupQueue.deleteOne({ '_id': challenge.initiatingTeam.id })
                     await Challenge.deleteOne({ '_id': challenge.id })
 
+                    let initiatingTeamChannel = await interaction.client.channels.fetch(challenge.initiatingTeam.lineup.channelId)
+                    await initiatingTeamChannel.messages.edit(challenge.initiatingMessageId, { components: [] })
+
                     await interaction.message.edit({ components: [] })
                     await interaction.reply(`⚽ You have accepted to challenge the team '${challenge.challengedTeam.team.name}' ! The match is ready on the LOBBY !! GOGOGO`)
                     return
