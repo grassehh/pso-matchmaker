@@ -31,3 +31,7 @@ exports.findChallengeById = async (id) => {
 exports.findChallengeByGuildId = async (guildId) => {
     return await Challenge.findOne({ $or: [{ 'initiatingTeam.team.guildId': guildId }, { 'challengedTeam.team.guildId': guildId }] })
 }
+
+exports.findChallengeByChannelId = async (channelId) => {
+    return await Challenge.findOne({ $or: [{ 'initiatingTeam.lineup.channelId': channelId }, { 'challengedTeam.lineup.channelId': channelId }] })
+}

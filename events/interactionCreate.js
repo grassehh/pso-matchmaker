@@ -1,9 +1,7 @@
-const { MessageActionRow, MessageButton, MessageEmbed } = require("discord.js");
-const { init } = require("mongoose/lib/model");
 const { LineupQueue, Challenge } = require("../mongoSchema");
-const { retrieveTeam, retrieveLineup, createLineupComponents } = require("../services");
-const { findLineupQueueByChannelId, reserveAndGetLineupQueueById, findChallengeById, freeLineupQueueById, reserveAndGetLineupQueueByChannelId, findChallengeByGuildId } = require("../services/matchmakingService");
-const { deleteTeam, findTeamByGuildId, findTeamByChannelId } = require("../services/teamService");
+const { retrieveTeam, retrieveLineup, createLineupComponents, createDecideChallengeReply, createCancelChallengeReply } = require("../services");
+const { reserveAndGetLineupQueueById, findChallengeById, freeLineupQueueById, reserveAndGetLineupQueueByChannelId, findChallengeByGuildId } = require("../services/matchmakingService");
+const { deleteTeam } = require("../services/teamService");
 
 module.exports = {
     name: 'interactionCreate',
@@ -63,7 +61,7 @@ module.exports = {
 
                     let opponentChallenge = await findChallengeByGuildId(opponentLineupQueue.team.guildId)
                     if (opponentChallenge) {
-                        interaction.reply({content: "This team is negociating a challenge", ephemeral: true})
+                        interaction.reply({ content: "This team is negociating a challenge", ephemeral: true })
                         return
                     }
 
@@ -83,36 +81,13 @@ module.exports = {
                         challengedTeam: opponentLineupQueue
                     })
 
-                    const challengeEmbed = new MessageEmbed()
-                        .setColor('#0099ff')
-                        .setTitle(`Team '${challenge.initiatingTeam.team.name}' is challenging you for a ${challenge.initiatingTeam.lineup.size}v${challenge.initiatingTeam.lineup.size} match !`)
-                        .setDescription('Please ACCEPT or REFUSE the challenge.')
-                        .setTimestamp()
-                    let cancelChallengeRow = new MessageActionRow()
-                        .addComponents(
-                            new MessageButton()
-                                .setCustomId(`cancel_challenge_${challenge.id}`)
-                                .setLabel(`Cancel Request`)
-                                .setStyle('DANGER')
-                        )
                     await interaction.message.edit({ components: [] })
-                    await interaction.reply({ content: `💬 You have sent a challenge request to the team '${challenge.challengedTeam.team.name}'. You can either wait for his answer, or cancel your request.`, components: [cancelChallengeRow] })
+                    await interaction.reply(createCancelChallengeReply(challenge))
                     let initiatingMessage = await interaction.fetchReply()
                     challenge.initiatingMessageId = initiatingMessage.id
 
-                    let challengeActionRow = new MessageActionRow()
-                        .addComponents(
-                            new MessageButton()
-                                .setCustomId(`accept_challenge_${challenge.id}`)
-                                .setLabel(`Accept`)
-                                .setStyle('SUCCESS'),
-                            new MessageButton()
-                                .setCustomId(`refuse_challenge_${challenge.id}`)
-                                .setLabel(`Refuse`)
-                                .setStyle('DANGER')
-                        )
                     let channel = await interaction.client.channels.fetch(challenge.challengedTeam.lineup.channelId)
-                    let challengedMessage = await channel.send({ embeds: [challengeEmbed], components: [challengeActionRow] })
+                    let challengedMessage = await channel.send(createDecideChallengeReply(challenge))
                     challenge.challengedMessageId = challengedMessage.id
 
                     await challenge.save()

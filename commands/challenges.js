@@ -1,13 +1,25 @@
 const { SlashCommandBuilder } = require('@discordjs/builders');
 const { MessageActionRow, MessageEmbed, MessageButton } = require('discord.js');
-const { retrieveTeam, replyTeamNotRegistered, replyLineupNotSetup, retrieveLineup } = require('../services');
-const { findAvailableLineupQueues } = require('../services/matchmakingService');
+const { retrieveTeam, replyTeamNotRegistered, replyLineupNotSetup, retrieveLineup, createCancelChallengeReply, createDecideChallengeReply } = require('../services');
+const { findAvailableLineupQueues, findChallengeByChannelId } = require('../services/matchmakingService');
 
 module.exports = {
     data: new SlashCommandBuilder()
         .setName('challenges')
         .setDescription('Display the teams looking for a match, with the same lineup size'),
     async execute(interaction) {
+        let challenge = await findChallengeByChannelId(interaction.channelId)
+        if (challenge) {
+            let reply
+            if (challenge.initiatingTeam.lineup.channelId == interaction.channelId) {
+                reply = createCancelChallengeReply(challenge)
+            } else {
+                reply = createDecideChallengeReply(challenge)
+            }
+            await interaction.reply(reply)
+            return
+        }
+
         let team = await retrieveTeam(interaction.guildId)
         if (!team) {
             await replyTeamNotRegistered(interaction)

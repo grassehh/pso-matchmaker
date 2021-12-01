@@ -1,4 +1,4 @@
-const { MessageActionRow, MessageButton } = require("discord.js");
+const { MessageActionRow, MessageButton, MessageEmbed } = require("discord.js");
 const { Team } = require("./mongoSchema");
 
 exports.retrieveTeam = async (guildId) => {
@@ -37,6 +37,37 @@ exports.replyLineupNotSetup = async (interaction) => {
     })
 }
 
+exports.createCancelChallengeReply = (challenge) => {
+    let cancelChallengeRow = new MessageActionRow()
+        .addComponents(
+            new MessageButton()
+                .setCustomId(`cancel_challenge_${challenge.id}`)
+                .setLabel(`Cancel Request`)
+                .setStyle('DANGER')
+        )
+    return { content: `💬 You have sent a challenge request to the team '${challenge.challengedTeam.team.name}'. You can either wait for his answer, or cancel your request.`, components: [cancelChallengeRow] }
+}
+
+exports.createDecideChallengeReply = (challenge) => {
+    const challengeEmbed = new MessageEmbed()
+        .setColor('#0099ff')
+        .setTitle(`Team '${challenge.initiatingTeam.team.name}' is challenging you for a ${challenge.initiatingTeam.lineup.size}v${challenge.initiatingTeam.lineup.size} match !`)
+        .setDescription('Please ACCEPT or REFUSE the challenge.')
+        .setTimestamp()
+    let challengeActionRow = new MessageActionRow()
+        .addComponents(
+            new MessageButton()
+                .setCustomId(`accept_challenge_${challenge.id}`)
+                .setLabel(`Accept`)
+                .setStyle('SUCCESS'),
+            new MessageButton()
+                .setCustomId(`refuse_challenge_${challenge.id}`)
+                .setLabel(`Refuse`)
+                .setStyle('DANGER')
+        )
+    return { embeds: [challengeEmbed], components: [challengeActionRow] }
+}
+
 exports.createLineupComponents = (lineup, userId) => {
 
     let components = []
@@ -46,7 +77,7 @@ exports.createLineupComponents = (lineup, userId) => {
         }
 
         let playerRole = lineup.roles[i]
-        components[components.length-1].addComponents(
+        components[components.length - 1].addComponents(
             new MessageButton()
                 .setCustomId(`role_${playerRole.name}`)
                 .setLabel(playerRole.user == null ? playerRole.name : `${playerRole.name}: ${playerRole.user.name}`)

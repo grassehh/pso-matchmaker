@@ -1,14 +1,14 @@
 const { SlashCommandBuilder } = require('@discordjs/builders');
 const { LineupQueue } = require('../mongoSchema');
 const { retrieveTeam, replyTeamNotRegistered, retrieveLineup, replyLineupNotSetup, replyAlreadyChallenging } = require('../services');
-const { findChallengeByGuildId } = require('../services/matchmakingService');
+const { findChallengeByChannelId } = require('../services/matchmakingService');
 
 module.exports = {
     data: new SlashCommandBuilder()
         .setName('stop_search')
         .setDescription('Remove your team from the matchmaking queue'),
     async execute(interaction) {
-        let challenge = await findChallengeByGuildId(interaction.guildId)
+        let challenge = await findChallengeByChannelId(interaction.channelId)
         if (challenge) {
             await replyAlreadyChallenging(interaction, challenge)
             return
