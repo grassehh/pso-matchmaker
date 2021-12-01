@@ -27,7 +27,7 @@ module.exports = {
         lineup.roles.forEach(role => {
             role.user = null
         });
-        team.save()
+        await team.save()
         await interaction.reply({ content: `Current lineup size is ${lineup.size}`, components: createLineupComponents(lineup, interaction.user.id) });
     },
 };

@@ -24,7 +24,7 @@ module.exports = {
             return
         }
 
-        new LineupQueue({
+        await new LineupQueue({
             team: {
                 name: team.name,
                 region: team.region

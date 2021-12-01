@@ -1,6 +1,8 @@
 const { MessageActionRow, MessageButton, MessageEmbed } = require("discord.js");
+const { init } = require("mongoose/lib/model");
+const { LineupQueue, Challenge } = require("../mongoSchema");
 const { retrieveTeam, retrieveLineup, createLineupComponents } = require("../services");
-const { findLineupQueueByChannelId, reserveAndGetLineupQueueById } = require("../services/matchmakingService");
+const { findLineupQueueByChannelId, reserveAndGetLineupQueueById, findChallengeById, freeLineupQueueById } = require("../services/matchmakingService");
 const { deleteTeam, findTeamByGuildId, findTeamByChannelId } = require("../services/teamService");
 
 module.exports = {
@@ -38,7 +40,7 @@ module.exports = {
                         name: interaction.user.username,
                         tag: interaction.user.toString()
                     }
-                    team.save()
+                    await team.save()
                     await interaction.message.edit({ components: [] })
                     await interaction.reply({ content: `Current lineup size is ${lineup.size}`, components: createLineupComponents(lineup, interaction.user.id) })
                     return
@@ -49,7 +51,7 @@ module.exports = {
                     if (existingPlayerRole != null) {
                         existingPlayerRole.user = null
                     }
-                    team.save()
+                    await team.save()
                     await interaction.message.edit({ components: [] })
                     await interaction.reply({ content: `Current lineup size is ${lineup.size}`, components: createLineupComponents(lineup, interaction.user.id) })
                     return
@@ -58,73 +60,109 @@ module.exports = {
                 if (interaction.customId.startsWith('challenge_')) {
                     let lineupQueueId = interaction.customId.substring(10);
                     let opponentLineupQueue = await reserveAndGetLineupQueueById(lineupQueueId)
-                    let channel = await interaction.client.channels.fetch(opponentLineupQueue.lineup.channelId)
+                    let lineupQueue = await findLineupQueueByChannelId(interaction.channelId)
+                    if (!lineupQueue) {
+                        lineupQueue = new LineupQueue({
+                            team: {
+                                name: team.name,
+                                region: team.region
+                            },
+                            lineup: lineup
+                        })
+                    }
+                    let challenge = new Challenge({
+                        initiatingTeam: lineupQueue,
+                        challengedTeam: opponentLineupQueue
+                    })
+
                     const challengeEmbed = new MessageEmbed()
                         .setColor('#0099ff')
-                        .setTitle(`Team '${team.name}' is challenging you for a ${opponentLineupQueue.lineup.size}v${opponentLineupQueue.lineup.size} match !`)
+                        .setTitle(`Team '${challenge.initiatingTeam.team.name}' is challenging you for a ${challenge.initiatingTeam.lineup.size}v${challenge.initiatingTeam.lineup.size} match !`)
                         .setDescription('Please ACCEPT or REFUSE the challenge.')
                         .setTimestamp()
-
-                    let challengeActionRow = new MessageActionRow()
-                        .addComponents(
-                            new MessageButton()
-                                .setCustomId(`accept_challenge_${interaction.channelId}`)
-                                .setLabel(`Accept`)
-                                .setStyle('SUCCESS'),
-                            new MessageButton()
-                                .setCustomId(`refuse_challenge_${interaction.guildId}`)
-                                .setLabel(`Refuse`)
-                                .setStyle('DANGER')
-                        )
-
-                    let sentMessage = await channel.send({ embeds: [challengeEmbed], components: [challengeActionRow] })
                     let cancelChallengeRow = new MessageActionRow()
                         .addComponents(
                             new MessageButton()
-                                .setCustomId(`cancel_challenge_${channel.id}|${sentMessage.id}`)
+                                .setCustomId(`cancel_challenge_${challenge.id}`)
                                 .setLabel(`Cancel Request`)
                                 .setStyle('DANGER')
                         )
                     await interaction.message.edit({ components: [] })
-                    await interaction.reply({ content: `💬 You have sent a challenge request to the team '${opponentLineupQueue.team.name}'. You can either wait for his answer, or cancel your request.`, components: [cancelChallengeRow] })
+                    await interaction.reply({ content: `💬 You have sent a challenge request to the team '${challenge.challengedTeam.team.name}'. You can either wait for his answer, or cancel your request.`, components: [cancelChallengeRow] })
+                    let initiatingMessage = await interaction.fetchReply()
+                    challenge.initiatingMessageId = initiatingMessage.id
+
+                    let challengeActionRow = new MessageActionRow()
+                        .addComponents(
+                            new MessageButton()
+                                .setCustomId(`accept_challenge_${challenge.id}`)
+                                .setLabel(`Accept`)
+                                .setStyle('SUCCESS'),
+                            new MessageButton()
+                                .setCustomId(`refuse_challenge_${challenge.id}`)
+                                .setLabel(`Refuse`)
+                                .setStyle('DANGER')
+                        )
+                    let channel = await interaction.client.channels.fetch(challenge.challengedTeam.lineup.channelId)
+                    let challengedMessage = await channel.send({ embeds: [challengeEmbed], components: [challengeActionRow] })
+                    challenge.challengedMessageId = challengedMessage.id
+
+                    await challenge.save()
                     return
                 }
 
                 if (interaction.customId.startsWith('accept_challenge_')) {
-                    let channelId = interaction.customId.substring(17);
-                    let opponentTeam = await findTeamByChannelId(channelId)
-                    let opponentLineup = retrieveLineup(channelId, team)
-                    let users = opponentLineup.roles.map(role => role.user).filter(user => user)
+                    let challengeId = interaction.customId.substring(17);
+                    let challenge = await findChallengeById(challengeId)
+                    let users = challenge.challengedTeam.lineup.roles.map(role => role.user).filter(user => user)
 
-                    let lineupQueue = await findLineupQueueByChannelId(interaction.channelId)
-                    users = users.concat(lineupQueue.lineup.roles.map(role => role.user).filter(user => user))
+                    users = users.concat(challenge.initiatingTeam.lineup.roles.map(role => role.user).filter(user => user))
 
                     for (let toto of users) {
                         let discordUser = await interaction.client.users.fetch(toto.id)
                         discordUser.send("Match is ready !")
                     }
+
+                    await LineupQueue.deleteOne({ '_id': challenge.challengedTeam.id })
+                    await LineupQueue.deleteOne({ '_id': challenge.initiatingTeam.id })
+                    await Challenge.deleteOne({ '_id': challenge.id })
+
                     await interaction.message.edit({ components: [] })
-                    await interaction.reply(`⚽ You have accepted to challenge the team '${opponentTeam.name}' ! The match is ready on the LOBBY !! GOGOGO`)
+                    await interaction.reply(`⚽ You have accepted to challenge the team '${challenge.challengedTeam.team.name}' ! The match is ready on the LOBBY !! GOGOGO`)
                     return
                 }
 
                 if (interaction.customId.startsWith('refuse_challenge_')) {
-                    let guildId = interaction.customId.substring(17);
-                    let team = await findTeamByGuildId(guildId)
+                    let challengeId = interaction.customId.substring(17);
+                    let challenge = await findChallengeById(challengeId)
+
+                    await freeLineupQueueById(challenge.challengedTeam.id)
+                    await freeLineupQueueById(challenge.initiatingTeam.id)
+                    await Challenge.deleteOne({ '_id': challenge.id })
+
+                    let initiatingTeamChannel = await interaction.client.channels.fetch(challenge.initiatingTeam.lineup.channelId)
+                    await initiatingTeamChannel.messages.edit(challenge.initiatingMessageId, { components: [] })
+                    await initiatingTeamChannel.send(`The team '${challenge.challengedTeam.team.name}' has refused your challenge request`)
+
                     await interaction.message.edit({ components: [] })
-                    await interaction.reply(`You have refused to challenge the team '${team.name}''`)
+                    await interaction.reply(`You have refused to challenge the team '${challenge.initiatingTeam.team.name}''`)
                     return
                 }
 
                 if (interaction.customId.startsWith('cancel_challenge_')) {
-                    let ids = interaction.customId.substring(17).split('|')
-                    let channelId = ids[0]
-                    let messageId = ids[1]
-                    let channel = await interaction.client.channels.fetch(channelId)
-                    await channel.messages.edit(messageId, {components: []})
-                    await channel.send("The team has cancel the challenge request")                    
+                    let challengeId = interaction.customId.substring(17);
+                    let challenge = await findChallengeById(challengeId)
+
+                    await freeLineupQueueById(challenge.challengedTeam.id)
+                    await freeLineupQueueById(challenge.initiatingTeam.id)
+                    await Challenge.deleteOne({ '_id': challenge.id })
+
+                    let challengedTeamChannel = await interaction.client.channels.fetch(challenge.challengedTeam.lineup.channelId)
+                    await challengedTeamChannel.messages.edit(challenge.challengedMessageId, { components: [] })
+                    await challengedTeamChannel.send(`The team '${challenge.initiatingTeam.team.name}' has cancelled the challenge request`)
+
                     await interaction.message.edit({ components: [] })
-                    await interaction.reply(`You have cancelled your challenge request for the team '${team.name}''`)
+                    await interaction.reply(`You have cancelled your challenge request for the team '${challenge.challengedTeam.team.name}'`)
                     return
                 }
 
@@ -140,7 +178,11 @@ module.exports = {
                 }
             } catch (error) {
                 console.error(error);
-                await interaction.reply({ content: 'There was an error while executing this interaction!', ephemeral: true });
+                try {
+                    await interaction.reply({ content: 'There was an error while executing this interaction!', ephemeral: true });
+                } catch (error) {
+                    //Shush
+                }
             }
         }
     }

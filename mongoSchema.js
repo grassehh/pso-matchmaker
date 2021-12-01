@@ -10,7 +10,6 @@ const playerRoleSchema = new mongoose.Schema({
         required: false
     }
 })
-exports.PlayerRole = mongoose.model('PlayerRole', playerRoleSchema)
 
 const lineupSchema = new mongoose.Schema({
     channelId: {
@@ -26,7 +25,6 @@ const lineupSchema = new mongoose.Schema({
         required: true
     }
 })
-exports.Lineup = mongoose.model('Lineup', lineupSchema)
 
 const teamSchema = new mongoose.Schema({
     guildId: {
@@ -69,4 +67,22 @@ const lineupQueueSchema = new mongoose.Schema({
         default: false
     }
 })
-exports.LineupQueue = mongoose.model('LineupQueue', lineupQueueSchema, 'lineup-queue')
+exports.LineupQueue = mongoose.model('LineupQueue', lineupQueueSchema, 'lineup-queues')
+
+const challengeSchema = new mongoose.Schema({
+    initiatingTeam: {
+        type: lineupQueueSchema
+    },
+    initiatingMessageId: {
+        type: String,
+        required: true
+    },
+    challengedTeam: {
+        type: lineupQueueSchema,
+    },
+    challengedMessageId: {
+        type: String,
+        required: true
+    }
+})
+exports.Challenge = mongoose.model('Challenge', challengeSchema, 'challenges')

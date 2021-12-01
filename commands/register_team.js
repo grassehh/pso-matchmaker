@@ -22,7 +22,7 @@ module.exports = {
         let team = await retrieveTeam(interaction.guildId)
 
         if (!team) {
-            new Team({
+            await new Team({
                 guildId: interaction.guildId,
                 name: interaction.options.getString('team_name'),
                 region: interaction.options.getString('team_region')
