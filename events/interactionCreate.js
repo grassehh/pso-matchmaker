@@ -1,7 +1,7 @@
 const { LineupQueue, Challenge } = require("../mongoSchema");
 const { retrieveTeam, retrieveLineup, createLineupComponents, createDecideChallengeReply, createCancelChallengeReply } = require("../services");
 const { reserveAndGetLineupQueueById, findChallengeById, freeLineupQueueById, reserveAndGetLineupQueueByChannelId, findChallengeByGuildId } = require("../services/matchmakingService");
-const { deleteTeam, clearLineup } = require("../services/teamService");
+const { deleteTeam, clearLineup, updateLineupQueueRole } = require("../services/teamService");
 
 module.exports = {
     name: 'interactionCreate',
@@ -38,6 +38,8 @@ module.exports = {
                         name: interaction.user.username,
                         tag: interaction.user.toString()
                     }
+
+                    await updateLineupQueueRole(interaction.guildId, interaction.channelId, playerRole)
                     await team.save()
                     await interaction.message.edit({ components: [] })
                     await interaction.reply({ content: `Current lineup size is ${lineup.size}`, components: createLineupComponents(lineup, interaction.user.id) })

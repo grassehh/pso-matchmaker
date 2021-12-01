@@ -1,4 +1,4 @@
-const { Team } = require("../mongoSchema")
+const { Team, LineupQueue } = require("../mongoSchema")
 
 exports.deleteLineup = async (guildId, channelId) => {
     await Team.updateOne({ guildId }, { $pull: { 'lineups': { channelId } } })
@@ -26,4 +26,8 @@ exports.findTeamByGuildId = async (guildId) => {
 
 exports.findTeamByChannelId = async (channelId) => {
     return await Team.findOne({ 'lineups.channelId': channelId })
+}
+
+exports.updateLineupQueueRole = async (guildId, channelId, playerRole) => {
+    await LineupQueue.updateOne({ guildId, 'lineup.channelId': channelId, 'lineup.roles.name': playerRole.name }, { $set: { "lineup.roles.$.user": playerRole.user }})
 }

@@ -33,33 +33,59 @@ module.exports = {
         }
 
         let lineupQueues = await findAvailableLineupQueues(lineup.channelId, team.region)
-        let teamsActionRow = new MessageActionRow()
-        const teamsEmbed = new MessageEmbed()
-            .setColor('#0099ff')
-            .setTitle(`Challenging Teams (Current lineup is ${lineup.size}v${lineup.size})`)
-            .setTimestamp()
         if (lineupQueues.length === 0) {
-            teamsEmbed.setDescription("No Team are currently seaching for a match")
+            await interaction.reply({
+                embeds: [
+                    new MessageEmbed()
+                        .setColor('#0099ff')
+                        .setDescription("No Team are currently seaching for a match")]
+            })
         } else {
-            for (let lineupQueue of lineupQueues) {
-                teamsEmbed.addField(`Team '${lineupQueue.team.name}'`, `${lineupQueue.lineup.size}v${lineupQueue.lineup.size}`)
-                if (lineupQueue.lineup.size == lineup.size) {
-                    teamsActionRow.addComponents(
-                        new MessageButton()
-                            .setCustomId(`challenge_${lineupQueue.id}`)
-                            .setLabel(`Challenge '${lineupQueue.team.name}'`)
-                            .setEmoji('⚽')
-                            .setStyle('PRIMARY')
-                    )
+            let teamsActionRow = new MessageActionRow()
+            let lineupQueuesBySize = new Map()
+            for (lineupQueue of lineupQueues) {
+                if (!lineupQueuesBySize.has(lineupQueue.lineup.size)) {
+                    lineupQueuesBySize.set(lineupQueue.lineup.size, [])
                 }
+                lineupQueuesBySize.get(lineupQueue.lineup.size).push(lineupQueue)
             }
-            teamsEmbed.setFooter("Note: You can only challenge team with the same lineup size")
-        }
 
-        if (teamsActionRow.components.length === 0) {
-            await interaction.reply({ embeds: [teamsEmbed] })
-        } else {
-            await interaction.reply({ embeds: [teamsEmbed], components: [teamsActionRow] })
+            let embeds = []
+            for (let lineupSize of lineupQueuesBySize.keys()) {
+                const lineupsEmbed = new MessageEmbed()
+                    .setColor('#0099ff')
+                    .setTitle(`Teams for ${lineupSize}v${lineupSize}`)
+                    .setTimestamp()
+                    .setFooter("Note: You can only challenge team with the same lineup size")
+
+                let lineupQueuesForCurrentSize = lineupQueuesBySize.get(lineupSize)
+                let i = 1
+                for (let lineupQueue of lineupQueuesForCurrentSize) {
+                    let lineupFieldValue = lineupQueue.lineup.roles.filter(role => role.user != null).length + ' players signed'
+                    if (lineupQueue.lineup.name) {
+                        lineupFieldValue += ` (lineup ${lineupQueue.lineup.name})`
+                    }
+                    lineupsEmbed.addField(`Team '${lineupQueue.team.name}`, lineupFieldValue, i % 4 !== 0)
+                    if (lineupQueue.lineup.size == lineup.size) {
+                        teamsActionRow.addComponents(
+                            new MessageButton()
+                                .setCustomId(`challenge_${lineupQueue.id}`)
+                                .setLabel(`Challenge '${lineupQueue.team.name}'`)
+                                .setEmoji('⚽')
+                                .setStyle('PRIMARY')
+                        )
+                    }
+                    i++
+                }
+
+                embeds.push(lineupsEmbed)
+            }
+
+            if (teamsActionRow.components.length === 0) {
+                await interaction.reply({ embeds })
+            } else {
+                await interaction.reply({ embeds, components: [teamsActionRow] })
+            }
         }
     },
 };
