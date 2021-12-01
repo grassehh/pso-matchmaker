@@ -1,6 +1,5 @@
 const { SlashCommandBuilder } = require('@discordjs/builders');
 const { MessageActionRow, MessageEmbed, MessageButton } = require('discord.js');
-const { LineupQueue } = require('../mongoSchema');
 const { retrieveTeam, replyTeamNotRegistered, replyLineupNotSetup, retrieveLineup } = require('../services');
 const { findAvailableLineupQueues } = require('../services/matchmakingService');
 
@@ -14,6 +13,7 @@ module.exports = {
             await replyTeamNotRegistered(interaction)
             return
         }
+
         let lineup = retrieveLineup(interaction.channelId, team)
         if (!lineup) {
             await replyLineupNotSetup(interaction)

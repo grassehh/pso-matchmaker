@@ -1,12 +1,18 @@
 const { SlashCommandBuilder } = require('@discordjs/builders');
 const { LineupQueue } = require('../mongoSchema');
-const { retrieveTeam, replyLineupNotSetup, retrieveLineup, replyTeamNotRegistered, replyAlreadyQueued } = require('../services');
+const { retrieveTeam, replyLineupNotSetup, retrieveLineup, replyTeamNotRegistered, replyAlreadyQueued, replyAlreadyChallenging } = require('../services');
+const { findChallengeByGuildId } = require('../services/matchmakingService');
 
 module.exports = {
     data: new SlashCommandBuilder()
         .setName('search')
         .setDescription('Put your team in the matchmaking queue'),
     async execute(interaction) {
+        let challenge = await findChallengeByGuildId(interaction.guildId)
+        if (challenge) {
+            await replyAlreadyChallenging(interaction, challenge)
+            return
+        }
         let team = await retrieveTeam(interaction.guildId)
         if (!team) {
             await replyTeamNotRegistered(interaction)
@@ -26,6 +32,7 @@ module.exports = {
 
         await new LineupQueue({
             team: {
+                guildId: team.guildId,
                 name: team.name,
                 region: team.region
             },

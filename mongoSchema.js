@@ -48,6 +48,10 @@ exports.Team = mongoose.model('Team', teamSchema, 'teams')
 
 const lineupQueueSchema = new mongoose.Schema({
     team: {
+        guildId: {
+            type: String,
+            required: true
+        },
         name: {
             type: String,
             required: true

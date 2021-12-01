@@ -2,7 +2,7 @@ const { MessageActionRow, MessageButton, MessageEmbed } = require("discord.js");
 const { init } = require("mongoose/lib/model");
 const { LineupQueue, Challenge } = require("../mongoSchema");
 const { retrieveTeam, retrieveLineup, createLineupComponents } = require("../services");
-const { findLineupQueueByChannelId, reserveAndGetLineupQueueById, findChallengeById, freeLineupQueueById } = require("../services/matchmakingService");
+const { findLineupQueueByChannelId, reserveAndGetLineupQueueById, findChallengeById, freeLineupQueueById, reserveAndGetLineupQueueByChannelId, findChallengeByGuildId } = require("../services/matchmakingService");
 const { deleteTeam, findTeamByGuildId, findTeamByChannelId } = require("../services/teamService");
 
 module.exports = {
@@ -60,10 +60,18 @@ module.exports = {
                 if (interaction.customId.startsWith('challenge_')) {
                     let lineupQueueId = interaction.customId.substring(10);
                     let opponentLineupQueue = await reserveAndGetLineupQueueById(lineupQueueId)
-                    let lineupQueue = await findLineupQueueByChannelId(interaction.channelId)
+
+                    let opponentChallenge = await findChallengeByGuildId(opponentLineupQueue.team.guildId)
+                    if (opponentChallenge) {
+                        interaction.reply({content: "This team is negociating a challenge", ephemeral: true})
+                        return
+                    }
+
+                    let lineupQueue = await reserveAndGetLineupQueueByChannelId(interaction.channelId)
                     if (!lineupQueue) {
                         lineupQueue = new LineupQueue({
                             team: {
+                                guildId: team.guildId,
                                 name: team.name,
                                 region: team.region
                             },

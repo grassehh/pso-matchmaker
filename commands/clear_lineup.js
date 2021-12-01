@@ -1,12 +1,19 @@
 const { SlashCommandBuilder } = require('@discordjs/builders');
 const { LineupQueue } = require('../mongoSchema');
-const { retrieveTeam, createLineupComponents, replyTeamNotRegistered, replyLineupNotSetup, retrieveLineup, replyAlreadyQueued } = require('../services');
+const { retrieveTeam, createLineupComponents, replyTeamNotRegistered, replyLineupNotSetup, retrieveLineup, replyAlreadyQueued, replyAlreadyChallenging } = require('../services');
+const { findChallengeByGuildId } = require('../services/matchmakingService');
 
 module.exports = {
     data: new SlashCommandBuilder()
         .setName('clear_lineup')
         .setDescription('Clears every roles in this lineup'),
     async execute(interaction) {
+        let challenge = await findChallengeByGuildId(interaction.guildId)
+        if (challenge) {
+            await replyAlreadyChallenging(interaction, challenge)
+            return
+        }
+
         let team = await retrieveTeam(interaction.guildId)
         if (!team) {
             await replyTeamNotRegistered(interaction)

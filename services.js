@@ -14,7 +14,14 @@ exports.replyAlreadyQueued = async (interaction, lineupSize) => {
 
 exports.replyTeamNotRegistered = async (interaction) => {
     await interaction.reply({
-        content: 'Please register your team with the /register_team command first',
+        content: '❌ Please register your team with the /register_team command first',
+        ephemeral: true
+    })
+}
+
+exports.replyAlreadyChallenging = async (interaction, challenge) => {
+    await interaction.reply({
+        content: `❌ Your team is negotiating a challenge between the teams '${challenge.initiatingTeam.team.name}' and '${challenge.initiatingTeam.team.name}'`,
         ephemeral: true
     })
 }
@@ -25,7 +32,7 @@ exports.retrieveLineup = (channelId, team) => {
 
 exports.replyLineupNotSetup = async (interaction) => {
     await interaction.reply({
-        content: 'This channel has no lineup configured yet. Use the /setup_lineup command to choose a lineup format',
+        content: '❌ This channel has no lineup configured yet. Use the /setup_lineup command to choose a lineup format',
         ephemeral: true
     })
 }

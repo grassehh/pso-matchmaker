@@ -12,8 +12,12 @@ exports.reserveAndGetLineupQueueById = async (id) => {
     return await LineupQueue.findByIdAndUpdate(id, { reserved: true })
 }
 
+exports.reserveAndGetLineupQueueByChannelId = async (channelId) => {
+    return await LineupQueue.findOneAndUpdate({ 'lineup.channelId': channelId }, { reserved: true })
+}
+
 exports.freeLineupQueueById = async (id) => {
-    await LineupQueue.updateOne({'_id': id}, { reserved: false })
+    await LineupQueue.updateOne({ '_id': id }, { reserved: false })
 }
 
 exports.findAvailableLineupQueues = async (channelId, region) => {
@@ -22,4 +26,8 @@ exports.findAvailableLineupQueues = async (channelId, region) => {
 
 exports.findChallengeById = async (id) => {
     return await Challenge.findById(id)
+}
+
+exports.findChallengeByGuildId = async (guildId) => {
+    return await Challenge.findOne({ $or: [{ 'initiatingTeam.team.guildId': guildId }, { 'challengedTeam.team.guildId': guildId }] })
 }
