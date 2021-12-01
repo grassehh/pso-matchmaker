@@ -35,22 +35,40 @@ module.exports = {
             return
         }
 
+        let lineupSize = interaction.options.getInteger("size")
         let lineup = retrieveLineup(interaction.channelId, team)
+        let newPlayerRoles = generateRoles(lineupSize)
         if (lineup == null) {
             lineup = {
                 channelId: interaction.channelId,
-                size: interaction.options.getInteger("size"),
-                roles: [
-                    { name: "LW" },
-                    { name: "RW" }
-                ]
+                size: lineupSize,
+                roles: newPlayerRoles
             }
 
             team.lineups.push(lineup)
         } else {
-            lineup.size = interaction.options.getInteger("size")
+            lineup.size = lineupSize
+            lineup.roles = newPlayerRoles
         }
         await team.save()
-        await interaction.reply({ content: `✅ New lineup has now a size of ${lineup.size}`, components: createLineupComponents(lineup, interaction.user.id) });
+        await interaction.reply({ content: `✅ New lineup has now a size of ${lineupSize}`, components: createLineupComponents(lineup, interaction.user.id) });
     },
 };
+
+function generateRoles(lineupSize) {
+    return defaultPlayerRoles.get(lineupSize)
+}
+
+const defaultPlayerRoles = new Map([
+    [1, [{ name: 'CF' }]],
+    [2, [{ name: 'GK' }, { name: 'CF' }]],
+    [3, [{ name: 'GK' }, { name: 'LM' }, { name: 'RM' }]],
+    [4, [{ name: 'GK' }, { name: 'LW' }, { name: 'RW' }, { name: 'CM' }]],
+    [5, [{ name: 'GK' }, { name: 'CF' }, { name: 'LM' }, { name: 'RM' }, { name: 'CB' }]],
+    [6, [{ name: 'GK' }, { name: 'CF' }, { name: 'LM' }, { name: 'RM' }, { name: 'LB' }, { name: 'RB' }]],
+    [7, [{ name: 'GK' }, { name: 'CF' }, { name: 'LM' }, { name: 'CM' }, { name: 'RM' }, { name: 'LB' }, { name: 'RB' }]],
+    [8, [{ name: 'GK' }, { name: 'LW' }, { name: 'CF' }, { name: 'RW' }, { name: 'CM' }, { name: 'LB' }, { name: 'CB' }, { name: 'RB' }]],
+    [9, [{ name: 'GK' }, { name: 'LF' }, { name: 'RF' }, { name: 'LM' }, { name: 'CM' }, { name: 'LM' }, { name: 'LB' }, { name: 'CB' }, { name: 'RB' }]],
+    [10, [{ name: 'GK' }, { name: 'LF' }, { name: 'RF' }, { name: 'LM' }, { name: 'CM' }, { name: 'RM' }, { name: 'LB' }, { name: 'LCB' }, { name: 'RCB' }, { name: 'RB' }]],
+    [11, [{ name: 'GK' }, { name: 'LW' }, { name: 'CF' }, { name: 'RW' }, { name: 'LM' }, { name: 'CM' }, { name: 'RM' }, { name: 'LB' }, { name: 'LCB' }, { name: 'RCB' }, { name: 'RB' }]]
+])

@@ -38,10 +38,15 @@ exports.replyLineupNotSetup = async (interaction) => {
 }
 
 exports.createLineupComponents = (lineup, userId) => {
-    const positionsRow = new MessageActionRow()
 
-    for (let playerRole of lineup.roles) {
-        positionsRow.addComponents(
+    let components = []
+    for (var i = 0; i < lineup.roles.length; i++) {
+        if (i % 4 === 0) {
+            components.push(new MessageActionRow())
+        }
+
+        let playerRole = lineup.roles[i]
+        components[components.length-1].addComponents(
             new MessageButton()
                 .setCustomId(`role_${playerRole.name}`)
                 .setLabel(playerRole.user == null ? playerRole.name : `${playerRole.name}: ${playerRole.user.name}`)
@@ -59,7 +64,7 @@ exports.createLineupComponents = (lineup, userId) => {
             .setStyle('DANGER')
             .setDisabled(existingPlayerRole == null)
     )
+    components.push(lineupActionsRow)
 
-
-    return [positionsRow, lineupActionsRow]
+    return components
 }
