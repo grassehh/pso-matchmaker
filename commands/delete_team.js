@@ -15,12 +15,6 @@ module.exports = {
             return
         }
 
-        let currentQueuedLineup = await LineupQueue.findOne({ 'lineup.channelId': interaction.channelId })
-        if (currentQueuedLineup) {
-            interactionUtils.replyAlreadyQueued(interaction, currentQueuedLineup.lineup.size)
-            return
-        }
-
         const deleteTeamActionRow = new MessageActionRow()
         deleteTeamActionRow.addComponents(
             new MessageButton()

@@ -62,16 +62,20 @@ module.exports = {
                 let lineupQueuesForCurrentSize = lineupQueuesBySize.get(lineupSize)
                 let i = 1
                 for (let lineupQueue of lineupQueuesForCurrentSize) {
-                    let lineupFieldValue = lineupQueue.lineup.roles.filter(role => role.user != null).length + ' players signed'
+                    let lineupFieldName = `${lineupQueue.team.name}`
                     if (lineupQueue.lineup.name) {
-                        lineupFieldValue += ` (lineup ${lineupQueue.lineup.name})`
+                        lineupFieldName += ` *(${lineupQueue.lineup.name})*`
+                    }                    
+                    let lineupFieldValue = lineupQueue.lineup.roles.filter(role => role.user != null).length + ' players signed'
+                    if (lineupQueue.lineup.roles.find(role => role.name === "GK")?.user == null) {
+                        lineupFieldValue += ' **(no gk)**'
                     }
-                    lineupsEmbed.addField(`Team '${lineupQueue.team.name}'`, lineupFieldValue, i % 4 !== 0)
+                    lineupsEmbed.addField(lineupFieldName, lineupFieldValue, i % 4 !== 0)
                     if (lineupQueue.lineup.size == lineup.size) {
                         teamsActionRow.addComponents(
                             new MessageButton()
                                 .setCustomId(`challenge_${lineupQueue.id}`)
-                                .setLabel(`Challenge '${lineupQueue.team.name}'`)
+                                .setLabel(lineupFieldName)
                                 .setEmoji('⚽')
                                 .setStyle('PRIMARY')
                         )

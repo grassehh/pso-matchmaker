@@ -16,11 +16,11 @@ exports.freeLineupQueueById = async (id) => {
     await LineupQueue.updateOne({ '_id': id }, { reserved: false })
 }
 
-exports.freeLineupQueuesByGuildId = async (guildId) => {
+exports.deleteLineupQueuesByGuildId = async (guildId) => {
     await LineupQueue.deleteMany({ 'team.guildId': guildId })
 }
 
-exports.freeLineupQueueByChannelId = async (channelId) => {
+exports.deleteLineupQueueByChannelId = async (channelId) => {
     await LineupQueue.deleteMany({ 'lineup.channelId': channelId })
 }
 

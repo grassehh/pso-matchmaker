@@ -1,0 +1,147 @@
+[1mdiff --git a/commands/challenges.js b/commands/challenges.js[m
+[1mindex 7bf8629..b91161f 100644[m
+[1m--- a/commands/challenges.js[m
+[1m+++ b/commands/challenges.js[m
+[36m@@ -62,16 +62,20 @@[m [mmodule.exports = {[m
+                 let lineupQueuesForCurrentSize = lineupQueuesBySize.get(lineupSize)[m
+                 let i = 1[m
+                 for (let lineupQueue of lineupQueuesForCurrentSize) {[m
+[31m-                    let lineupFieldValue = lineupQueue.lineup.roles.filter(role => role.user != null).length + ' players signed'[m
+[32m+[m[32m                    let lineupFieldName = `${lineupQueue.team.name}`[m
+                     if (lineupQueue.lineup.name) {[m
+[31m-                        lineupFieldValue += ` (lineup ${lineupQueue.lineup.name})`[m
+[32m+[m[32m                        lineupFieldName += ` *(${lineupQueue.lineup.name})*`[m
+[32m+[m[32m                    }[m[41m                    [m
+[32m+[m[32m                    let lineupFieldValue = lineupQueue.lineup.roles.filter(role => role.user != null).length + ' players signed'[m
+[32m+[m[32m                    if (lineupQueue.lineup.roles.find(role => role.name === "GK")?.user == null) {[m
+[32m+[m[32m                        lineupFieldValue += ' **(no gk)**'[m
+                     }[m
+[31m-                    lineupsEmbed.addField(`Team '${lineupQueue.team.name}'`, lineupFieldValue, i % 4 !== 0)[m
+[32m+[m[32m                    lineupsEmbed.addField(lineupFieldName, lineupFieldValue, i % 4 !== 0)[m
+                     if (lineupQueue.lineup.size == lineup.size) {[m
+                         teamsActionRow.addComponents([m
+                             new MessageButton()[m
+                                 .setCustomId(`challenge_${lineupQueue.id}`)[m
+[31m-                                .setLabel(`Challenge '${lineupQueue.team.name}'`)[m
+[32m+[m[32m                                .setLabel(lineupFieldName)[m
+                                 .setEmoji('⚽')[m
+                                 .setStyle('PRIMARY')[m
+                         )[m
+[1mdiff --git a/commands/delete_team.js b/commands/delete_team.js[m
+[1mindex 2c23956..0dec41f 100644[m
+[1m--- a/commands/delete_team.js[m
+[1m+++ b/commands/delete_team.js[m
+[36m@@ -15,12 +15,6 @@[m [mmodule.exports = {[m
+             return[m
+         }[m
+ [m
+[31m-        let currentQueuedLineup = await LineupQueue.findOne({ 'lineup.channelId': interaction.channelId })[m
+[31m-        if (currentQueuedLineup) {[m
+[31m-            interactionUtils.replyAlreadyQueued(interaction, currentQueuedLineup.lineup.size)[m
+[31m-            return[m
+[31m-        }[m
+[31m-[m
+         const deleteTeamActionRow = new MessageActionRow()[m
+         deleteTeamActionRow.addComponents([m
+             new MessageButton()[m
+[1mdiff --git a/events/channelDelete.js b/events/channelDelete.js[m
+[1mindex 0c363cf..bec708e 100644[m
+[1m--- a/events/channelDelete.js[m
+[1m+++ b/events/channelDelete.js[m
+[36m@@ -5,7 +5,7 @@[m [mmodule.exports = {[m
+ 	name: 'channelDelete',[m
+ 	async execute(channel) {[m
+ 		matchmakingService.deleteChallengesByChannelId(channel.id)[m
+[31m-		matchmakingService.freeLineupQueuesByGuildId(channel)[m
+[32m+[m		[32mmatchmakingService.deleteLineupQueuesByGuildId(channel.guildId)[m
+ 		teamService.deleteLineup(channel.guildId, channel.id)[m
+     }[m
+ };[m
+\ No newline at end of file[m
+[1mdiff --git a/events/guildDelete.js b/events/guildDelete.js[m
+[1mindex e26cd92..484e030 100644[m
+[1m--- a/events/guildDelete.js[m
+[1m+++ b/events/guildDelete.js[m
+[36m@@ -5,7 +5,7 @@[m [mmodule.exports = {[m
+ 	name: 'guildDelete',[m
+ 	async execute(guild) {[m
+ 		matchmakingService.deleteChallengesByGuildId(guild.id)[m
+[31m-		matchmakingService.freeLineupQueuesByGuildId(guild.id)[m
+[32m+[m		[32mmatchmakingService.deleteLineupQueuesByGuildId(guild.id)[m
+ 		teamService.deleteTeam(guild.id)[m
+     }[m
+ };[m
+\ No newline at end of file[m
+[1mdiff --git a/events/interactionCreate.js b/events/interactionCreate.js[m
+[1mindex 11fc444..6496f33 100644[m
+[1m--- a/events/interactionCreate.js[m
+[1m+++ b/events/interactionCreate.js[m
+[36m@@ -33,7 +33,7 @@[m [mmodule.exports = {[m
+                         await interaction.reply({ content: 'A player is already signed at this position', ephemeral: true })[m
+                         return[m
+                     }[m
+[31m-                    [m
+[32m+[m
+                     await teamService.removeUserFromLineup(interaction.guildId, interaction.channelId, interaction.user.id)[m
+                     await teamService.removeUserFromLineupQueue(interaction.guildId, interaction.channelId, interaction.user.id)[m
+                     let userToAdd = {[m
+[36m@@ -43,7 +43,7 @@[m [mmodule.exports = {[m
+                     }[m
+                     await teamService.addUserToLineup(interaction.guildId, interaction.channelId, roleName, userToAdd)[m
+                     await teamService.addUserToLineupQueue(interaction.guildId, interaction.channelId, roleName, userToAdd)[m
+[31m-                    [m
+[32m+[m
+                     await interaction.message.edit({ components: [] })[m
+ [m
+                     lineup = await teamService.findLineupByChannelId(interaction.guildId, interaction.channelId)[m
+[36m@@ -67,17 +67,17 @@[m [mmodule.exports = {[m
+ [m
+                 if (interaction.customId === 'leaveLineup') {[m
+                     let existingPlayerRole = lineup.roles.find(role => role.user?.id === interaction.user.id)[m
+[31m-                    [m
+[31m-                    if(!existingPlayerRole) {[m
+[32m+[m
+[32m+[m[32m                    if (!existingPlayerRole) {[m
+                         await interaction.reply({ content: `❌ You are not in the lineup` })[m
+                         return[m
+                     }[m
+[31m-                    [m
+[32m+[m
+                     await teamService.removeUserFromLineup(interaction.guildId, interaction.channelId, interaction.user.id)[m
+                     await teamService.removeUserFromLineupQueue(interaction.guildId, interaction.channelId, interaction.user.id)[m
+                     await interaction.message.edit({ components: [] })[m
+ [m
+[31m-                    lineup = await teamService.findLineupByChannelId(interaction.guildId, interaction.channelId)                [m
+[32m+[m[32m                    lineup = await teamService.findLineupByChannelId(interaction.guildId, interaction.channelId)[m
+ [m
+                     if (lineup.autoSearch === true && lineup.roles.filter(role => role.user != null).length === lineup.roles.length - 1) {[m
+                         await LineupQueue.deleteOne({ 'lineup.channelId': interaction.channelId })[m
+[36m@@ -198,7 +198,9 @@[m [mmodule.exports = {[m
+                 }[m
+ [m
+                 if (interaction.customId.startsWith('delete_team_yes_')) {[m
+[31m-                    await teamService.deleteTeam(interaction.guildId);[m
+[32m+[m[32m                    await matchmakingService.deleteChallengesByGuildId(interaction.guildId)[m
+[32m+[m[32m                    matchmakingService.deleteLineupQueuesByGuildId(interaction.guildId)[m
+[32m+[m[32m                    await teamService.deleteTeam(interaction.guildId)[m
+                     await interaction.reply({ content: '✅ Your team has been deleted', ephemeral: true })[m
+                     return[m
+                 }[m
+[1mdiff --git a/services/matchmakingService.js b/services/matchmakingService.js[m
+[1mindex 4c9979b..b3a4d1c 100644[m
+[1m--- a/services/matchmakingService.js[m
+[1m+++ b/services/matchmakingService.js[m
+[36m@@ -16,11 +16,11 @@[m [mexports.freeLineupQueueById = async (id) => {[m
+     await LineupQueue.updateOne({ '_id': id }, { reserved: false })[m
+ }[m
+ [m
+[31m-exports.freeLineupQueuesByGuildId = async (guildId) => {[m
+[32m+[m[32mexports.deleteLineupQueuesByGuildId = async (guildId) => {[m
+     await LineupQueue.deleteMany({ 'team.guildId': guildId })[m
+ }[m
+ [m
+[31m-exports.freeLineupQueueByChannelId = async (channelId) => {[m
+[32m+[m[32mexports.deleteLineupQueueByChannelId = async (channelId) => {[m
+     await LineupQueue.deleteMany({ 'lineup.channelId': channelId })[m
+ }[m
+ [m

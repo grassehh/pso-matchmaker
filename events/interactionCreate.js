@@ -33,7 +33,7 @@ module.exports = {
                         await interaction.reply({ content: 'A player is already signed at this position', ephemeral: true })
                         return
                     }
-                    
+
                     await teamService.removeUserFromLineup(interaction.guildId, interaction.channelId, interaction.user.id)
                     await teamService.removeUserFromLineupQueue(interaction.guildId, interaction.channelId, interaction.user.id)
                     let userToAdd = {
@@ -43,7 +43,7 @@ module.exports = {
                     }
                     await teamService.addUserToLineup(interaction.guildId, interaction.channelId, roleName, userToAdd)
                     await teamService.addUserToLineupQueue(interaction.guildId, interaction.channelId, roleName, userToAdd)
-                    
+
                     await interaction.message.edit({ components: [] })
 
                     lineup = await teamService.findLineupByChannelId(interaction.guildId, interaction.channelId)
@@ -67,17 +67,17 @@ module.exports = {
 
                 if (interaction.customId === 'leaveLineup') {
                     let existingPlayerRole = lineup.roles.find(role => role.user?.id === interaction.user.id)
-                    
-                    if(!existingPlayerRole) {
+
+                    if (!existingPlayerRole) {
                         await interaction.reply({ content: `❌ You are not in the lineup` })
                         return
                     }
-                    
+
                     await teamService.removeUserFromLineup(interaction.guildId, interaction.channelId, interaction.user.id)
                     await teamService.removeUserFromLineupQueue(interaction.guildId, interaction.channelId, interaction.user.id)
                     await interaction.message.edit({ components: [] })
 
-                    lineup = await teamService.findLineupByChannelId(interaction.guildId, interaction.channelId)                
+                    lineup = await teamService.findLineupByChannelId(interaction.guildId, interaction.channelId)
 
                     if (lineup.autoSearch === true && lineup.roles.filter(role => role.user != null).length === lineup.roles.length - 1) {
                         await LineupQueue.deleteOne({ 'lineup.channelId': interaction.channelId })
@@ -198,7 +198,9 @@ module.exports = {
                 }
 
                 if (interaction.customId.startsWith('delete_team_yes_')) {
-                    await teamService.deleteTeam(interaction.guildId);
+                    await matchmakingService.deleteChallengesByGuildId(interaction.guildId)
+                    matchmakingService.deleteLineupQueuesByGuildId(interaction.guildId)
+                    await teamService.deleteTeam(interaction.guildId)
                     await interaction.reply({ content: '✅ Your team has been deleted', ephemeral: true })
                     return
                 }
