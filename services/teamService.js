@@ -31,3 +31,7 @@ exports.findTeamByChannelId = async (channelId) => {
 exports.updateLineupQueueRole = async (guildId, channelId, playerRole) => {
     await LineupQueue.updateOne({ guildId, 'lineup.channelId': channelId, 'lineup.roles.name': playerRole.name }, { $set: { "lineup.roles.$.user": playerRole.user }})
 }
+
+exports.removeUserFromAllLineupQueue = async (guildId, userId) => {
+    await LineupQueue.updateMany({ guildId, 'lineup.roles.user.id': userId }, { $set: { "lineup.roles.$.user": null }})
+}

@@ -71,6 +71,7 @@ module.exports = {
                         existingPlayerRole.user = null
                     }
                     await team.save()
+                    await updateLineupQueueRole(interaction.guildId, interaction.channelId, existingPlayerRole)
                     await interaction.message.edit({ components: [] })
 
                     if (lineup.autoSearch === true && lineup.roles.filter(role => role.user != null).length === lineup.roles.length - 1) {
