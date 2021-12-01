@@ -21,7 +21,10 @@ module.exports = {
                 .addChoice('9', 9)
                 .addChoice('10', 10)
                 .addChoice('11', 11)
-            ),
+            )
+            .addStringOption(option => option.setName('name')
+                .setRequired(false)
+                .setDescription('Sets a name for this lineup. Useful if you have multiple lineups inside your team')),
     async execute(interaction) {
         let team = await retrieveTeam(interaction.guildId)
         if (!team) {
@@ -38,17 +41,19 @@ module.exports = {
         let lineupSize = interaction.options.getInteger("size")
         let lineup = retrieveLineup(interaction.channelId, team)
         let newPlayerRoles = generateRoles(lineupSize)
+        let newLineupName = interaction.options.getString("name")
         if (lineup == null) {
             lineup = {
                 channelId: interaction.channelId,
                 size: lineupSize,
-                roles: newPlayerRoles
+                roles: newPlayerRoles,
+                name: newLineupName
             }
-
             team.lineups.push(lineup)
         } else {
             lineup.size = lineupSize
             lineup.roles = newPlayerRoles
+            lineup.name = newLineupName
         }
         await team.save()
         await interaction.reply({ content: `✅ New lineup has now a size of ${lineupSize}`, components: createLineupComponents(lineup, interaction.user.id) });

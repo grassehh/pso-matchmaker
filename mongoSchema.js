@@ -23,6 +23,11 @@ const lineupSchema = new mongoose.Schema({
     roles: {
         type: [playerRoleSchema],
         required: true
+    },
+    name: {
+        type: String,
+        required: false,
+        default: ""
     }
 })
 
@@ -48,18 +53,8 @@ exports.Team = mongoose.model('Team', teamSchema, 'teams')
 
 const lineupQueueSchema = new mongoose.Schema({
     team: {
-        guildId: {
-            type: String,
-            required: true
-        },
-        name: {
-            type: String,
-            required: true
-        },
-        region: {
-            type: String,
-            required: true
-        }
+        type: teamSchema,
+        required: true
     },
     lineup: {
         type: lineupSchema,

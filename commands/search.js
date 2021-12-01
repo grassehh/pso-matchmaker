@@ -31,11 +31,7 @@ module.exports = {
         }
 
         await new LineupQueue({
-            team: {
-                guildId: team.guildId,
-                name: team.name,
-                region: team.region
-            },
+            team: team,
             lineup: lineup
         }).save()
         await interaction.reply(`✅ Your team is now queued for ${lineup.size}v${lineup.size}`)
