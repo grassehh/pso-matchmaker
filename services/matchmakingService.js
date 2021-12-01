@@ -16,6 +16,14 @@ exports.freeLineupQueueById = async (id) => {
     await LineupQueue.updateOne({ '_id': id }, { reserved: false })
 }
 
+exports.freeLineupQueuesByGuildId = async (guildId) => {
+    await LineupQueue.deleteMany({ 'team.guildId': guildId })
+}
+
+exports.freeLineupQueueByChannelId = async (channelId) => {
+    await LineupQueue.deleteMany({ 'lineup.channelId': channelId })
+}
+
 exports.findAvailableLineupQueues = async (channelId, region) => {
     return await LineupQueue.find({ $and: [{ 'lineup.channelId': { '$ne': channelId } }, { 'team.region': region }, { 'reserved': false }] })
 }
@@ -29,5 +37,13 @@ exports.findChallengeByGuildId = async (guildId) => {
 }
 
 exports.findChallengeByChannelId = async (channelId) => {
+    return await Challenge.findOne({ $or: [{ 'initiatingTeam.lineup.channelId': channelId }, { 'challengedTeam.lineup.channelId': channelId }] })
+}
+
+exports.deleteChallengesByGuildId = async (guildId) => {
+    return await Challenge.deleteMany({ $or: [{ 'initiatingTeam.team.guildId': guildId }, { 'challengedTeam.team.guildId': guildId }] })
+}
+
+exports.deleteChallengesByChannelId = async (channelId) => {
     return await Challenge.findOne({ $or: [{ 'initiatingTeam.lineup.channelId': channelId }, { 'challengedTeam.lineup.channelId': channelId }] })
 }
