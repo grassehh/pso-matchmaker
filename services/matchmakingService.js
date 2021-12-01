@@ -1,9 +1,5 @@
 const { LineupQueue, Challenge } = require("../mongoSchema")
 
-exports.findLineupQueueById = async (id) => {
-    return await LineupQueue.findById(id)
-}
-
 exports.findLineupQueueByChannelId = async (channelId) => {
     return await LineupQueue.findOne({ 'lineup.channelId': channelId })
 }

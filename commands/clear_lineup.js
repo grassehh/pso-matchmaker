@@ -1,38 +1,39 @@
 const { SlashCommandBuilder } = require('@discordjs/builders');
 const { LineupQueue } = require('../mongoSchema');
-const { retrieveTeam, replyTeamNotRegistered, replyLineupNotSetup, retrieveLineup, replyAlreadyQueued, replyAlreadyChallenging, createLineupReply } = require('../services');
-const { findChallengeByChannelId } = require('../services/matchmakingService');
-const { clearLineup } = require('../services/teamService');
+const interactionUtils = require("../services/interactionUtils");
+const matchmakingService = require("../services/matchmakingService");
+const teamService = require("../services/teamService");
 
 module.exports = {
     data: new SlashCommandBuilder()
         .setName('clear_lineup')
         .setDescription('Clears every roles in this lineup'),
     async execute(interaction) {
-        let challenge = await findChallengeByChannelId(interaction.channelId)
+        let challenge = await matchmakingService.findChallengeByChannelId(interaction.channelId)
         if (challenge) {
-            await replyAlreadyChallenging(interaction, challenge)
+            await interactionUtils.replyAlreadyChallenging(interaction, challenge)
             return
         }
 
-        let team = await retrieveTeam(interaction.guildId)
+        let team = await teamService.findTeamByGuildId(interaction.guildId)
         if (!team) {
-            await replyTeamNotRegistered(interaction)
+            await interactionUtils.replyTeamNotRegistered(interaction)
             return
         }
-        let lineup = retrieveLineup(interaction.channelId, team)
+        let lineup = teamService.retrieveLineup(team, interaction.channelId)
         if (!lineup) {
-            await replyLineupNotSetup(interaction)
+            await interactionUtils.replyLineupNotSetup(interaction)
             return
         }
 
         let currentQueuedLineup = await LineupQueue.findOne({ 'lineup.channelId': interaction.channelId })
         if (currentQueuedLineup) {
-            replyAlreadyQueued(interaction, currentQueuedLineup.lineup.size)
+            interactionUtils.replyAlreadyQueued(interaction, currentQueuedLineup.lineup.size)
             return
         }
 
-        await clearLineup(team, interaction.channelId)
-        await interaction.reply(createLineupReply(lineup, interaction.user.id))
+        await teamService.clearLineup(interaction.guildId, interaction.channelId)
+        lineup = await teamService.findLineupByChannelId(interaction.guildId, interaction.channelId)
+        await interaction.reply(interactionUtils.createLineupReply(lineup, interaction.user.id))
     },
 };

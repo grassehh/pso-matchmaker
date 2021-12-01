@@ -1,38 +1,39 @@
 const { SlashCommandBuilder } = require('@discordjs/builders');
 const { MessageActionRow, MessageEmbed, MessageButton } = require('discord.js');
-const { retrieveTeam, replyTeamNotRegistered, replyLineupNotSetup, retrieveLineup, createCancelChallengeReply, createDecideChallengeReply } = require('../services');
-const { findAvailableLineupQueues, findChallengeByChannelId } = require('../services/matchmakingService');
+const interactionUtils = require("../services/interactionUtils");
+const matchmakingService = require("../services/matchmakingService");
+const teamService = require("../services/teamService");
 
 module.exports = {
     data: new SlashCommandBuilder()
         .setName('challenges')
         .setDescription('Display the teams looking for a match, with the same lineup size'),
     async execute(interaction) {
-        let challenge = await findChallengeByChannelId(interaction.channelId)
+        let team = await teamService.findTeamByGuildId(interaction.guildId)
+        if (!team) {
+            await interactionUtils.replyTeamNotRegistered(interaction)
+            return
+        }
+        
+        let lineup = teamService.retrieveLineup(team, interaction.channelId)
+        if (!lineup) {
+            await interactionUtils.replyLineupNotSetup(interaction)
+            return
+        }
+
+        let challenge = await matchmakingService.findChallengeByChannelId(interaction.channelId)
         if (challenge) {
             let reply
             if (challenge.initiatingTeam.lineup.channelId == interaction.channelId) {
-                reply = createCancelChallengeReply(challenge)
+                reply = interactionUtils.createCancelChallengeReply(challenge)
             } else {
-                reply = createDecideChallengeReply(challenge)
+                reply = interactionUtils.createDecideChallengeReply(challenge)
             }
             await interaction.reply(reply)
             return
         }
 
-        let team = await retrieveTeam(interaction.guildId)
-        if (!team) {
-            await replyTeamNotRegistered(interaction)
-            return
-        }
-
-        let lineup = retrieveLineup(interaction.channelId, team)
-        if (!lineup) {
-            await replyLineupNotSetup(interaction)
-            return
-        }
-
-        let lineupQueues = await findAvailableLineupQueues(lineup.channelId, team.region)
+        let lineupQueues = await matchmakingService.findAvailableLineupQueues(lineup.channelId, team.region)
         if (lineupQueues.length === 0) {
             await interaction.reply({
                 embeds: [

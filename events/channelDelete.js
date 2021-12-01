@@ -1,8 +1,8 @@
-const { deleteLineup } = require('../services/teamService');
+const teamService = require('../services/teamService');
 
 module.exports = {
 	name: 'channelDelete',
 	async execute(channel) {
-		deleteLineup(channel.guildId, channel.id)
+		teamService.deleteLineup(channel.guildId, channel.id)
     }
 };

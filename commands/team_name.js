@@ -1,5 +1,6 @@
 const { SlashCommandBuilder } = require('@discordjs/builders');
-const { retrieveTeam, replyTeamNotRegistered } = require('../services');
+const interactionUtils = require("../services/interactionUtils");
+const teamService = require("../services/teamService");
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -10,9 +11,9 @@ module.exports = {
             .setDescription('The new name of your team')
         ),
     async execute(interaction) {
-        let team = await retrieveTeam(interaction.guildId)
+        let team = await teamService.findTeamByGuildId(interaction.guildId)
         if (!team) {
-            await replyTeamNotRegistered(interaction)
+            await interactionUtils.replyTeamNotRegistered(interaction)
             return
         }
 

@@ -1,31 +1,31 @@
 const { SlashCommandBuilder } = require('@discordjs/builders');
 const { LineupQueue, Team } = require('../mongoSchema');
-const { retrieveTeam, createLineupComponents, replyTeamNotRegistered, replyLineupNotSetup, retrieveLineup, replyAlreadyQueued } = require('../services');
-const { deleteLineup } = require('../services/teamService');
+const interactionUtils = require("../services/interactionUtils");
+const teamService = require("../services/teamService");
 
 module.exports = {
     data: new SlashCommandBuilder()
         .setName('delete_lineup')
         .setDescription('Deletes this lineup from this channel'),
     async execute(interaction) {
-        let team = await retrieveTeam(interaction.guildId)
+        let team = await teamService.findTeamByGuildId(interaction.guildId)
         if (!team) {
-            await replyTeamNotRegistered(interaction)
+            await interactionUtils.replyTeamNotRegistered(interaction)
             return
         }
-        let lineup = retrieveLineup(interaction.channelId, team)
+        let lineup = teamService.retrieveLineup(team, interaction.channelId)
         if (!lineup) {
-            await replyLineupNotSetup(interaction)
+            await interactionUtils.replyLineupNotSetup(interaction)
             return
         }
 
         let currentQueuedLineup = await LineupQueue.findOne({ 'lineup.channelId': interaction.channelId })
         if (currentQueuedLineup) {
-            replyAlreadyQueued(interaction, currentQueuedLineup.lineup.size)
+            interactionUtils.replyAlreadyQueued(interaction, currentQueuedLineup.lineup.size)
             return
         }
 
-        await deleteLineup(interaction.guildId, interaction.channelId)
+        await teamService.deleteLineup(interaction.guildId, interaction.channelId)
         await interaction.reply('✅ Lineup deleted from this channel');
     },
 };

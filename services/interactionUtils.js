@@ -1,9 +1,4 @@
 const { MessageActionRow, MessageButton, MessageEmbed } = require("discord.js");
-const { Team } = require("./mongoSchema");
-
-exports.retrieveTeam = async (guildId) => {
-    return Team.findOne({ 'guildId': guildId })
-}
 
 exports.replyAlreadyQueued = async (interaction, lineupSize) => {
     await interaction.reply({
@@ -24,10 +19,6 @@ exports.replyAlreadyChallenging = async (interaction, challenge) => {
         content: `❌ Your team is negotiating a challenge between the teams '${challenge.initiatingTeam.team.name}' and '${challenge.initiatingTeam.team.name}'`,
         ephemeral: true
     })
-}
-
-exports.retrieveLineup = (channelId, team) => {
-    return team.lineups.find(lineup => lineup.channelId == channelId)
 }
 
 exports.replyLineupNotSetup = async (interaction) => {

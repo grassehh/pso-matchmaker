@@ -1,16 +1,18 @@
 const { SlashCommandBuilder } = require('@discordjs/builders');
 const { MessageEmbed } = require('discord.js');
-const { retrieveTeam, replyTeamNotRegistered } = require('../services');
+const interactionUtils = require("../services/interactionUtils");
+const matchmakingService = require("../services/matchmakingService");
+const teamService = require("../services/teamService");
 
 module.exports = {
     data: new SlashCommandBuilder()
         .setName('info')
         .setDescription('Give information about your team'),
     async execute(interaction) {
-        let team = await retrieveTeam(interaction.guildId)
+        let team = await teamService.findTeamByGuildId(interaction.guildId)
         
         if (!team) {
-            await replyTeamNotRegistered(interaction)
+            await interactionUtils.replyTeamNotRegistered(interaction)
             return
         }
 

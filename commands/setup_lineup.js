@@ -1,6 +1,7 @@
 const { SlashCommandBuilder } = require('@discordjs/builders');
 const { LineupQueue } = require('../mongoSchema');
-const { retrieveTeam, replyTeamNotRegistered, retrieveLineup, createLineupComponents, replyAlreadyQueued } = require('../services');
+const interactionUtils = require("../services/interactionUtils");
+const teamService = require("../services/teamService");
 
 module.exports = {
     data:
@@ -29,38 +30,40 @@ module.exports = {
                 .setRequired(false)
                 .setDescription('Indicates if this lineup should automatically sign into the matchmaking once it is filled')),
     async execute(interaction) {
-        let team = await retrieveTeam(interaction.guildId)
+        let team = await teamService.findTeamByGuildId(interaction.guildId)
         if (!team) {
-            replyTeamNotRegistered(interaction)
+            interactionUtils.replyTeamNotRegistered(interaction)
             return
         }
 
         let currentQueuedLineup = await LineupQueue.findOne({ 'lineup.channelId': interaction.channelId })
         if (currentQueuedLineup) {
-            replyAlreadyQueued(interaction, currentQueuedLineup.lineup.size)
+            interactionUtils.replyAlreadyQueued(interaction, currentQueuedLineup.lineup.size)
             return
         }
 
         let lineupSize = interaction.options.getInteger("size")
-        let lineup = retrieveLineup(interaction.channelId, team)
+        let lineup = teamService.retrieveLineup(team, interaction.channelId)
         let newPlayerRoles = generateRoles(lineupSize)
         let newLineupName = interaction.options.getString("name")
+        let newAutoSearch = interaction.options.getBoolean("auto_search")
         if (lineup == null) {
             lineup = {
                 channelId: interaction.channelId,
                 size: lineupSize,
                 roles: newPlayerRoles,
                 name: newLineupName,
-                autoSearch: interaction.options.getBoolean("auto_search")
+                autoSearch: newAutoSearch
             }
             team.lineups.push(lineup)
         } else {
             lineup.size = lineupSize
             lineup.roles = newPlayerRoles
             lineup.name = newLineupName
+            lineup.autoSearch = newAutoSearch
         }
         await team.save()
-        await interaction.reply({ content: `✅ New lineup has now a size of ${lineupSize}`, components: createLineupComponents(lineup, interaction.user.id) });
+        await interaction.reply({ content: `✅ New lineup has now a size of ${lineupSize}`, components: interactionUtils.createLineupComponents(lineup, interaction.user.id) });
     },
 };
 

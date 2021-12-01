@@ -1,23 +1,23 @@
 const { SlashCommandBuilder } = require('@discordjs/builders');
 const { MessageActionRow, MessageButton } = require('discord.js');
-const { LineupQueue, Team } = require('../mongoSchema');
-const { retrieveTeam, createLineupComponents, replyTeamNotRegistered, replyLineupNotSetup, retrieveLineup, replyAlreadyQueued } = require('../services');
-const { deleteLineup, deleteTeam } = require('../services/teamService');
+const { LineupQueue } = require('../mongoSchema');
+const interactionUtils = require("../services/interactionUtils");
+const teamService = require("../services/teamService");
 
 module.exports = {
     data: new SlashCommandBuilder()
         .setName('delete_team')
         .setDescription('Deletes this team'),
     async execute(interaction) {
-        let team = await retrieveTeam(interaction.guildId)
+        let team = await teamService.findTeamByGuildId(interaction.guildId)
         if (!team) {
-            await replyTeamNotRegistered(interaction)
+            await interactionUtils.replyTeamNotRegistered(interaction)
             return
         }
 
         let currentQueuedLineup = await LineupQueue.findOne({ 'lineup.channelId': interaction.channelId })
         if (currentQueuedLineup) {
-            replyAlreadyQueued(interaction, currentQueuedLineup.lineup.size)
+            interactionUtils.replyAlreadyQueued(interaction, currentQueuedLineup.lineup.size)
             return
         }
 

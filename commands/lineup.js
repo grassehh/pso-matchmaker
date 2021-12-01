@@ -1,22 +1,23 @@
 const { SlashCommandBuilder } = require('@discordjs/builders');
-const { retrieveTeam, replyTeamNotRegistered, retrieveLineup, replyLineupNotSetup, createLineupReply } = require('../services');
+const interactionUtils = require("../services/interactionUtils");
+const teamService = require("../services/teamService");
 
 module.exports = {
     data: new SlashCommandBuilder()
         .setName('lineup')
         .setDescription('Displays the current lineup'),
     async execute(interaction) {
-        let team = await retrieveTeam(interaction.guildId)
+        let team = await teamService.findTeamByGuildId(interaction.guildId)
         if (!team) {
-            await replyTeamNotRegistered(interaction)
+            await interactionUtils.replyTeamNotRegistered(interaction)
             return
         }
-        let lineup = retrieveLineup(interaction.channelId, team)
+        let lineup = teamService.retrieveLineup(team, interaction.channelId)
         if (!lineup) {
-            await replyLineupNotSetup(interaction)
+            await interactionUtils.replyLineupNotSetup(interaction)
             return
         }  
 
-        await interaction.reply(createLineupReply(lineup, interaction.user.id))
+        await interaction.reply(interactionUtils.createLineupReply(lineup, interaction.user.id))
     },
 };

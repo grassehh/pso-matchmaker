@@ -1,6 +1,6 @@
 const { SlashCommandBuilder } = require('@discordjs/builders');
 const { Team } = require('../mongoSchema');
-const { retrieveTeam } = require('../services');
+const teamService = require("../services/teamService");
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -19,7 +19,7 @@ module.exports = {
             .addChoice('Korea', 'AS')
         ),
     async execute(interaction) {
-        let team = await retrieveTeam(interaction.guildId)
+        let team = await teamService.findTeamByGuildId(interaction.guildId)
 
         if (!team) {
             await new Team({
