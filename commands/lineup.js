@@ -1,5 +1,5 @@
 const { SlashCommandBuilder } = require('@discordjs/builders');
-const { retrieveTeam, createLineupComponents, replyTeamNotRegistered, retrieveLineup, replyLineupNotSetup } = require('../services');
+const { retrieveTeam, replyTeamNotRegistered, retrieveLineup, replyLineupNotSetup, createLineupReply } = require('../services');
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -17,6 +17,6 @@ module.exports = {
             return
         }  
 
-        await interaction.reply({ content: `Current lineup size is ${lineup.size}`, components: createLineupComponents(lineup, interaction.user.id) })
+        await interaction.reply(createLineupReply(lineup, interaction.user.id))
     },
 };

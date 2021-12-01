@@ -4,6 +4,18 @@ exports.deleteLineup = async (guildId, channelId) => {
     await Team.updateOne({ guildId }, { $pull: { 'lineups': { channelId } } })
 }
 
+exports.retrieveLineup = (team, channelId) => {
+    return team.lineups.find(lineup => lineup.channelId == channelId)
+}
+
+exports.clearLineup = async (team, channelId) => {
+    let lineup = this.retrieveLineup(team, channelId)
+    lineup.roles.forEach(role => {
+        role.user = null
+    });
+    await team.save()
+}
+
 exports.deleteTeam = async (guildId) => {
     await Team.deleteOne({ guildId })
 }

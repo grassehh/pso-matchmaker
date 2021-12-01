@@ -68,6 +68,10 @@ exports.createDecideChallengeReply = (challenge) => {
     return { embeds: [challengeEmbed], components: [challengeActionRow] }
 }
 
+exports.createLineupReply = (lineup, userId) => {
+    return { content: `Current lineup size is ${lineup.size}`, components: this.createLineupComponents(lineup, userId) }
+}
+
 exports.createLineupComponents = (lineup, userId) => {
 
     let components = []

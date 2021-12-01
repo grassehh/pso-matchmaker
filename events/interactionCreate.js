@@ -1,7 +1,7 @@
 const { LineupQueue, Challenge } = require("../mongoSchema");
 const { retrieveTeam, retrieveLineup, createLineupComponents, createDecideChallengeReply, createCancelChallengeReply } = require("../services");
 const { reserveAndGetLineupQueueById, findChallengeById, freeLineupQueueById, reserveAndGetLineupQueueByChannelId, findChallengeByGuildId } = require("../services/matchmakingService");
-const { deleteTeam } = require("../services/teamService");
+const { deleteTeam, clearLineup } = require("../services/teamService");
 
 module.exports = {
     name: 'interactionCreate',
@@ -98,20 +98,22 @@ module.exports = {
                     let challengeId = interaction.customId.substring(17);
                     let challenge = await findChallengeById(challengeId)
                     let users = challenge.challengedTeam.lineup.roles.map(role => role.user).filter(user => user)
-
                     users = users.concat(challenge.initiatingTeam.lineup.roles.map(role => role.user).filter(user => user))
-
                     for (let toto of users) {
                         let discordUser = await interaction.client.users.fetch(toto.id)
                         discordUser.send("Match is ready !")
                     }
 
+                    await clearLineup(team, interaction.channelId)
+                    let opponentTeam = await retrieveTeam(challenge.initiatingTeam.team.guildId)
+                    await clearLineup(opponentTeam, challenge.initiatingTeam.lineup.channelId)
                     await LineupQueue.deleteOne({ '_id': challenge.challengedTeam.id })
                     await LineupQueue.deleteOne({ '_id': challenge.initiatingTeam.id })
                     await Challenge.deleteOne({ '_id': challenge.id })
 
                     let initiatingTeamChannel = await interaction.client.channels.fetch(challenge.initiatingTeam.lineup.channelId)
                     await initiatingTeamChannel.messages.edit(challenge.initiatingMessageId, { components: [] })
+                    initiatingTeamChannel.send(`⚽ The team '${challenge.challengedTeam.team.name} has accepted your challenge request ! The match is ready on the LOBBY !! GOGOGO`)
 
                     await interaction.message.edit({ components: [] })
                     await interaction.reply(`⚽ You have accepted to challenge the team '${challenge.challengedTeam.team.name}' ! The match is ready on the LOBBY !! GOGOGO`)

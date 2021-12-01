@@ -1,7 +1,8 @@
 const { SlashCommandBuilder } = require('@discordjs/builders');
 const { LineupQueue } = require('../mongoSchema');
-const { retrieveTeam, createLineupComponents, replyTeamNotRegistered, replyLineupNotSetup, retrieveLineup, replyAlreadyQueued, replyAlreadyChallenging } = require('../services');
+const { retrieveTeam, replyTeamNotRegistered, replyLineupNotSetup, retrieveLineup, replyAlreadyQueued, replyAlreadyChallenging, createLineupReply } = require('../services');
 const { findChallengeByChannelId } = require('../services/matchmakingService');
+const { clearLineup } = require('../services/teamService');
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -31,10 +32,7 @@ module.exports = {
             return
         }
 
-        lineup.roles.forEach(role => {
-            role.user = null
-        });
-        await team.save()
-        await interaction.reply({ content: `Current lineup size is ${lineup.size}`, components: createLineupComponents(lineup, interaction.user.id) });
+        await clearLineup(team, interaction.channelId)
+        await interaction.reply(createLineupReply(lineup, interaction.user.id))
     },
 };
