@@ -96,13 +96,14 @@ const challengeSchema = new mongoose.Schema({
 exports.Challenge = mongoose.model('Challenge', challengeSchema, 'challenges')
 
 const statsSchema = new mongoose.Schema({
-    userId: {
-        type: String,
-        required: true
+    user: {
+        type: Object,
+        required: false
     },
     numberOfGames: {
         type: Number,
-        required: true
+        required: true,
+        default: 0
     } 
 })
 exports.Stats = mongoose.model('Stats', statsSchema, 'stats')
