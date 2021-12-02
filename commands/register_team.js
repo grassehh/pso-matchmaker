@@ -17,7 +17,7 @@ module.exports = {
             .addChoice('Europe', 'EU')
             .addChoice('North America', 'NA')
             .addChoice('South America', 'SA')
-            .addChoice('Korea', 'AS')
+            .addChoice('East Asia', 'AS')
         ),
     authorizedRoles: [authorizationService.BOT_ADMIN_ROLE],
     async execute(interaction) {
