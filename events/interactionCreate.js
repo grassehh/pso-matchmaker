@@ -154,11 +154,12 @@ module.exports = {
                 if (interaction.customId.startsWith('accept_challenge_')) {
                     let challengeId = interaction.customId.substring(17);
                     let challenge = await matchmakingService.findChallengeById(challengeId)
-                    let users = challenge.challengedTeam.lineup.roles.map(role => role.user).filter(user => user)
-                    users = users.concat(challenge.initiatingTeam.lineup.roles.map(role => role.user).filter(user => user))
+                    let challengedTeamUsers = challenge.challengedTeam.lineup.roles.map(role => role.user).filter(user => user)
+                    let initiatingTeamUsers = challenge.initiatingTeam.lineup.roles.map(role => role.user).filter(user => user)
+                    let allUsers = challengedTeamUsers.concat(initiatingTeamUsers)
                     let lobbyName = Math.floor(Math.random() * 1000) + 1000
                     let lobbyPassword = Math.random().toString(36).slice(-4)
-                    for (let user of users) {
+                    for (let user of allUsers) {
                         let discordUser = await interaction.client.users.fetch(user.id)
                         discordUser.send(`Match is ready ! Join the custom lobby Lobby **${lobbyName}**. The password is **${lobbyPassword}**`)
                     }
@@ -176,7 +177,8 @@ module.exports = {
                     await interaction.message.edit({ components: [] })
                     await interaction.reply(`⚽ You have accepted to challenge the team '${teamService.formatTeamName(challenge.initiatingTeam.team, challenge.initiatingTeam.lineup)}' ! Check your private messages for lobby info !`)
 
-                    await statsService.incrementGamesPlayed(users)
+                    await statsService.incrementGamesPlayed(challenge.challengedTeam.team.guildId, challengedTeamUsers)
+                    await statsService.incrementGamesPlayed(challenge.initiatingTeam.team.guildId, initiatingTeamUsers)
 
                     return
                 }

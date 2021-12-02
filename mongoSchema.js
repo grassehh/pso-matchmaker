@@ -38,8 +38,8 @@ const lineupSchema = new mongoose.Schema({
 
 const teamSchema = new mongoose.Schema({
     guildId: {
-      type: String,
-      required: true  
+        type: String,
+        required: true
     },
     name: {
         type: String,
@@ -96,14 +96,18 @@ const challengeSchema = new mongoose.Schema({
 exports.Challenge = mongoose.model('Challenge', challengeSchema, 'challenges')
 
 const statsSchema = new mongoose.Schema({
+    guildId: {
+        type: String,
+        required: true
+    },
     user: {
         type: Object,
-        required: false
+        required: true
     },
     numberOfGames: {
         type: Number,
         required: true,
         default: 0
-    } 
+    }
 })
 exports.Stats = mongoose.model('Stats', statsSchema, 'stats')
