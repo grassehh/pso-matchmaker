@@ -1,7 +1,6 @@
 const { SlashCommandBuilder } = require('@discordjs/builders');
 const { MessageEmbed } = require('discord.js');
 const interactionUtils = require("../services/interactionUtils");
-const matchmakingService = require("../services/matchmakingService");
 const teamService = require("../services/teamService");
 
 module.exports = {

@@ -1,7 +1,6 @@
 const { SlashCommandBuilder } = require('@discordjs/builders');
 const { Team } = require('../mongoSchema');
 const teamService = require("../services/teamService");
-const interactionUtils = require("../services/interactionUtils");
 const authorizationService = require("../services/authorizationService");
 
 module.exports = {
@@ -20,12 +19,8 @@ module.exports = {
             .addChoice('South America', 'SA')
             .addChoice('Korea', 'AS')
         ),
+    authorizedRoles: [authorizationService.BOT_ADMIN_ROLE],
     async execute(interaction) {
-        if (!authorizationService.isAllowedToExecuteCommand(interaction.member)) {
-            await interactionUtils.replyNotAllowed(interaction)
-            return
-        }
-
         let team = await teamService.findTeamByGuildId(interaction.guildId)
 
         if (!team) {

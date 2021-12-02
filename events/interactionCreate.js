@@ -2,6 +2,7 @@ const { LineupQueue, Challenge } = require("../mongoSchema");
 const interactionUtils = require("../services/interactionUtils");
 const matchmakingService = require("../services/matchmakingService");
 const teamService = require("../services/teamService");
+const authorizationService = require("../services/authorizationService");
 
 module.exports = {
     name: 'interactionCreate',
@@ -10,6 +11,11 @@ module.exports = {
             const command = interaction.client.commands.get(interaction.commandName);
 
             if (!command) return;
+
+            if (!authorizationService.isAllowedToExecuteCommand(command, interaction.member)) {
+                await interactionUtils.replyNotAllowed(interaction)
+                return
+            }
 
             try {
                 await command.execute(interaction);

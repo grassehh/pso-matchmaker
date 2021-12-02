@@ -8,12 +8,8 @@ module.exports = {
     data: new SlashCommandBuilder()
         .setName('delete_team')
         .setDescription('Deletes this team'),
-    async execute(interaction) {        
-        if (!authorizationService.isAllowedToExecuteCommand(interaction.member)) {
-            await interactionUtils.replyNotAllowed(interaction)
-            return
-        }
-
+    authorizedRoles: [authorizationService.BOT_ADMIN_ROLE],
+    async execute(interaction) {  
         let team = await teamService.findTeamByGuildId(interaction.guildId)
         if (!team) {
             await interactionUtils.replyTeamNotRegistered(interaction)

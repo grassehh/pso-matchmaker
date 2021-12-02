@@ -30,12 +30,8 @@ module.exports = {
             .addBooleanOption(option => option.setName('auto_search')
                 .setRequired(false)
                 .setDescription('Indicates if this lineup should automatically sign into the matchmaking once it is filled')),
+    authorizedRoles: [authorizationService.BOT_ADMIN_ROLE],
     async execute(interaction) {
-        if (!authorizationService.isAllowedToExecuteCommand(interaction.member)) {
-            await interactionUtils.replyNotAllowed(interaction)
-            return
-        }
-
         let team = await teamService.findTeamByGuildId(interaction.guildId)
         if (!team) {
             interactionUtils.replyTeamNotRegistered(interaction)
