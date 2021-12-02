@@ -40,6 +40,7 @@ module.exports = {
                         return
                     }
 
+                    await matchmakingService.removeUserFromChallenge(interaction.guildId, interaction.channelId, interaction.user.id)
                     await teamService.removeUserFromLineup(interaction.guildId, interaction.channelId, interaction.user.id)
                     await teamService.removeUserFromLineupQueue(interaction.guildId, interaction.channelId, interaction.user.id)
                     let userToAdd = {
@@ -47,6 +48,7 @@ module.exports = {
                         name: interaction.user.username,
                         mention: interaction.user.toString()
                     }
+                    await matchmakingService.addUserToChallenge(interaction.guildId, interaction.channelId, roleName, userToAdd)
                     await teamService.addUserToLineup(interaction.guildId, interaction.channelId, roleName, userToAdd)
                     await teamService.addUserToLineupQueue(interaction.guildId, interaction.channelId, roleName, userToAdd)
 
@@ -79,6 +81,7 @@ module.exports = {
                         return
                     }
 
+                    await matchmakingService.removeUserFromChallenge(interaction.guildId, interaction.channelId, interaction.user.id)
                     await teamService.removeUserFromLineup(interaction.guildId, interaction.channelId, interaction.user.id)
                     await teamService.removeUserFromLineupQueue(interaction.guildId, interaction.channelId, interaction.user.id)
                     await interaction.message.edit({ components: [] })
@@ -149,9 +152,11 @@ module.exports = {
                     let challenge = await matchmakingService.findChallengeById(challengeId)
                     let users = challenge.challengedTeam.lineup.roles.map(role => role.user).filter(user => user)
                     users = users.concat(challenge.initiatingTeam.lineup.roles.map(role => role.user).filter(user => user))
+                    let lobbyName = Math.floor(Math.random() * 1000) + 1000
+                    let lobbyPassword = Math.random().toString(36).slice(-4)
                     for (let user of users) {
                         let discordUser = await interaction.client.users.fetch(user.id)
-                        discordUser.send("Match is ready !")
+                        discordUser.send(`Match is ready ! Join the custom lobby Lobby **${lobbyName}**. The password is **${lobbyPassword}**`)
                     }
 
                     await teamService.clearLineup(interaction.guildId, interaction.channelId)
@@ -162,10 +167,10 @@ module.exports = {
 
                     let initiatingTeamChannel = await interaction.client.channels.fetch(challenge.initiatingTeam.lineup.channelId)
                     await initiatingTeamChannel.messages.edit(challenge.initiatingMessageId, { components: [] })
-                    initiatingTeamChannel.send(`⚽ The team '${challenge.challengedTeam.team.name}' has accepted your challenge request ! The match is ready on the LOBBY !! GOGOGO`)
+                    initiatingTeamChannel.send(`⚽ The team '${challenge.challengedTeam.team.name}' has accepted your challenge request ! Check your private messages for lobby info !`)
 
                     await interaction.message.edit({ components: [] })
-                    await interaction.reply(`⚽ You have accepted to challenge the team '${challenge.challengedTeam.team.name}' ! The match is ready on the LOBBY !! GOGOGO`)
+                    await interaction.reply(`⚽ You have accepted to challenge the team '${challenge.challengedTeam.team.name}' ! Check your private messages for lobby info !`)
                     return
                 }
 

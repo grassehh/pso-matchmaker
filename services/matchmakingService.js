@@ -47,3 +47,35 @@ exports.deleteChallengesByGuildId = async (guildId) => {
 exports.deleteChallengesByChannelId = async (channelId) => {
     return await Challenge.findOne({ $or: [{ 'initiatingTeam.lineup.channelId': channelId }, { 'challengedTeam.lineup.channelId': channelId }] })
 }
+
+exports.removeUserFromChallenge = async (guildId, channelId, userId) => {
+    await Challenge.updateOne(
+        {
+            guildId,
+            $or: [{ 'initiatingTeam.lineup.channelId': channelId }, { 'challengedTeam.lineup.channelId': channelId }],
+        },
+        {
+            "$set": { "initiatingTeam.lineup.roles.$[inner].user": null },
+            "$set": { "challengedTeam.lineup.roles.$[inner].user": null }
+        },
+        {
+            "arrayFilters": [{ "inner.user.id": userId }]
+        }
+    )
+}
+
+exports.addUserToChallenge = async (guildId, channelId, roleName, user) => {
+    await Challenge.updateOne(
+        {
+            guildId,
+            $or: [{ 'initiatingTeam.lineup.channelId': channelId }, { 'challengedTeam.lineup.channelId': channelId }],
+        },
+        {
+            "$set": { "initiatingTeam.lineup.roles.$[inner].user": user },
+            "$set": { "challengedTeam.lineup.roles.$[inner].user": user }
+        },
+        {
+            "arrayFilters": [{ "inner.name": roleName }]
+        }
+    )
+}
