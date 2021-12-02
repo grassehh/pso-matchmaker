@@ -169,10 +169,10 @@ module.exports = {
 
                     let initiatingTeamChannel = await interaction.client.channels.fetch(challenge.initiatingTeam.lineup.channelId)
                     await initiatingTeamChannel.messages.edit(challenge.initiatingMessageId, { components: [] })
-                    initiatingTeamChannel.send(`⚽ The team '${challenge.challengedTeam.team.name}' has accepted your challenge request ! Check your private messages for lobby info !`)
+                    initiatingTeamChannel.send(`⚽ The team '${teamService.formatTeamName(challenge.challengedTeam.team, challenge.challengedTeam.lineup)}'' has accepted your challenge request ! Check your private messages for lobby info !`)
 
                     await interaction.message.edit({ components: [] })
-                    await interaction.reply(`⚽ You have accepted to challenge the team '${challenge.challengedTeam.team.name}' ! Check your private messages for lobby info !`)
+                    await interaction.reply(`⚽ You have accepted to challenge the team '${teamService.formatTeamName(challenge.initiatingTeam.team, challenge.initiatingTeam.lineup)}' ! Check your private messages for lobby info !`)
                     return
                 }
 
@@ -186,10 +186,10 @@ module.exports = {
 
                     let initiatingTeamChannel = await interaction.client.channels.fetch(challenge.initiatingTeam.lineup.channelId)
                     await initiatingTeamChannel.messages.edit(challenge.initiatingMessageId, { components: [] })
-                    await initiatingTeamChannel.send(`The team '${challenge.challengedTeam.team.name}' has refused your challenge request`)
+                    await initiatingTeamChannel.send(`The team '${teamService.formatTeamName(challenge.challengedTeam.team, challenge.challengedTeam.lineup)}' has refused your challenge request`)
 
                     await interaction.message.edit({ components: [] })
-                    await interaction.reply(`You have refused to challenge the team '${challenge.initiatingTeam.team.name}''`)
+                    await interaction.reply(`You have refused to challenge the team '${teamService.formatTeamName(challenge.initiatingTeam.team, challenge.initiatingTeam.lineup)}''`)
                     return
                 }
 
@@ -206,7 +206,7 @@ module.exports = {
                     await challengedTeamChannel.send(`The team '${challenge.initiatingTeam.team.name}' has cancelled the challenge request`)
 
                     await interaction.message.edit({ components: [] })
-                    await interaction.reply(`You have cancelled your challenge request for the team '${challenge.challengedTeam.team.name}'`)
+                    await interaction.reply(`You have cancelled your challenge request for the team '${teamService.formatTeamName(challenge.challengedTeam.team, challenge.challengedTeam.lineup)}'`)
                     return
                 }
 

@@ -18,6 +18,6 @@ module.exports = {
             return
         }  
 
-        await interaction.reply(interactionUtils.createLineupReply(lineup, interaction.user.id))
+        await interaction.reply({content: 'This is the current lineup', components: interactionUtils.createLineupComponents(lineup)})
     },
 };

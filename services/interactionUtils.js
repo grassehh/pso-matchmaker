@@ -1,4 +1,5 @@
 const { MessageActionRow, MessageButton, MessageEmbed } = require("discord.js");
+const teamService = require("../services/teamService");
 
 exports.replyAlreadyQueued = async (interaction, lineupSize) => {
     await interaction.reply({
@@ -36,13 +37,13 @@ exports.createCancelChallengeReply = (challenge) => {
                 .setLabel(`Cancel Request`)
                 .setStyle('DANGER')
         )
-    return { content: `💬 You have sent a challenge request to the team '${challenge.challengedTeam.team.name}'. You can either wait for his answer, or cancel your request.`, components: [cancelChallengeRow] }
+    return { content: `💬 You have sent a challenge request to the team '${teamService.formatTeamName(challenge.challengedTeam.team, challenge.challengedTeam.lineup)}'. You can either wait for his answer, or cancel your request.`, components: [cancelChallengeRow] }
 }
 
 exports.createDecideChallengeReply = (challenge) => {
     const challengeEmbed = new MessageEmbed()
         .setColor('#0099ff')
-        .setTitle(`Team '${challenge.initiatingTeam.team.name}' is challenging you for a ${challenge.initiatingTeam.lineup.size}v${challenge.initiatingTeam.lineup.size} match !`)
+        .setTitle(`Team '${teamService.formatTeamName(challenge.initiatingTeam.team, challenge.initiatingTeam.lineup)}' is challenging you for a ${challenge.initiatingTeam.lineup.size}v${challenge.initiatingTeam.lineup.size} match !`)
         .setDescription(`Contact ${challenge.initiatingUser.mention} if you want to arrange further.`)
         .setTimestamp()
     let challengeActionRow = new MessageActionRow()
@@ -57,10 +58,6 @@ exports.createDecideChallengeReply = (challenge) => {
                 .setStyle('DANGER')
         )
     return { embeds: [challengeEmbed], components: [challengeActionRow] }
-}
-
-exports.createLineupReply = (lineup, userId) => {
-    return { content: `Current lineup size is ${lineup.size}`, components: this.createLineupComponents(lineup, userId) }
 }
 
 exports.createLineupComponents = (lineup) => {

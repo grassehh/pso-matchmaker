@@ -1,5 +1,13 @@
 const { Team, LineupQueue } = require("../mongoSchema")
 
+exports.formatTeamName = (team, lineup) => {
+    let name = team.name
+    if (lineup.name) {
+        name += ` *(${lineup.name})*`
+    }
+    return name
+}
+
 exports.findTeamByGuildId = async (guildId) => {
     return Team.findOne({ 'guildId': guildId })
 }

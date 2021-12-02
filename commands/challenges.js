@@ -62,10 +62,7 @@ module.exports = {
                 let lineupQueuesForCurrentSize = lineupQueuesBySize.get(lineupSize)
                 let i = 1
                 for (let lineupQueue of lineupQueuesForCurrentSize) {
-                    let lineupFieldName = `${lineupQueue.team.name}`
-                    if (lineupQueue.lineup.name) {
-                        lineupFieldName += ` *(${lineupQueue.lineup.name})*`
-                    }                    
+                    let lineupFieldName = teamService.formatTeamName(lineupQueue.team, lineupQueue.lineup)
                     let lineupFieldValue = lineupQueue.lineup.roles.filter(role => role.user != null).length + ' players signed'
                     if (lineupQueue.lineup.roles.find(role => role.name === "GK")?.user == null) {
                         lineupFieldValue += ' **(no gk)**'
