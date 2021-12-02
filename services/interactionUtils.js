@@ -63,7 +63,7 @@ exports.createLineupReply = (lineup, userId) => {
     return { content: `Current lineup size is ${lineup.size}`, components: this.createLineupComponents(lineup, userId) }
 }
 
-exports.createLineupComponents = (lineup, userId) => {
+exports.createLineupComponents = (lineup) => {
 
     let components = []
     for (var i = 0; i < lineup.roles.length; i++) {

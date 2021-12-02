@@ -79,3 +79,16 @@ exports.addUserToChallenge = async (guildId, channelId, roleName, user) => {
         }
     )
 }
+
+exports.removeUserFromAllChallenges = async (userId) => {
+    await Challenge.updateMany(
+        {},
+        {
+            "$set": { "initiatingTeam.lineup.roles.$[inner].user": null },
+            "$set": { "challengedTeam.lineup.roles.$[inner].user": null }
+        },
+        {
+            "arrayFilters": [{ "inner.user.id": userId }]
+        }
+    )
+}
