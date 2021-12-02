@@ -65,7 +65,7 @@ module.exports = {
             lineup.autoSearch = newAutoSearch
         }
         await team.save()
-        await interaction.reply({ content: `✅ New lineup has now a size of ${lineupSize}`, components: interactionUtils.createLineupComponents(lineup, interaction.user.id) });
+        await interaction.reply({ content: `✅ New lineup has now a size of ${lineupSize}. (Auto-search is ${lineup.autoSearch ? '*enabled*' : '*disabled*'})`, components: interactionUtils.createLineupComponents(lineup, interaction.user.id) });
     },
 };
 

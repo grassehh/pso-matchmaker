@@ -18,6 +18,6 @@ module.exports = {
             return
         }  
 
-        await interaction.reply({content: 'This is the current lineup', components: interactionUtils.createLineupComponents(lineup)})
+        await interaction.reply({content: `This is the current lineup. (Auto-search is ${lineup.autoSearch ? '*enabled*' : '*disabled*'})`, components: interactionUtils.createLineupComponents(lineup)})
     },
 };
