@@ -55,7 +55,9 @@ module.exports = {
                     await interaction.message.edit({ components: [] })
 
                     lineup = await teamService.findLineupByChannelId(interaction.guildId, interaction.channelId)
-                    if (lineup.autoSearch === true && lineup.roles.filter(role => role.user != null).length === lineup.roles.length) {
+                    let numberOfPlayersSigned = lineup.roles.filter(role => role.user != null).length
+                    let missingRoleName = lineup.roles.find(role => role.user == null)?.name
+                    if (lineup.autoSearch === true && numberOfPlayersSigned == lineup.roles.length || (numberOfPlayersSigned >= lineup.roles.length-1 && missingRoleName === 'GK')) {
                         let lineupQueue = await matchmakingService.findLineupQueueByChannelId(interaction.channelId)
                         if (lineupQueue) {
                             await interactionUtils.replyAlreadyQueued(interaction, lineupQueue.lineup.size)
@@ -77,7 +79,7 @@ module.exports = {
                     let existingPlayerRole = lineup.roles.find(role => role.user?.id === interaction.user.id)
 
                     if (!existingPlayerRole) {
-                        await interaction.reply({ content: `❌ You are not in the lineup` })
+                        await interaction.reply({ content: `❌ You are not in the lineup` , ephemeral: true})
                         return
                     }
 
@@ -88,7 +90,7 @@ module.exports = {
 
                     lineup = await teamService.findLineupByChannelId(interaction.guildId, interaction.channelId)
 
-                    if (lineup.autoSearch === true && lineup.roles.filter(role => role.user != null).length === lineup.roles.length - 1) {
+                    if (lineup.autoSearch === true && lineup.roles.filter(role => role.user != null).length <= lineup.roles.length - 1) {
                         await LineupQueue.deleteOne({ 'lineup.channelId': interaction.channelId })
                         await interaction.reply({ content: `Player ${interaction.user} left the ${existingPlayerRole.name} position. Your team is no longer in the queue !`, components: interactionUtils.createLineupComponents(lineup, interaction.user.id) })
                         return

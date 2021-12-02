@@ -81,14 +81,12 @@ exports.createLineupComponents = (lineup, userId) => {
         )
     }
 
-    let existingPlayerRole = lineup.roles.find(role => role.user?.id === userId)
     const lineupActionsRow = new MessageActionRow()
     lineupActionsRow.addComponents(
         new MessageButton()
             .setCustomId(`leaveLineup`)
             .setLabel(`Leave`)
             .setStyle('DANGER')
-            .setDisabled(existingPlayerRole == null)
     )
     components.push(lineupActionsRow)
 
