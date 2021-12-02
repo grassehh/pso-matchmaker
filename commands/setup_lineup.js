@@ -2,6 +2,7 @@ const { SlashCommandBuilder } = require('@discordjs/builders');
 const { LineupQueue } = require('../mongoSchema');
 const interactionUtils = require("../services/interactionUtils");
 const teamService = require("../services/teamService");
+const authorizationService = require("../services/authorizationService");
 
 module.exports = {
     data:
@@ -30,6 +31,11 @@ module.exports = {
                 .setRequired(false)
                 .setDescription('Indicates if this lineup should automatically sign into the matchmaking once it is filled')),
     async execute(interaction) {
+        if (!authorizationService.isAllowedToExecuteCommand(interaction.member)) {
+            await interactionUtils.replyNotAllowed(interaction)
+            return
+        }
+
         let team = await teamService.findTeamByGuildId(interaction.guildId)
         if (!team) {
             interactionUtils.replyTeamNotRegistered(interaction)

@@ -94,3 +94,7 @@ exports.createLineupComponents = (lineup, userId) => {
 
     return components
 }
+
+exports.replyNotAllowed = async (interaction) => {
+    await interaction.reply({ content: '❌ You are not allowed to execute this command', ephemeral: true })
+}
