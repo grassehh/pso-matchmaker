@@ -111,3 +111,56 @@ exports.createStatsEmbeds = async (user, guildId) => {
 
     return [statsEmbed]
 }
+
+exports.createLeaderBoardEmbeds = async (interaction, guildId, page = 0, numberOfPages, pageSize = statsService.DEFAULT_LEADERBOARD_PAGE_SIZE) => {
+    let allStats = await statsService.findStats(guildId, page, pageSize)
+
+    const statsEmbed = new MessageEmbed()
+        .setColor('#0099ff')
+        .setTitle(`${guildId ? 'Team' : 'Global'} ⚽ GAMES Leaderboard 🏆`)
+        .setTimestamp()
+
+    let playersStats = ''
+    let pos = (pageSize * page) + 1
+    for (let stats of allStats) {
+        let user = await interaction.client.users.fetch(stats.user.id)
+        if (user) {
+            let isLeader = pos === 1 && page === 0
+            let isTop3 = pos <= 3
+            playersStats += `${isTop3 ? '**' : ''}${pos}. ${isLeader ? '🏆 ' : ''} ${user.username} (${stats.totalNumberOfGames || stats.numberOfGames})${isLeader ? ' 🏆' : ''}${isTop3 ? '**' : ''}\n`
+            pos++
+        }
+    }
+
+    statsEmbed.addField(`Page ${page + 1}/${numberOfPages}`, playersStats)
+
+    return [statsEmbed]
+}
+
+exports.createLeaderBoardPaginationComponent = (globalStats, page = 0, numberOfPages) => {
+    const paginationActionsRow = new MessageActionRow()
+    paginationActionsRow.addComponents(
+        new MessageButton()
+            .setCustomId(`leaderboard_first_page_${globalStats}`)
+            .setLabel('<<')
+            .setStyle('SECONDARY')
+            .setDisabled(page === 0),
+        new MessageButton()
+            .setCustomId(`leaderboard_page_${globalStats}_${page - 1}`)
+            .setLabel('<')
+            .setStyle('SECONDARY')
+            .setDisabled(page === 0),
+        new MessageButton()
+            .setCustomId(`leaderboard_page_${globalStats}_${page + 1}`)
+            .setLabel('>')
+            .setStyle('SECONDARY')
+            .setDisabled(page === numberOfPages - 1),
+        new MessageButton()
+            .setCustomId(`leaderboard_last_page_${globalStats}`)
+            .setLabel('>>')
+            .setStyle('SECONDARY')
+            .setDisabled(page === numberOfPages - 1)
+    )
+
+    return paginationActionsRow
+}

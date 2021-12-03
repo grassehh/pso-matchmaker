@@ -229,6 +229,47 @@ module.exports = {
                     await interaction.reply({ content: 'Easy peasy ! Nothing has been deleted', ephemeral: true })
                     return
                 }
+
+                if (interaction.customId.startsWith('leaderboard_page_')) {
+                    let split = interaction.customId.split('_')
+                    let globalStats = split[2] === 'true'
+                    let page = parseInt(split[3])
+                    let guildId = globalStats ? null : interaction.guildId
+                    let numberOfPlayers = await statsService.countNumberOfPlayers(guildId)
+                    let numberOfPages = Math.ceil(numberOfPlayers / statsService.DEFAULT_LEADERBOARD_PAGE_SIZE)
+                    let statsEmbeds = await interactionUtils.createLeaderBoardEmbeds(interaction, guildId, page, numberOfPages)
+                    let leaderboardPaginationComponent = interactionUtils.createLeaderBoardPaginationComponent(globalStats, page, numberOfPages)
+                    interaction.message.components[0] = leaderboardPaginationComponent
+                    await interaction.update({ embeds: statsEmbeds, components: interaction.message.components })
+                    return
+                }
+
+                if (interaction.customId.startsWith('leaderboard_first_page_')) {
+                    let split = interaction.customId.split('_')
+                    let globalStats = split[3] === 'true'
+                    let guildId = globalStats ? null : interaction.guildId
+                    let numberOfPlayers = await statsService.countNumberOfPlayers(guildId)
+                    let numberOfPages = Math.ceil(numberOfPlayers / statsService.DEFAULT_LEADERBOARD_PAGE_SIZE)
+                    let statsEmbeds = await interactionUtils.createLeaderBoardEmbeds(interaction, guildId, 0, numberOfPages)
+                    let leaderboardPaginationComponent = interactionUtils.createLeaderBoardPaginationComponent(globalStats, 0, numberOfPages)
+                    interaction.message.components[0] = leaderboardPaginationComponent
+                    await interaction.update({ embeds: statsEmbeds, components: interaction.message.components })
+                    return
+                }
+                
+
+                if (interaction.customId.startsWith('leaderboard_last_page_')) {
+                    let split = interaction.customId.split('_')
+                    let globalStats = split[3] === 'true'
+                    let guildId = globalStats ? null : interaction.guildId
+                    let numberOfPlayers = await statsService.countNumberOfPlayers(guildId)
+                    let numberOfPages = Math.ceil(numberOfPlayers / statsService.DEFAULT_LEADERBOARD_PAGE_SIZE)
+                    let statsEmbeds = await interactionUtils.createLeaderBoardEmbeds(interaction, guildId, numberOfPages, numberOfPages)
+                    let leaderboardPaginationComponent = interactionUtils.createLeaderBoardPaginationComponent(globalStats, numberOfPages, numberOfPages)
+                    interaction.message.components[0] = leaderboardPaginationComponent
+                    await interaction.update({ embeds: statsEmbeds, components: interaction.message.components })
+                    return
+                }
             }
 
             if (interaction.isSelectMenu()) {
@@ -237,6 +278,19 @@ module.exports = {
                     let user = await interaction.client.users.resolve(userId)
                     let statsEmbeds = await interactionUtils.createStatsEmbeds(user, interaction.values[0] === 'stats_team_value' ? interaction.guildId : null)
                     await interaction.update({ embeds: statsEmbeds })
+                    return
+                }
+
+                if (interaction.customId.startsWith('leaderboard_global_select')) {
+                    let globalStats = interaction.values[0] === 'leaderboard_global_value'
+                    let guildId = globalStats ? null : interaction.guildId
+                    let numberOfPlayers = await statsService.countNumberOfPlayers(guildId)
+                    let numberOfPages = Math.ceil(numberOfPlayers / statsService.DEFAULT_LEADERBOARD_PAGE_SIZE)
+                    let statsEmbeds = await interactionUtils.createLeaderBoardEmbeds(interaction, guildId, 0, numberOfPages)
+                    let leaderboardPaginationComponent = interactionUtils.createLeaderBoardPaginationComponent(true, 0, numberOfPages)
+                    interaction.message.components[0] = leaderboardPaginationComponent
+                    await interaction.update({ embeds: statsEmbeds, components: interaction.message.components })
+                    return
                 }
             }
         }

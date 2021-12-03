@@ -10,12 +10,10 @@ module.exports = {
             .setRequired(false)
             .setDescription('The name of the player you want to see the stats')),
     async execute(interaction) {
-
         let playerName = interaction.options.getString('player_name')
         let user = interaction.user
         if (playerName) {
             let matchingUsers = await interaction.guild.members.search({ query: playerName })
-            console.log(matchingUsers.keys())
             if (matchingUsers.size == 0) {
                 const statsEmbed = new MessageEmbed()
                     .setColor('#0099ff')
@@ -24,7 +22,7 @@ module.exports = {
                 await interaction.reply({ embeds: [statsEmbed] })
                 return
             } else {
-                user = matchingUsers.at(0)
+                user = matchingUsers.at(0).user
             }
         }
 
@@ -40,8 +38,8 @@ module.exports = {
                     {
                         label: '👕 Team Stats',
                         value: 'stats_team_value',
-                    },
-                ]),
+                    }
+                ])
         )
 
         let statsEmbeds = await interactionUtils.createStatsEmbeds(user)
