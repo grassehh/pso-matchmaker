@@ -58,15 +58,20 @@ module.exports = {
                     lineup = await teamService.findLineupByChannelId(interaction.guildId, interaction.channelId)
                     let numberOfPlayersSigned = lineup.roles.filter(role => role.user != null).length
                     let missingRoleName = lineup.roles.find(role => role.user == null)?.name
-                    if (lineup.autoSearch === true && (numberOfPlayersSigned == lineup.roles.length || (numberOfPlayersSigned == lineup.size - 1 && missingRoleName === 'GK'))) {
+                    if (lineup.autoSearch === true && (numberOfPlayersSigned == lineup.roles.length || (numberOfPlayersSigned == lineup.size - 1 && missingRoleName.includes('GK')))) {
                         let lineupQueue = await matchmakingService.findLineupQueueByChannelId(interaction.channelId)
                         if (!lineupQueue) {
-                            matchmakingService.joinQueue(interaction, team, lineup).then(interaction.reply(`Player ${interaction.user} signed into the lineup as ${roleName}. Your lineup is full, it is now searching for a ${lineup.size}v${lineup.size} team !`))
+                            matchmakingService.joinQueue(interaction, team, lineup).then(
+                                interaction.reply({
+                                    content: `Player ${interaction.user} signed into the lineup as ${roleName}. Your lineup is full, it is now searching for a ${lineup.size}v${lineup.size} team !`,
+                                    components: interactionUtils.createLineupComponents(lineup)
+                                })
+                            )
                             return
                         }
                     }
 
-                    await interaction.reply({ content: `Player ${interaction.user} signed into the lineup as ${roleName}`, components: interactionUtils.createLineupComponents(lineup, interaction.user.id) })
+                    await interaction.reply({ content: `Player ${interaction.user} signed into the lineup as ${roleName}`, components: interactionUtils.createLineupComponents(lineup) })
                     return
                 }
 
@@ -88,16 +93,16 @@ module.exports = {
                     let numberOfPlayersSigned = lineup.roles.filter(role => role.user != null).length
                     let numberOfMissingPlayers = lineup.size - numberOfPlayersSigned
                     let missingRoleName = lineup.roles.find(role => role.user == null)?.name
-                    if (lineup.autoSearch === true && (numberOfMissingPlayers >= 2 || (numberOfMissingPlayers == 1 && missingRoleName !== 'GK'))) {
+                    if (lineup.autoSearch === true && (numberOfMissingPlayers >= 2 || (numberOfMissingPlayers == 1 && missingRoleName.includes('GK')))) {
                         let challenge = await matchmakingService.findChallengeByGuildId(interaction.guildId)
                         if (!challenge) {
                             await LineupQueue.deleteOne({ 'lineup.channelId': interaction.channelId })
-                            await interaction.reply({ content: `Player ${interaction.user} left the ${existingPlayerRole.name} position. Your team is no longer in the queue !`, components: interactionUtils.createLineupComponents(lineup, interaction.user.id) })
+                            await interaction.reply({ content: `Player ${interaction.user} left the ${existingPlayerRole.name} position. Your team is no longer in the queue !`, components: interactionUtils.createLineupComponents(lineup) })
                             return
                         }
                     }
 
-                    await interaction.reply({ content: `Player ${interaction.user} left the ${existingPlayerRole.name} position`, components: interactionUtils.createLineupComponents(lineup, interaction.user.id) })
+                    await interaction.reply({ content: `Player ${interaction.user} left the ${existingPlayerRole.name} position`, components: interactionUtils.createLineupComponents(lineup) })
                     return
                 }
 
