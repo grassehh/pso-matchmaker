@@ -58,7 +58,7 @@ module.exports = {
                     lineup = await teamService.findLineupByChannelId(interaction.guildId, interaction.channelId)
                     let numberOfPlayersSigned = lineup.roles.filter(role => role.user != null).length
                     let missingRoleName = lineup.roles.find(role => role.user == null)?.name
-                    if (lineup.autoSearch === true && (numberOfPlayersSigned == lineup.roles.length || (numberOfPlayersSigned >= lineup.roles.length - 1 && missingRoleName === 'GK'))) {
+                    if (lineup.autoSearch === true && (numberOfPlayersSigned == lineup.roles.length || (numberOfPlayersSigned == lineup.size - 1 && missingRoleName === 'GK'))) {
                         let lineupQueue = await matchmakingService.findLineupQueueByChannelId(interaction.channelId)
                         if (!lineupQueue) {
                             matchmakingService.joinQueue(interaction, team, lineup).then(interaction.reply(`Player ${interaction.user} signed into the lineup as ${roleName}. Your lineup is full, it is now searching for a ${lineup.size}v${lineup.size} team !`))
@@ -85,7 +85,10 @@ module.exports = {
 
                     lineup = await teamService.findLineupByChannelId(interaction.guildId, interaction.channelId)
 
-                    if (lineup.autoSearch === true && lineup.roles.filter(role => role.user != null).length <= lineup.roles.length - 1) {
+                    let numberOfPlayersSigned = lineup.roles.filter(role => role.user != null).length
+                    let numberOfMissingPlayers = lineup.size - numberOfPlayersSigned
+                    let missingRoleName = lineup.roles.find(role => role.user == null)?.name
+                    if (lineup.autoSearch === true && (numberOfMissingPlayers >= 2 || (numberOfMissingPlayers == 1 && missingRoleName !== 'GK'))) {
                         let challenge = await matchmakingService.findChallengeByGuildId(interaction.guildId)
                         if (!challenge) {
                             await LineupQueue.deleteOne({ 'lineup.channelId': interaction.channelId })
@@ -164,7 +167,7 @@ module.exports = {
                         let discordUser = await interaction.client.users.fetch(user.id)
                         discordUser.send(`Match is ready ! Join the custom lobby Lobby **${lobbyName}**. The password is **${lobbyPassword}**`)
                     }
-                    
+
                     await teamService.clearLineup(interaction.guildId, interaction.channelId)
                     await teamService.clearLineup(challenge.initiatingTeam.team.guildId, challenge.initiatingTeam.lineup.channelId)
                     await LineupQueue.deleteOne({ '_id': challenge.challengedTeam.id })
