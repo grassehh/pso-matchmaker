@@ -3,16 +3,16 @@ const { Stats } = require("../mongoSchema")
 exports.incrementGamesPlayed = async (guildId, users) => {
     let bulks = distinctUsers(users).map((user) => ({
         updateOne: {
-            filter: { 
+            filter: {
                 guildId,
                 'user.id': user.id
-             },
+            },
             update: {
                 $inc: { numberOfGames: 1 },
-                $setOnInsert: { 
+                $setOnInsert: {
                     guildId,
                     user: { id: user.id }
-                 },
+                },
             },
             upsert: true
         }
@@ -20,8 +20,22 @@ exports.incrementGamesPlayed = async (guildId, users) => {
     Stats.bulkWrite(bulks)
 }
 
-exports.findStatsByUserId = async (userId) => {
-    return await Stats.findOne({ 'user.id': userId })
+exports.findStatsByUserId = async (userId, guildId) => {
+    let stats
+    if (!guildId) {
+        stats = await Stats.aggregate([
+            {
+                $match: { 'user.id': userId }
+            },
+            {
+                $group: { _id: null, numberOfGames: { $sum: "$numberOfGames" } }
+            }
+        ])
+        stats = stats && stats[0]
+    } else {
+        stats = await Stats.findOne({ 'user.id': userId, guildId })
+    }
+    return stats
 }
 
 function distinctUsers(users) {

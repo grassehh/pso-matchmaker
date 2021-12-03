@@ -1,7 +1,6 @@
 const { SlashCommandBuilder } = require('@discordjs/builders');
-const { MessageEmbed } = require('discord.js');
-const { Stats } = require('../mongoSchema');
-const statsService = require("../services/statsService");
+const { MessageEmbed, MessageActionRow, MessageSelectMenu } = require('discord.js');
+const interactionUtils = require("../services/interactionUtils");
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -29,19 +28,23 @@ module.exports = {
             }
         }
 
-        let stats = await statsService.findStatsByUserId(interaction.user.id)
-        if (!stats) {
-            stats = new Stats({
-                numberOfGames: 0
-            })
-        }
+        const globalStatsComponent = new MessageActionRow().addComponents(
+            new MessageSelectMenu()
+                .setCustomId(`stats_global_select_${user.id}`)
+                .setPlaceholder('Stats Type')
+                .addOptions([
+                    {
+                        label: '🌎 Global Stats',
+                        value: 'stats_global_value'
+                    },
+                    {
+                        label: '👕 Team Stats',
+                        value: 'stats_team_value',
+                    },
+                ]),
+        )
 
-        const statsEmbed = new MessageEmbed()
-            .setColor('#0099ff')
-            .setTitle(`${interaction.user.tag} stats`)
-            .setTimestamp()
-        statsEmbed.addField('⚽ Games played', stats.numberOfGames + '')
-
-        interaction.reply({ embeds: [statsEmbed] })
-    },
+        let statsEmbeds = await interactionUtils.createStatsEmbeds(user)
+        interaction.reply({ embeds: statsEmbeds, components: [globalStatsComponent] })
+    }
 };

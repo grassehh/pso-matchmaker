@@ -27,8 +27,8 @@ module.exports = {
             }
         }
 
-        if (interaction.isButton()) {
-            try {
+        try {
+            if (interaction.isButton()) {
                 let team = await teamService.findTeamByGuildId(interaction.guildId)
                 let lineup = await teamService.retrieveLineup(team, interaction.channelId)
 
@@ -229,13 +229,23 @@ module.exports = {
                     await interaction.reply({ content: 'Easy peasy ! Nothing has been deleted', ephemeral: true })
                     return
                 }
-            } catch (error) {
-                console.error(error);
-                try {
-                    await interaction.reply({ content: 'There was an error while executing this interaction!', ephemeral: true });
-                } catch (error) {
-                    //Shush
+            }
+
+            if (interaction.isSelectMenu()) {
+                if (interaction.customId.startsWith('stats_global_select_')) {
+                    let userId = interaction.customId.substring(20)
+                    let user = await interaction.client.users.resolve(userId)
+                    let statsEmbeds = await interactionUtils.createStatsEmbeds(user, interaction.values[0] === 'stats_team_value' ? interaction.guildId : null)
+                    await interaction.update({ embeds: statsEmbeds })
                 }
+            }
+        }
+        catch (error) {
+            console.error(error);
+            try {
+                await interaction.reply({ content: 'There was an error while executing this interaction!', ephemeral: true });
+            } catch (error) {
+                //Shush
             }
         }
     }

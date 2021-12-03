@@ -1,5 +1,7 @@
 const { MessageActionRow, MessageButton, MessageEmbed } = require("discord.js");
 const teamService = require("../services/teamService");
+const statsService = require("../services/statsService");
+const { Stats } = require("../mongoSchema");
 
 exports.replyAlreadyQueued = async (interaction, lineupSize) => {
     await interaction.reply({
@@ -92,4 +94,20 @@ exports.createLineupComponents = (lineup) => {
 
 exports.replyNotAllowed = async (interaction) => {
     await interaction.reply({ content: '❌ You are not allowed to execute this command', ephemeral: true })
+}
+
+exports.createStatsEmbeds = async (user, guildId) => {
+    let stats = await statsService.findStatsByUserId(user.id, guildId)
+    if (!stats) {
+        stats = new Stats({
+            numberOfGames: 0
+        })
+    }
+    const statsEmbed = new MessageEmbed()
+        .setColor('#0099ff')
+        .setTitle(`${user.tag} ${guildId ? 'team' : 'global'} stats`)
+        .setTimestamp()
+    statsEmbed.addField('⚽ Games played', stats.numberOfGames.toString())
+
+    return [statsEmbed]
 }
