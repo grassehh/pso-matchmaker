@@ -1,6 +1,6 @@
 const { Permissions } = require("discord.js")
 
-exports.BOT_ADMIN_ROLE = 'PSO MM BOT ADMIN'
+exports.BOT_ADMIN_ROLE = 'PSO MM ADMIN'
 
 exports.isAllowedToExecuteCommand = (command, member) => {
     return !command.authorizedRoles

@@ -4,7 +4,7 @@ const { MessageEmbed } = require('discord.js');
 module.exports = {
     data: new SlashCommandBuilder()
         .setName('help')
-        .setDescription('Something you d\'ont understand ?'),
+        .setDescription('Something you don\'t understand ?'),
     async execute(interaction) {
         const titleEmbed = new MessageEmbed()
             .setColor('#0099ff')
@@ -33,6 +33,16 @@ module.exports = {
          Finally, if you wish to **delete** your **Lineup** for any reason, use the /delete_lineup command.
 
          *(calling the /setup_lineup command multiple time will override the existing lineup setup)*
+         `)
+         .addField('Command Permissions', `
+            The following commands requires higher permissions to be used: 
+            - **/delete_lineup**
+            - **/delete_team**
+            - **/register_team**
+            - **/setup_lineup**
+            - **/team_name**
+
+            By Default, the Discord server administrator has access to all of these commands. If you wish to give someone else's permission for these commands, create a role named **'PSO MM ADMIN'** and give them.
          `)
 
         const matchmakingEmbed = new MessageEmbed()

@@ -117,25 +117,34 @@ exports.createStatsEmbeds = async (interaction, user, guildId) => {
 exports.createLeaderBoardEmbeds = async (interaction, guildId, page = 0, numberOfPages, pageSize = statsService.DEFAULT_LEADERBOARD_PAGE_SIZE) => {
     let allStats = await statsService.findStats(guildId, page, pageSize)
 
-    const statsEmbed = new MessageEmbed()
-        .setColor('#0099ff')
-        .setTitle(`${guildId ? 'Team' : 'Global'} ⚽ GAMES Leaderboard 🏆`)
-        .setTimestamp()
-        .setFooter(`Author: ${interaction.user.username}`)
-
-    let playersStats = ''
-    let pos = (pageSize * page) + 1
-    for (let stats of allStats) {
-        let user = await interaction.client.users.fetch(stats.user.id)
-        if (user) {
-            let isLeader = pos === 1 && page === 0
-            let isTop3 = pos <= 3
-            playersStats += `${isTop3 ? '**' : ''}${pos}. ${isLeader ? '🏆 ' : ''} ${user.username} (${stats.totalNumberOfGames || stats.numberOfGames})${isLeader ? ' 🏆' : ''}${isTop3 ? '**' : ''}\n`
-            pos++
+    let statsEmbed
+    if (allStats.length === 0) {
+        statsEmbed = new MessageEmbed()
+            .setColor('#0099ff')
+            .setTitle(`${guildId ? 'Team' : 'Global'} ⚽ GAMES Leaderboard 🏆`)
+            .setTimestamp()
+            .setFooter(`Author: ${interaction.user.username}`)
+            .addField('Ooooof', 'This looks pretty empty here. Time to get some games lads !')
+    } else {
+        statsEmbed = new MessageEmbed()
+            .setColor('#0099ff')
+            .setTitle(`${guildId ? 'Team' : 'Global'} ⚽ GAMES Leaderboard 🏆`)
+            .setTimestamp()
+            .setFooter(`Author: ${interaction.user.username}`)
+        let playersStats = ''
+        let pos = (pageSize * page) + 1
+        for (let stats of allStats) {
+            let user = await interaction.client.users.fetch(stats.user.id)
+            if (user) {
+                let isLeader = pos === 1 && page === 0
+                let isTop3 = pos <= 3
+                playersStats += `${isTop3 ? '**' : ''}${pos}. ${isLeader ? '🏆 ' : ''} ${user.username} (${stats.totalNumberOfGames || stats.numberOfGames})${isLeader ? ' 🏆' : ''}${isTop3 ? '**' : ''}\n`
+                pos++
+            }
         }
-    }
 
-    statsEmbed.addField(`Page ${page + 1}/${numberOfPages}`, playersStats)
+        statsEmbed.addField(`Page ${page + 1}/${numberOfPages}`, playersStats)
+    }
 
     return [statsEmbed]
 }
@@ -157,12 +166,12 @@ exports.createLeaderBoardPaginationComponent = (globalStats, page = 0, numberOfP
             .setCustomId(`leaderboard_page_${globalStats}_${page + 1}`)
             .setLabel('>')
             .setStyle('SECONDARY')
-            .setDisabled(page === numberOfPages - 1),
+            .setDisabled(page >= numberOfPages - 1),
         new MessageButton()
             .setCustomId(`leaderboard_last_page_${globalStats}`)
             .setLabel('>>')
             .setStyle('SECONDARY')
-            .setDisabled(page === numberOfPages - 1)
+            .setDisabled(page >= numberOfPages - 1)
     )
 
     return paginationActionsRow
