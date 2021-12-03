@@ -123,3 +123,10 @@ exports.joinQueue = async (interaction, team, lineup) => {
     }
     return Promise.all(notifyChannelPromises)
 }
+
+exports.isLineupAllowedToJoinQueue = (lineup) => {
+    let numberOfPlayersSigned = lineup.roles.filter(role => role.user != null).length
+    let numberOfMissingPlayers = lineup.size - numberOfPlayersSigned
+    let missingRoleName = lineup.roles.find(role => role.user == null)?.name
+    return numberOfMissingPlayers == 0 || (numberOfMissingPlayers == 1 && missingRoleName.includes('GK'))
+}

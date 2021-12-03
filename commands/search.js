@@ -31,6 +31,11 @@ module.exports = {
             interactionUtils.replyAlreadyQueued(interaction, currentQueuedLineup.lineup.size)
             return
         }
+        
+        if (!matchmakingService.isLineupAllowedToJoinQueue(lineup)) {
+            interaction.reply('⛔ All outfield positions must be filled before searching')
+            return
+        }
 
         matchmakingService.joinQueue(interaction, team, lineup).then(interaction.reply(`✅ Your team is now queued for ${lineup.size}v${lineup.size}`))
     }

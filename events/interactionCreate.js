@@ -33,8 +33,8 @@ module.exports = {
                 let lineup = await teamService.retrieveLineup(team, interaction.channelId)
 
                 if (interaction.customId.startsWith("role_")) {
-                    let roleName = interaction.customId.substring(5)
-                    let selectedRole = lineup.roles.find(role => role.name == roleName)
+                    let roleSigned = interaction.customId.substring(5)
+                    let selectedRole = lineup.roles.find(role => role.name == roleSigned)
 
                     if (selectedRole.user) {
                         await interaction.reply({ content: 'A player is already signed at this position', ephemeral: true })
@@ -49,36 +49,39 @@ module.exports = {
                         name: interaction.user.username,
                         mention: interaction.user.toString()
                     }
-                    await matchmakingService.addUserToChallenge(interaction.guildId, interaction.channelId, roleName, userToAdd)
-                    await teamService.addUserToLineup(interaction.guildId, interaction.channelId, roleName, userToAdd)
-                    await teamService.addUserToLineupQueue(interaction.guildId, interaction.channelId, roleName, userToAdd)
-
-                    await interaction.message.edit({ components: [] })
+                    await matchmakingService.addUserToChallenge(interaction.guildId, interaction.channelId, roleSigned, userToAdd)
+                    await teamService.addUserToLineup(interaction.guildId, interaction.channelId, roleSigned, userToAdd)
+                    await teamService.addUserToLineupQueue(interaction.guildId, interaction.channelId, roleSigned, userToAdd)
 
                     lineup = await teamService.findLineupByChannelId(interaction.guildId, interaction.channelId)
-                    let numberOfPlayersSigned = lineup.roles.filter(role => role.user != null).length
-                    let missingRoleName = lineup.roles.find(role => role.user == null)?.name
-                    if (lineup.autoSearch === true && (numberOfPlayersSigned == lineup.roles.length || (numberOfPlayersSigned == lineup.size - 1 && missingRoleName.includes('GK')))) {
-                        let lineupQueue = await matchmakingService.findLineupQueueByChannelId(interaction.channelId)
+                    let lineupQueue = await matchmakingService.findLineupQueueByChannelId(interaction.channelId)
+                    if (lineup.autoSearch === true && matchmakingService.isLineupAllowedToJoinQueue(lineup)) {
                         if (!lineupQueue) {
                             matchmakingService.joinQueue(interaction, team, lineup).then(
                                 interaction.reply({
-                                    content: `Player ${interaction.user} signed into the lineup as ${roleName}. Your lineup is full, it is now searching for a ${lineup.size}v${lineup.size} team !`,
+                                    content: `Player ${interaction.user} signed into the lineup as ${roleSigned}. Your lineup is full, it is now searching for a ${lineup.size}v${lineup.size} team !`,
                                     components: interactionUtils.createLineupComponents(lineup)
                                 })
                             )
                             return
                         }
+                    } else if (!matchmakingService.isLineupAllowedToJoinQueue(lineup) && lineupQueue) {
+                        let challenge = await matchmakingService.findChallengeByGuildId(interaction.guildId)
+                        if (!challenge) {
+                            await LineupQueue.deleteOne({ 'lineup.channelId': interaction.channelId })
+                            await interaction.reply({ content: `Player ${interaction.user} swapped his position with ${roleSigned}. Your team is no longer in the queue !`, components: interactionUtils.createLineupComponents(lineup) })
+                            return
+                        }
                     }
 
-                    await interaction.reply({ content: `Player ${interaction.user} signed into the lineup as ${roleName}`, components: interactionUtils.createLineupComponents(lineup) })
+                    await interaction.reply({ content: `Player ${interaction.user} signed into the lineup as ${roleSigned}`, components: interactionUtils.createLineupComponents(lineup) })
                     return
                 }
 
                 if (interaction.customId === 'leaveLineup') {
-                    let existingPlayerRole = lineup.roles.find(role => role.user?.id === interaction.user.id)
+                    let roleLeft = lineup.roles.find(role => role.user?.id === interaction.user.id)
 
-                    if (!existingPlayerRole) {
+                    if (!roleLeft) {
                         await interaction.reply({ content: `❌ You are not in the lineup`, ephemeral: true })
                         return
                     }
@@ -86,23 +89,19 @@ module.exports = {
                     await matchmakingService.removeUserFromChallenge(interaction.guildId, interaction.channelId, interaction.user.id)
                     await teamService.removeUserFromLineup(interaction.guildId, interaction.channelId, interaction.user.id)
                     await teamService.removeUserFromLineupQueue(interaction.guildId, interaction.channelId, interaction.user.id)
-                    await interaction.message.edit({ components: [] })
 
                     lineup = await teamService.findLineupByChannelId(interaction.guildId, interaction.channelId)
 
-                    let numberOfPlayersSigned = lineup.roles.filter(role => role.user != null).length
-                    let numberOfMissingPlayers = lineup.size - numberOfPlayersSigned
-                    let missingRoleName = lineup.roles.find(role => role.user == null)?.name
-                    if (lineup.autoSearch === true && (numberOfMissingPlayers >= 2 || (numberOfMissingPlayers == 1 && missingRoleName.includes('GK')))) {
+                    if (!matchmakingService.isLineupAllowedToJoinQueue(lineup)) {
                         let challenge = await matchmakingService.findChallengeByGuildId(interaction.guildId)
                         if (!challenge) {
                             await LineupQueue.deleteOne({ 'lineup.channelId': interaction.channelId })
-                            await interaction.reply({ content: `Player ${interaction.user} left the ${existingPlayerRole.name} position. Your team is no longer in the queue !`, components: interactionUtils.createLineupComponents(lineup) })
+                            await interaction.reply({ content: `Player ${interaction.user} left the ${roleLeft.name} position. Your team is no longer in the queue !`, components: interactionUtils.createLineupComponents(lineup) })
                             return
                         }
                     }
 
-                    await interaction.reply({ content: `Player ${interaction.user} left the ${existingPlayerRole.name} position`, components: interactionUtils.createLineupComponents(lineup) })
+                    await interaction.reply({ content: `Player ${interaction.user} left the ${roleLeft.name} position`, components: interactionUtils.createLineupComponents(lineup) })
                     return
                 }
 
