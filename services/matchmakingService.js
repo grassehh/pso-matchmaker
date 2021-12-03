@@ -1,4 +1,6 @@
+const { MessageEmbed, MessageActionRow, MessageButton } = require("discord.js");
 const { LineupQueue, Challenge } = require("../mongoSchema")
+const teamService = require("../services/teamService");
 
 exports.findLineupQueueByChannelId = async (channelId) => {
     return await LineupQueue.findOne({ 'lineup.channelId': channelId })
@@ -24,8 +26,8 @@ exports.deleteLineupQueueByChannelId = async (channelId) => {
     await LineupQueue.deleteMany({ 'lineup.channelId': channelId })
 }
 
-exports.findAvailableLineupQueues = async (channelId, region) => {
-    return await LineupQueue.find({ $and: [{ 'lineup.channelId': { '$ne': channelId } }, { 'team.region': region }, { 'reserved': false }] })
+exports.findAvailableLineupQueues = async (region, channelId, lineupSize) => {
+    return await LineupQueue.find({ 'lineup.channelId': { '$ne': channelId }, 'team.region': region, 'lineup.size': lineupSize, 'reserved': false })
 }
 
 exports.findChallengeById = async (id) => {
@@ -91,4 +93,33 @@ exports.removeUserFromAllChallenges = async (userId) => {
             "arrayFilters": [{ "inner.user.id": userId }]
         }
     )
+}
+
+exports.joinQueue = async (interaction, team, lineup) => {
+    let lineupQueue = await new LineupQueue({
+        team: team,
+        lineup: lineup
+    }).save()
+    let teamName = teamService.formatTeamName(team, lineup)
+    let channelIds = await teamService.findAllChannelIdToNotify(team.region, lineup.channelId, lineup.size)
+    let notifyChannelPromises = []
+    for (let channelId of channelIds) {
+        notifyChannelPromises.push(interaction.client.channels.fetch(channelId).then((channel) => {
+            const teamEmbed = new MessageEmbed()
+                .setColor('#0099ff')
+                .setTitle(`Team '${teamName}' has joined the queue for ${lineup.size}v${lineup.size}`)
+                .setTimestamp()
+                .setFooter("Note: You can only challenge team with the same lineup size")
+
+            let challengeTeamRow = new MessageActionRow().addComponents(
+                new MessageButton()
+                    .setCustomId(`challenge_${lineupQueue.id}`)
+                    .setLabel('Challenge them !')
+                    .setEmoji('⚽')
+                    .setStyle('PRIMARY')
+            )
+            channel.send({ embeds: [teamEmbed], components: [challengeTeamRow] })
+        }))
+    }
+    return Promise.all(notifyChannelPromises)
 }

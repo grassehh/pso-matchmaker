@@ -9,6 +9,7 @@ module.exports = {
         .setName('search')
         .setDescription('Put your team in the matchmaking queue'),
     async execute(interaction) {
+
         let challenge = await matchmakingService.findChallengeByChannelId(interaction.channelId)
         if (challenge) {
             await interactionUtils.replyAlreadyChallenging(interaction, challenge)
@@ -31,10 +32,6 @@ module.exports = {
             return
         }
 
-        await new LineupQueue({
-            team: team,
-            lineup: lineup
-        }).save()
-        await interaction.reply(`✅ Your team is now queued for ${lineup.size}v${lineup.size}`)
+        matchmakingService.joinQueue(interaction, team, lineup).then(interaction.reply(`✅ Your team is now queued for ${lineup.size}v${lineup.size}`))
     }
 };

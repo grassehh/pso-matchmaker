@@ -61,11 +61,7 @@ module.exports = {
                     if (lineup.autoSearch === true && (numberOfPlayersSigned == lineup.roles.length || (numberOfPlayersSigned >= lineup.roles.length - 1 && missingRoleName === 'GK'))) {
                         let lineupQueue = await matchmakingService.findLineupQueueByChannelId(interaction.channelId)
                         if (!lineupQueue) {
-                            await new LineupQueue({
-                                team: team,
-                                lineup: lineup
-                            }).save()
-                            await interaction.reply(`Player ${interaction.user} signed into the lineup as ${roleName}. Your lineup is full, it is now queued for ${lineup.size}v${lineup.size} !`)
+                            matchmakingService.joinQueue(interaction, team, lineup).then(`Player ${interaction.user} signed into the lineup as ${roleName}. Your lineup is full, it is now queued for ${lineup.size}v${lineup.size} !`)
                             return
                         }
                     }

@@ -143,3 +143,36 @@ exports.findTeamsByUserId = async (userId) => {
         }
     )
 }
+
+exports.findAllChannelIdToNotify = async (region, channelId, lineupSize) => {
+    let res = await Team.aggregate([
+        {
+            $match: {
+                region
+            }
+        },
+        {
+            $unwind: '$lineups'
+        },
+        {
+            $match: {
+                'lineups.channelId': { $ne: channelId },
+                'lineups.size': lineupSize
+            }
+        },
+        {
+            $group: {
+                _id: null,
+                channelIds: {
+                    $addToSet: '$lineups.channelId'
+                }
+            }
+        }
+    ])
+
+    let allChannelIds = []
+    if (res.length > 0) {
+        allChannelIds = res[0].channelIds
+    }
+    return allChannelIds
+}

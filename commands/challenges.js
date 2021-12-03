@@ -14,7 +14,7 @@ module.exports = {
             await interactionUtils.replyTeamNotRegistered(interaction)
             return
         }
-        
+
         let lineup = teamService.retrieveLineup(team, interaction.channelId)
         if (!lineup) {
             await interactionUtils.replyLineupNotSetup(interaction)
@@ -33,13 +33,14 @@ module.exports = {
             return
         }
 
-        let lineupQueues = await matchmakingService.findAvailableLineupQueues(lineup.channelId, team.region)
+        let lineupQueues = await matchmakingService.findAvailableLineupQueues(team.region, lineup.channelId, lineup.size)
         if (lineupQueues.length === 0) {
             await interaction.reply({
                 embeds: [
                     new MessageEmbed()
                         .setColor('#0099ff')
-                        .setDescription("No Team are currently seaching for a match")]
+                        .setDescription(`No Team is currently seaching for a ${lineup.size}v${lineup.size} match 😪`)
+                ]
             })
         } else {
             let teamsActionRow = new MessageActionRow()
@@ -57,7 +58,7 @@ module.exports = {
                     .setColor('#0099ff')
                     .setTitle(`Teams for ${lineupSize}v${lineupSize}`)
                     .setTimestamp()
-                    .setFooter("Note: You can only challenge team with the same lineup size")
+                    .setFooter(`Author: ${interaction.user.username}`)
 
                 let lineupQueuesForCurrentSize = lineupQueuesBySize.get(lineupSize)
                 let i = 1
@@ -68,15 +69,13 @@ module.exports = {
                         lineupFieldValue += ' **(no gk)**'
                     }
                     lineupsEmbed.addField(lineupFieldName, lineupFieldValue, i % 4 !== 0)
-                    if (lineupQueue.lineup.size == lineup.size) {
-                        teamsActionRow.addComponents(
-                            new MessageButton()
-                                .setCustomId(`challenge_${lineupQueue.id}`)
-                                .setLabel(lineupFieldName)
-                                .setEmoji('⚽')
-                                .setStyle('PRIMARY')
-                        )
-                    }
+                    teamsActionRow.addComponents(
+                        new MessageButton()
+                            .setCustomId(`challenge_${lineupQueue.id}`)
+                            .setLabel(lineupFieldName)
+                            .setEmoji('⚽')
+                            .setStyle('PRIMARY')
+                    )
                     i++
                 }
 
