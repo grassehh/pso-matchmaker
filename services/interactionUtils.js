@@ -176,3 +176,27 @@ exports.createLeaderBoardPaginationComponent = (globalStats, page = 0, numberOfP
 
     return paginationActionsRow
 }
+
+exports.createLineupEmbedForNextMatch = async (interaction, lineup, opponentTeam, opponentLineup) => {
+    let lineupEmbed = new MessageEmbed()
+        .setColor('#0099ff')
+        .setTitle(`Lineup for the match against ${teamService.formatTeamName(opponentTeam, opponentLineup)}`)
+        .setTimestamp()
+        .setFooter(`Author: ${interaction.user.username}`)
+
+    let playerName
+    let user
+    let i = 1
+    for (role of lineup.roles) {
+        playerName = null
+        if (role.user?.id) {
+            user = await interaction.client.users.fetch(role.user.id)
+        }
+        if (user) {
+            playerName = user.username
+        }
+        lineupEmbed.addField(role.name, playerName || '*empty*', i % 4 !== 0)
+    }
+
+    return lineupEmbed
+}

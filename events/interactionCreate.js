@@ -150,6 +150,11 @@ module.exports = {
                 if (interaction.customId.startsWith('accept_challenge_')) {
                     let challengeId = interaction.customId.substring(17);
                     let challenge = await matchmakingService.findChallengeById(challengeId)
+                    if (!challenge) {
+                        interaction.reply({ content: "❌ This challenge no longer exists", ephemeral: true })
+                        return
+                    }
+
                     let challengedTeamUsers = challenge.challengedTeam.lineup.roles.map(role => role.user).filter(user => user)
                     let initiatingTeamUsers = challenge.initiatingTeam.lineup.roles.map(role => role.user).filter(user => user)
                     let allUsers = challengedTeamUsers.concat(initiatingTeamUsers)
@@ -159,19 +164,27 @@ module.exports = {
                         let discordUser = await interaction.client.users.fetch(user.id)
                         discordUser.send(`Match is ready ! Join the custom lobby Lobby **${lobbyName}**. The password is **${lobbyPassword}**`)
                     }
-
+                    
                     await teamService.clearLineup(interaction.guildId, interaction.channelId)
                     await teamService.clearLineup(challenge.initiatingTeam.team.guildId, challenge.initiatingTeam.lineup.channelId)
                     await LineupQueue.deleteOne({ '_id': challenge.challengedTeam.id })
                     await LineupQueue.deleteOne({ '_id': challenge.initiatingTeam.id })
                     await Challenge.deleteOne({ '_id': challenge.id })
 
+                    let initiatingTeamNextMatchEmbed = await interactionUtils.createLineupEmbedForNextMatch(interaction, challenge.initiatingTeam.lineup, challenge.challengedTeam.team, challenge.challengedTeam.lineup)
                     let initiatingTeamChannel = await interaction.client.channels.fetch(challenge.initiatingTeam.lineup.channelId)
                     await initiatingTeamChannel.messages.edit(challenge.initiatingMessageId, { components: [] })
-                    initiatingTeamChannel.send(`⚽ The team '${teamService.formatTeamName(challenge.challengedTeam.team, challenge.challengedTeam.lineup)}'' has accepted your challenge request ! Check your private messages for lobby info !`)
+                    initiatingTeamChannel.send({
+                        content: `⚽ The team '${teamService.formatTeamName(challenge.challengedTeam.team, challenge.challengedTeam.lineup)}'' has accepted your challenge request ! Check your private messages for lobby info !`,
+                        embeds: [initiatingTeamNextMatchEmbed]
+                    })
 
+                    let challengedTeamNextMatchEmbed = await interactionUtils.createLineupEmbedForNextMatch(interaction, challenge.challengedTeam.lineup, challenge.initiatingTeam.team, challenge.initiatingTeam.lineup)
                     await interaction.message.edit({ components: [] })
-                    await interaction.reply(`⚽ You have accepted to challenge the team '${teamService.formatTeamName(challenge.initiatingTeam.team, challenge.initiatingTeam.lineup)}' ! Check your private messages for lobby info !`)
+                    await interaction.reply({
+                        content: `⚽ You have accepted to challenge the team '${teamService.formatTeamName(challenge.initiatingTeam.team, challenge.initiatingTeam.lineup)}' ! Check your private messages for lobby info !`,
+                        embeds: [challengedTeamNextMatchEmbed]
+                    })
 
                     await statsService.incrementGamesPlayed(challenge.challengedTeam.team.guildId, challengedTeamUsers)
                     await statsService.incrementGamesPlayed(challenge.initiatingTeam.team.guildId, initiatingTeamUsers)
@@ -182,6 +195,10 @@ module.exports = {
                 if (interaction.customId.startsWith('refuse_challenge_')) {
                     let challengeId = interaction.customId.substring(17);
                     let challenge = await matchmakingService.findChallengeById(challengeId)
+                    if (!challenge) {
+                        interaction.reply({ content: "❌ This challenge no longer exists", ephemeral: true })
+                        return
+                    }
 
                     await matchmakingService.freeLineupQueueById(challenge.challengedTeam.id)
                     await matchmakingService.freeLineupQueueById(challenge.initiatingTeam.id)
@@ -199,6 +216,10 @@ module.exports = {
                 if (interaction.customId.startsWith('cancel_challenge_')) {
                     let challengeId = interaction.customId.substring(17);
                     let challenge = await matchmakingService.findChallengeById(challengeId)
+                    if (!challenge) {
+                        interaction.reply({ content: "❌ This challenge no longer exists", ephemeral: true })
+                        return
+                    }
 
                     await matchmakingService.freeLineupQueueById(challenge.challengedTeam.id)
                     await matchmakingService.freeLineupQueueById(challenge.initiatingTeam.id)
@@ -252,7 +273,7 @@ module.exports = {
                     await interaction.update({ embeds: statsEmbeds, components: interaction.message.components })
                     return
                 }
-                
+
 
                 if (interaction.customId.startsWith('leaderboard_last_page_')) {
                     let split = interaction.customId.split('_')
