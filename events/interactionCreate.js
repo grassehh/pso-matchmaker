@@ -61,7 +61,7 @@ module.exports = {
                     if (lineup.autoSearch === true && (numberOfPlayersSigned == lineup.roles.length || (numberOfPlayersSigned >= lineup.roles.length - 1 && missingRoleName === 'GK'))) {
                         let lineupQueue = await matchmakingService.findLineupQueueByChannelId(interaction.channelId)
                         if (!lineupQueue) {
-                            matchmakingService.joinQueue(interaction, team, lineup).then(`Player ${interaction.user} signed into the lineup as ${roleName}. Your lineup is full, it is now queued for ${lineup.size}v${lineup.size} !`)
+                            matchmakingService.joinQueue(interaction, team, lineup).then(interaction.reply(`Player ${interaction.user} signed into the lineup as ${roleName}. Your lineup is full, it is now searching for a ${lineup.size}v${lineup.size} team !`))
                             return
                         }
                     }
@@ -140,7 +140,7 @@ module.exports = {
                     challenge.initiatingMessageId = initiatingMessage.id
 
                     let channel = await interaction.client.channels.fetch(challenge.challengedTeam.lineup.channelId)
-                    let challengedMessage = await channel.send(interactionUtils.createDecideChallengeReply(challenge))
+                    let challengedMessage = await channel.send(interactionUtils.createDecideChallengeReply(interaction, challenge))
                     challenge.challengedMessageId = challengedMessage.id
 
                     await challenge.save()
@@ -272,7 +272,7 @@ module.exports = {
                 if (interaction.customId.startsWith('stats_global_select_')) {
                     let userId = interaction.customId.substring(20)
                     let user = await interaction.client.users.resolve(userId)
-                    let statsEmbeds = await interactionUtils.createStatsEmbeds(user, interaction.values[0] === 'stats_team_value' ? interaction.guildId : null)
+                    let statsEmbeds = await interactionUtils.createStatsEmbeds(interaction, user, interaction.values[0] === 'stats_team_value' ? interaction.guildId : null)
                     await interaction.update({ embeds: statsEmbeds })
                     return
                 }

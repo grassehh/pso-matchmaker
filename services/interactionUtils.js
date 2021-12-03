@@ -42,12 +42,13 @@ exports.createCancelChallengeReply = (challenge) => {
     return { content: `💬 You have sent a challenge request to the team '${teamService.formatTeamName(challenge.challengedTeam.team, challenge.challengedTeam.lineup)}'. You can either wait for his answer, or cancel your request.`, components: [cancelChallengeRow] }
 }
 
-exports.createDecideChallengeReply = (challenge) => {
+exports.createDecideChallengeReply = (interaction, challenge) => {
     const challengeEmbed = new MessageEmbed()
         .setColor('#0099ff')
         .setTitle(`Team '${teamService.formatTeamName(challenge.initiatingTeam.team, challenge.initiatingTeam.lineup)}' is challenging you for a ${challenge.initiatingTeam.lineup.size}v${challenge.initiatingTeam.lineup.size} match !`)
         .setDescription(`Contact ${challenge.initiatingUser.mention} if you want to arrange further.`)
         .setTimestamp()
+        .setFooter(`Author: ${interaction.user.username}`)
     let challengeActionRow = new MessageActionRow()
         .addComponents(
             new MessageButton()
@@ -96,7 +97,7 @@ exports.replyNotAllowed = async (interaction) => {
     await interaction.reply({ content: '❌ You are not allowed to execute this command', ephemeral: true })
 }
 
-exports.createStatsEmbeds = async (user, guildId) => {
+exports.createStatsEmbeds = async (interaction, user, guildId) => {
     let stats = await statsService.findStatsByUserId(user.id, guildId)
     if (!stats) {
         stats = new Stats({
@@ -107,6 +108,7 @@ exports.createStatsEmbeds = async (user, guildId) => {
         .setColor('#0099ff')
         .setTitle(`${user.tag} ${guildId ? 'team' : 'global'} stats`)
         .setTimestamp()
+        .setFooter(`Author: ${interaction.user.username}`)
     statsEmbed.addField('⚽ Games played', stats.numberOfGames.toString())
 
     return [statsEmbed]
@@ -119,6 +121,7 @@ exports.createLeaderBoardEmbeds = async (interaction, guildId, page = 0, numberO
         .setColor('#0099ff')
         .setTitle(`${guildId ? 'Team' : 'Global'} ⚽ GAMES Leaderboard 🏆`)
         .setTimestamp()
+        .setFooter(`Author: ${interaction.user.username}`)
 
     let playersStats = ''
     let pos = (pageSize * page) + 1

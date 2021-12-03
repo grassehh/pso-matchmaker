@@ -109,7 +109,7 @@ exports.joinQueue = async (interaction, team, lineup) => {
                 .setColor('#0099ff')
                 .setTitle(`Team '${teamName}' has joined the queue for ${lineup.size}v${lineup.size}`)
                 .setTimestamp()
-                .setFooter("Note: You can only challenge team with the same lineup size")
+                .setFooter(`Author: ${interaction.user.username}`)
 
             let challengeTeamRow = new MessageActionRow().addComponents(
                 new MessageButton()

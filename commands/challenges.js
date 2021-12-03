@@ -27,7 +27,7 @@ module.exports = {
             if (challenge.initiatingTeam.lineup.channelId == interaction.channelId) {
                 reply = interactionUtils.createCancelChallengeReply(challenge)
             } else {
-                reply = interactionUtils.createDecideChallengeReply(challenge)
+                reply = interactionUtils.createDecideChallengeReply(interaction, challenge)
             }
             await interaction.reply(reply)
             return
@@ -44,43 +44,32 @@ module.exports = {
             })
         } else {
             let teamsActionRow = new MessageActionRow()
-            let lineupQueuesBySize = new Map()
-            for (lineupQueue of lineupQueues) {
-                if (!lineupQueuesBySize.has(lineupQueue.lineup.size)) {
-                    lineupQueuesBySize.set(lineupQueue.lineup.size, [])
-                }
-                lineupQueuesBySize.get(lineupQueue.lineup.size).push(lineupQueue)
-            }
-
             let embeds = []
-            for (let lineupSize of lineupQueuesBySize.keys()) {
-                const lineupsEmbed = new MessageEmbed()
-                    .setColor('#0099ff')
-                    .setTitle(`Teams for ${lineupSize}v${lineupSize}`)
-                    .setTimestamp()
-                    .setFooter(`Author: ${interaction.user.username}`)
+            const lineupsEmbed = new MessageEmbed()
+                .setColor('#0099ff')
+                .setTitle(`Teams for ${lineup.size}v${lineup.size}`)
+                .setTimestamp()
+                .setFooter(`Author: ${interaction.user.username}`)
 
-                let lineupQueuesForCurrentSize = lineupQueuesBySize.get(lineupSize)
-                let i = 1
-                for (let lineupQueue of lineupQueuesForCurrentSize) {
-                    let lineupFieldName = teamService.formatTeamName(lineupQueue.team, lineupQueue.lineup)
-                    let lineupFieldValue = lineupQueue.lineup.roles.filter(role => role.user != null).length + ' players signed'
-                    if (lineupQueue.lineup.roles.find(role => role.name === "GK")?.user == null) {
-                        lineupFieldValue += ' **(no gk)**'
-                    }
-                    lineupsEmbed.addField(lineupFieldName, lineupFieldValue, i % 4 !== 0)
-                    teamsActionRow.addComponents(
-                        new MessageButton()
-                            .setCustomId(`challenge_${lineupQueue.id}`)
-                            .setLabel(lineupFieldName)
-                            .setEmoji('⚽')
-                            .setStyle('PRIMARY')
-                    )
-                    i++
+            let i = 1
+            for (let lineupQueue of lineupQueues) {
+                let lineupFieldName = teamService.formatTeamName(lineupQueue.team, lineupQueue.lineup)
+                let lineupFieldValue = lineupQueue.lineup.roles.filter(role => role.user != null).length + ' players signed'
+                if (lineupQueue.lineup.roles.find(role => role.name === "GK")?.user == null) {
+                    lineupFieldValue += ' **(no gk)**'
                 }
-
-                embeds.push(lineupsEmbed)
+                lineupsEmbed.addField(lineupFieldName, lineupFieldValue, i % 4 !== 0)
+                teamsActionRow.addComponents(
+                    new MessageButton()
+                        .setCustomId(`challenge_${lineupQueue.id}`)
+                        .setLabel(lineupFieldName)
+                        .setEmoji('⚽')
+                        .setStyle('PRIMARY')
+                )
+                i++
             }
+
+            embeds.push(lineupsEmbed)
 
             if (teamsActionRow.components.length === 0) {
                 await interaction.reply({ embeds })
