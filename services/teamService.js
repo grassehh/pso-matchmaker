@@ -8,10 +8,6 @@ exports.formatTeamName = (team, lineup) => {
     return name
 }
 
-exports.findTeamByGuildId = async (guildId) => {
-    return Team.findOne({ 'guildId': guildId })
-}
-
 exports.deleteLineup = async (guildId, channelId) => {
     await Team.updateOne({ guildId }, { $pull: { 'lineups': { channelId } } })
 }
