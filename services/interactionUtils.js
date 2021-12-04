@@ -1,6 +1,7 @@
 const { MessageActionRow, MessageButton, MessageEmbed } = require("discord.js");
 const teamService = require("../services/teamService");
 const statsService = require("../services/statsService");
+const matchmakingService = require("../services/matchmakingService");
 const { Stats } = require("../mongoSchema");
 
 exports.replyAlreadyQueued = async (interaction, lineupSize) => {
@@ -190,6 +191,14 @@ exports.createLineupEmbedForNextMatch = async (interaction, lineup, opponentLine
         if (role.user) {
             let discordUser = await interaction.client.users.fetch(role.user.id)
             if (discordUser) {
+                let channelIds = await teamService.findAllLineupChannelIdsByUserId(role.user.id)
+                if (channelIds.length > 0) {
+                    await teamService.removeUserFromLineupsByChannelIds(role.user.id, channelIds)
+                    for (let channelId of channelIds) {
+                        let channel = await interaction.client.channels.fetch(channelId)
+                        await channel.send(`⚠ Player ${discordUser} has gone to play another match. He has been removed from the lineup.`)
+                    }
+                }
                 await discordUser.send(`⚽ Match is ready ! Join the custom lobby Lobby **${lobbyName}**. The password is **${lobbyPassword}**`)
                 playerName = discordUser
             }

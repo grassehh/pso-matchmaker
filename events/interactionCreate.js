@@ -145,24 +145,24 @@ module.exports = {
                             t.id === user.id
                         ))
                     )
-                    if (duplicatedUsers.length > 0) {
-                        let description = 'The following players are signed in both teams. Please arrange with them before challenging: '
-                        for (let duplicatedUser of duplicatedUsers) {
-                            let discordUser = await interaction.client.users.fetch(duplicatedUser.id)
-                            description += discordUser.toString() + ', '
-                        }
-                        description = description.substring(0, description.length - 2)
+                    // if (duplicatedUsers.length > 0) {
+                    //     let description = 'The following players are signed in both teams. Please arrange with them before challenging: '
+                    //     for (let duplicatedUser of duplicatedUsers) {
+                    //         let discordUser = await interaction.client.users.fetch(duplicatedUser.id)
+                    //         description += discordUser.toString() + ', '
+                    //     }
+                    //     description = description.substring(0, description.length - 2)
 
-                        const duplicatedUsersEmbed = new MessageEmbed()
-                            .setColor('#0099ff')
-                            .setTitle(`⛔ Some players are signed in both teams !`)
-                            .setDescription(description)
-                            .setTimestamp()
-                            .setFooter(`Author: ${interaction.user.username}`)
+                    //     const duplicatedUsersEmbed = new MessageEmbed()
+                    //         .setColor('#0099ff')
+                    //         .setTitle(`⛔ Some players are signed in both teams !`)
+                    //         .setDescription(description)
+                    //         .setTimestamp()
+                    //         .setFooter(`Author: ${interaction.user.username}`)
 
-                        interaction.reply({ embeds: [duplicatedUsersEmbed] })
-                        return
-                    }
+                    //     interaction.reply({ embeds: [duplicatedUsersEmbed] })
+                    //     return
+                    // }
 
                     await matchmakingService.reserveLineupQueuesByIds([lineupQueueIdToChallenge, lineupQueue.id])
                     await interaction.message.edit({ components: [] })
@@ -178,6 +178,8 @@ module.exports = {
                 }
 
                 if (interaction.customId.startsWith('accept_challenge_')) {
+                    interaction.deferReply()
+                    
                     let challengeId = interaction.customId.substring(17);
                     let challenge = await matchmakingService.findChallengeById(challengeId)
                     if (!challenge) {
@@ -198,6 +200,7 @@ module.exports = {
                     await matchmakingService.deleteChallengeById(challenge.id)
                     await matchmakingService.deleteLineupQueuesByIds([challenge.challengedTeam.id, challenge.initiatingTeam.id])
                     await teamService.clearLineups([interaction.channelId, challenge.initiatingTeam.lineup.channelId])
+                    
 
                     let lobbyCreationEmbed = new MessageEmbed()
                         .setColor('#6aa84f')
@@ -212,7 +215,7 @@ module.exports = {
 
                     let challengedTeamNextMatchEmbed = await interactionUtils.createLineupEmbedForNextMatch(interaction, challengedTeamLineup, initiatingTeamLineup, lobbyName, lobbyPassword)
                     await interaction.message.edit({ components: [] })
-                    await interaction.reply({ embeds: [lobbyCreationEmbed, challengedTeamNextMatchEmbed] })
+                    await interaction.editReply({ embeds: [lobbyCreationEmbed, challengedTeamNextMatchEmbed] })
 
                     await statsService.incrementGamesPlayed(challenge.challengedTeam.lineup.team.guildId, challengedTeamUsers)
                     await statsService.incrementGamesPlayed(challenge.initiatingTeam.lineup.team.guildId, initiatingTeamUsers)
