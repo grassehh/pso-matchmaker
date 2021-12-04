@@ -11,7 +11,7 @@ module.exports = {
         let team = await teamService.findTeamByGuildId(interaction.guildId)
         
         if (!team) {
-            await interactionUtils.replyTeamNotRegistered(interaction)
+            interactionUtils.replyTeamNotRegistered(interaction)
             return
         }
 
@@ -21,7 +21,7 @@ module.exports = {
             .setTimestamp()
         teamEmbed.addField('Team name', team.name)
         teamEmbed.addField('Team region', team.region)
-        await interaction.reply({
+        interaction.reply({
             embeds: [teamEmbed],
             ephemeral: true
         })

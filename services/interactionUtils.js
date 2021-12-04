@@ -19,7 +19,7 @@ exports.replyTeamNotRegistered = async (interaction) => {
 
 exports.replyAlreadyChallenging = async (interaction, challenge) => {
     await interaction.reply({
-        content: `❌ Your team is negotiating a challenge between the teams '${challenge.initiatingTeam.team.name}' and '${challenge.initiatingTeam.team.name}'`,
+        content: `❌ Your team is negotiating a challenge between the teams '${teamService.formatTeamName(challenge.initiatingTeam.lineup)}' and '${teamService.formatTeamName(challenge.challengedTeam.lineup)}'`,
         ephemeral: true
     })
 }
@@ -39,13 +39,13 @@ exports.createCancelChallengeReply = (challenge) => {
                 .setLabel(`Cancel Request`)
                 .setStyle('DANGER')
         )
-    return { content: `💬 You have sent a challenge request to the team '${teamService.formatTeamName(challenge.challengedTeam.team, challenge.challengedTeam.lineup)}'. You can either wait for his answer, or cancel your request.`, components: [cancelChallengeRow] }
+    return { content: `💬 You have sent a challenge request to the team '${teamService.formatTeamName(challenge.challengedTeam.lineup)}'. You can either wait for their answer, or cancel your request.`, components: [cancelChallengeRow] }
 }
 
 exports.createDecideChallengeReply = (interaction, challenge) => {
     const challengeEmbed = new MessageEmbed()
         .setColor('#0099ff')
-        .setTitle(`Team '${teamService.formatTeamName(challenge.initiatingTeam.team, challenge.initiatingTeam.lineup)}' is challenging you for a ${challenge.initiatingTeam.lineup.size}v${challenge.initiatingTeam.lineup.size} match !`)
+        .setTitle(`Team '${teamService.formatTeamName(challenge.initiatingTeam.lineup)}' is challenging you for a ${challenge.initiatingTeam.lineup.size}v${challenge.initiatingTeam.lineup.size} match !`)
         .setDescription(`Contact ${challenge.initiatingUser.mention} if you want to arrange further.`)
         .setTimestamp()
         .setFooter(`Author: ${interaction.user.username}`)
@@ -177,10 +177,10 @@ exports.createLeaderBoardPaginationComponent = (globalStats, page = 0, numberOfP
     return paginationActionsRow
 }
 
-exports.createLineupEmbedForNextMatch = async (interaction, lineup, opponentTeam, opponentLineup) => {
+exports.createLineupEmbedForNextMatch = async (interaction, lineup, opponentLineup) => {
     let lineupEmbed = new MessageEmbed()
         .setColor('#0099ff')
-        .setTitle(`Lineup for the match against ${teamService.formatTeamName(opponentTeam, opponentLineup)}`)
+        .setTitle(`Lineup for the match against ${teamService.formatTeamName(opponentLineup)}`)
         .setTimestamp()
         .setFooter(`Author: ${interaction.user.username}`)
 

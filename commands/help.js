@@ -10,8 +10,8 @@ module.exports = {
             .setColor('#0099ff')
             .setTitle(`What is PSO Matchmaker ?`)
             .setTimestamp()
-            .addField(`PSO (Pro Soccer Online) Matchmaker is a discord bot that is here to help you create your own team with your friends and challenge other teams.`,            
-            `Each Team can be a 'competitive' team (with members that wish to compete in turnaments for example), or a 'mix' team (with any PSO player mixed all together, like the :flag_eu: PSO EU team)`)
+            .setDescription(`**PSO (Pro Soccer Online) Matchmaker** is a discord bot that is here to help you create your own **team** with your friends and challenge other **teams**. 
+            Each **Team** can be a *competitive* team (with members that wish to compete in turnaments for example), or a *mix* team (with any PSO player mixed all together, like the :flag_eu: PSO EU team)`)
 
         const setupEmbed = new MessageEmbed()
             .setColor('#0099ff')
