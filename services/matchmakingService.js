@@ -6,16 +6,16 @@ exports.findLineupQueueByChannelId = async (channelId) => {
     return await LineupQueue.findOne({ 'lineup.channelId': channelId })
 }
 
-exports.reserveAndGetLineupQueueById = async (id) => {
-    return await LineupQueue.findByIdAndUpdate(id, { reserved: true })
+exports.findLineupQueueById = async (id) => {
+    return await LineupQueue.findById(id)
 }
 
-exports.reserveAndGetLineupQueueByChannelId = async (channelId) => {
-    return await LineupQueue.findOneAndUpdate({ 'lineup.channelId': channelId }, { reserved: true })
+exports.reserveLineupQueuesByIds = async (ids) => {
+    await LineupQueue.updateMany({ '_id': { $in: ids } }, { reserved: true })
 }
 
-exports.freeLineupQueueById = async (id) => {
-    await LineupQueue.updateOne({ '_id': id }, { reserved: false })
+exports.freeLineupQueuesByIds = async (ids) => {
+    await LineupQueue.updateMany({ '_id': { $in: ids } }, { reserved: false })
 }
 
 exports.deleteLineupQueuesByGuildId = async (guildId) => {
@@ -26,12 +26,20 @@ exports.deleteLineupQueueByChannelId = async (channelId) => {
     await LineupQueue.deleteMany({ 'lineup.channelId': channelId })
 }
 
+exports.deleteLineupQueuesByIds = async (ids) => {
+    await LineupQueue.deleteMany({ '_id': { $in: ids } })
+}
+
 exports.findAvailableLineupQueues = async (region, channelId, lineupSize) => {
     return await LineupQueue.find({ 'lineup.channelId': { '$ne': channelId }, 'team.region': region, 'lineup.size': lineupSize, 'reserved': false })
 }
 
 exports.findChallengeById = async (id) => {
     return await Challenge.findById(id)
+}
+
+exports.findChallengeByLineupQueueId = async (lineupQueueId) => {
+    return await Challenge.findOne({ $or: [{ 'initiatingTeam._id': lineupQueueId }, { 'challengedTeam._id': lineupQueueId }] })
 }
 
 exports.findChallengeByGuildId = async (guildId) => {
@@ -42,6 +50,10 @@ exports.findChallengeByChannelId = async (channelId) => {
     return await Challenge.findOne({ $or: [{ 'initiatingTeam.lineup.channelId': channelId }, { 'challengedTeam.lineup.channelId': channelId }] })
 }
 
+exports.deleteChallengeById = async (id) => {
+    await Challenge.deleteOne({ '_id': id })
+}
+
 exports.deleteChallengesByGuildId = async (guildId) => {
     return await Challenge.deleteMany({ $or: [{ 'initiatingTeam.team.guildId': guildId }, { 'challengedTeam.team.guildId': guildId }] })
 }
@@ -50,58 +62,22 @@ exports.deleteChallengesByChannelId = async (channelId) => {
     return await Challenge.findOne({ $or: [{ 'initiatingTeam.lineup.channelId': channelId }, { 'challengedTeam.lineup.channelId': channelId }] })
 }
 
-exports.removeUserFromChallenge = async (guildId, channelId, userId) => {
-    await Challenge.updateOne(
-        {
-            guildId,
-            $or: [{ 'initiatingTeam.lineup.channelId': channelId }, { 'challengedTeam.lineup.channelId': channelId }],
-        },
-        {
-            "$set": { "initiatingTeam.lineup.roles.$[inner].user": null },
-            "$set": { "challengedTeam.lineup.roles.$[inner].user": null }
-        },
-        {
-            "arrayFilters": [{ "inner.user.id": userId }]
-        }
-    )
+exports.addUserToLineupQueue = async (channelId, roleName, user) => {
+    return await LineupQueue.findOneAndUpdate({ 'lineup.channelId': channelId, 'lineup.roles.name': roleName }, { $set: { "lineup.roles.$.user": user } }, { new: true })
 }
 
-exports.addUserToChallenge = async (guildId, channelId, roleName, user) => {
-    await Challenge.updateOne(
-        {
-            guildId,
-            $or: [{ 'initiatingTeam.lineup.channelId': channelId }, { 'challengedTeam.lineup.channelId': channelId }],
-        },
-        {
-            "$set": { "initiatingTeam.lineup.roles.$[inner].user": user },
-            "$set": { "challengedTeam.lineup.roles.$[inner].user": user }
-        },
-        {
-            "arrayFilters": [{ "inner.name": roleName }]
-        }
-    )
+exports.removeUserFromLineupQueue = async (channelId, userId) => {
+    return await LineupQueue.findOneAndUpdate({ 'lineup.channelId': channelId, 'lineup.roles.user.id': userId }, { $set: { "lineup.roles.$.user": null } }, { new: true })
 }
 
-exports.removeUserFromAllChallenges = async (userId) => {
-    await Challenge.updateMany(
-        {},
-        {
-            "$set": { "initiatingTeam.lineup.roles.$[inner].user": null },
-            "$set": { "challengedTeam.lineup.roles.$[inner].user": null }
-        },
-        {
-            "arrayFilters": [{ "inner.user.id": userId }]
-        }
-    )
+exports.removeUserFromLineupQueuesByGuildId = async (userId, guildId) => {
+    await LineupQueue.updateMany({ 'lineup.team.guildId': guildId, 'lineup.roles.user.id': userId }, { $set: { "lineup.roles.$.user": null } })
 }
 
-exports.joinQueue = async (interaction, team, lineup) => {
-    let lineupQueue = await new LineupQueue({
-        team: team,
-        lineup: lineup
-    }).save()
-    let teamName = teamService.formatTeamName(team, lineup)
-    let channelIds = await teamService.findAllChannelIdToNotify(team.region, lineup.channelId, lineup.size)
+exports.joinQueue = async (interaction, lineup) => {
+    let lineupQueue = await new LineupQueue({ lineup }).save()
+    let teamName = teamService.formatTeamName(lineup)
+    let channelIds = await teamService.findAllChannelIdToNotify(lineup.team.region, lineup.channelId, lineup.size)
     let notifyChannelPromises = []
     for (let channelId of channelIds) {
         notifyChannelPromises.push(interaction.client.channels.fetch(channelId).then((channel) => {

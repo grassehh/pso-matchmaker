@@ -1,8 +1,8 @@
 const { SlashCommandBuilder } = require('@discordjs/builders');
-const { LineupQueue } = require('../mongoSchema');
 const interactionUtils = require("../services/interactionUtils");
 const teamService = require("../services/teamService");
 const authorizationService = require("../services/authorizationService");
+const matchmakingService = require("../services/matchmakingService");
 
 module.exports = {
     data:
@@ -38,35 +38,27 @@ module.exports = {
             return
         }
 
-        let currentQueuedLineup = await LineupQueue.findOne({ 'lineup.channelId': interaction.channelId })
+        let currentQueuedLineup = await matchmakingService.findLineupQueueByChannelId(interaction.channelId)
         if (currentQueuedLineup) {
             interactionUtils.replyAlreadyQueued(interaction, currentQueuedLineup.lineup.size)
             return
         }
 
         let lineupSize = interaction.options.getInteger("size")
-        let lineup = teamService.retrieveLineup(team, interaction.channelId)
-        let newPlayerRoles = generateRoles(lineupSize)
-        let newLineupName = interaction.options.getString("name")
-        let newAutoSearch = interaction.options.getBoolean("auto_search")
-        if (lineup == null) {
-            lineup = {
-                channelId: interaction.channelId,
-                size: lineupSize,
-                roles: newPlayerRoles,
-                name: newLineupName,
-                autoSearch: newAutoSearch
-            }
-            team.lineups.push(lineup)
-        } else {
-            lineup.size = lineupSize
-            lineup.roles = newPlayerRoles
-            lineup.name = newLineupName
-            lineup.autoSearch = newAutoSearch
+        let playerRoles = generateRoles(lineupSize)
+        let lineupName = interaction.options.getString("name")
+        let autoSearch = interaction.options.getBoolean("auto_search")
+        let lineup = {
+            channelId: interaction.channelId,
+            size: lineupSize,
+            roles: playerRoles,
+            name: lineupName,
+            autoSearch: autoSearch,
+            team
         }
-        await team.save()
-        await interaction.reply({ content: `✅ New lineup has now a size of ${lineupSize}. Auto-search is ${lineup.autoSearch ? '**enabled**' : '*disabled*'}`, components: interactionUtils.createLineupComponents(lineup) });
-    },
+        await teamService.upsertLineup(lineup)
+        interaction.reply({ content: `✅ New lineup has now a size of ${lineupSize}. Auto-search is ${autoSearch ? '**enabled**' : '*disabled*'}`, components: interactionUtils.createLineupComponents(lineup) });
+    }
 };
 
 function generateRoles(lineupSize) {

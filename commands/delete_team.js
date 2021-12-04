@@ -12,7 +12,7 @@ module.exports = {
     async execute(interaction) {  
         let team = await teamService.findTeamByGuildId(interaction.guildId)
         if (!team) {
-            await interactionUtils.replyTeamNotRegistered(interaction)
+            interactionUtils.replyTeamNotRegistered(interaction)
             return
         }
 
@@ -27,6 +27,6 @@ module.exports = {
                 .setLabel(`No`)
                 .setStyle('PRIMARY')
         )
-        await interaction.reply({ content: '🛑 This will delete you team and all its lineups', components: [deleteTeamActionRow], ephemeral: true })
+        interaction.reply({ content: '🛑 This will delete your team and all associated lineups', components: [deleteTeamActionRow], ephemeral: true })
     },
 };

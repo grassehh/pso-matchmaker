@@ -11,12 +11,12 @@ module.exports = {
     async execute(interaction) {
         let team = await teamService.findTeamByGuildId(interaction.guildId)
         if (!team) {
-            await interactionUtils.replyTeamNotRegistered(interaction)
+            interactionUtils.replyTeamNotRegistered(interaction)
             return
         }
-        let lineup = teamService.retrieveLineup(team, interaction.channelId)
+        let lineup = await teamService.retrieveLineup(interaction.channelId)
         if (!lineup) {
-            await interactionUtils.replyLineupNotSetup(interaction)
+            interactionUtils.replyLineupNotSetup(interaction)
             return
         }
 
@@ -33,6 +33,6 @@ module.exports = {
             lineupStatusEmbed.setTitle("Your lineup is not searching for a Team")            
         }    
 
-        await interaction.reply({ embeds: [lineupStatusEmbed], components: interactionUtils.createLineupComponents(lineup) })
+        interaction.reply({ embeds: [lineupStatusEmbed], components: interactionUtils.createLineupComponents(lineup) })
     },
 };

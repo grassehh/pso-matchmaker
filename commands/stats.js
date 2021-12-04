@@ -1,6 +1,7 @@
 const { SlashCommandBuilder } = require('@discordjs/builders');
 const { MessageEmbed, MessageActionRow, MessageSelectMenu } = require('discord.js');
 const interactionUtils = require("../services/interactionUtils");
+const teamService = require("../services/teamService");
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -10,6 +11,12 @@ module.exports = {
             .setRequired(false)
             .setDescription('The name of the player you want to see the stats')),
     async execute(interaction) {
+        let team = await teamService.findTeamByGuildId(interaction.guildId)
+        if (!team) {
+            interactionUtils.replyTeamNotRegistered(interaction)
+            return
+        }
+
         let playerName = interaction.options.getString('player_name')
         let user = interaction.user
         if (playerName) {
@@ -19,7 +26,7 @@ module.exports = {
                     .setColor('#0099ff')
                     .setTitle(`❌ Player **${playerName}** not found`)
                     .setTimestamp()
-                await interaction.reply({ embeds: [statsEmbed], ephemeral: true})
+                interaction.reply({ embeds: [statsEmbed], ephemeral: true})
                 return
             } else {
                 user = matchingUsers.at(0).user

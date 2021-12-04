@@ -11,13 +11,13 @@ module.exports = {
     async execute(interaction) {
         let team = await teamService.findTeamByGuildId(interaction.guildId)
         if (!team) {
-            await interactionUtils.replyTeamNotRegistered(interaction)
+            interactionUtils.replyTeamNotRegistered(interaction)
             return
         }
 
-        let lineup = teamService.retrieveLineup(team, interaction.channelId)
+        let lineup = await teamService.retrieveLineup(interaction.channelId)
         if (!lineup) {
-            await interactionUtils.replyLineupNotSetup(interaction)
+            interactionUtils.replyLineupNotSetup(interaction)
             return
         }
 
@@ -29,13 +29,13 @@ module.exports = {
             } else {
                 reply = interactionUtils.createDecideChallengeReply(interaction, challenge)
             }
-            await interaction.reply(reply)
+            interaction.reply(reply)
             return
         }
 
         let lineupQueues = await matchmakingService.findAvailableLineupQueues(team.region, lineup.channelId, lineup.size)
         if (lineupQueues.length === 0) {
-            await interaction.reply({
+            interaction.reply({
                 embeds: [
                     new MessageEmbed()
                         .setColor('#0099ff')
@@ -53,7 +53,7 @@ module.exports = {
 
             let i = 1
             for (let lineupQueue of lineupQueues) {
-                let lineupFieldName = teamService.formatTeamName(lineupQueue.team, lineupQueue.lineup)
+                let lineupFieldName = teamService.formatTeamName(lineupQueue.lineup)
                 let lineupFieldValue = lineupQueue.lineup.roles.filter(role => role.user != null).length + ' players signed'
                 if (lineupQueue.lineup.roles.find(role => role.name === "GK")?.user == null) {
                     lineupFieldValue += ' **(no gk)**'
@@ -72,9 +72,9 @@ module.exports = {
             embeds.push(lineupsEmbed)
 
             if (teamsActionRow.components.length === 0) {
-                await interaction.reply({ embeds })
+                interaction.reply({ embeds })
             } else {
-                await interaction.reply({ embeds, components: [teamsActionRow] })
+                interaction.reply({ embeds, components: [teamsActionRow] })
             }
         }
     },
