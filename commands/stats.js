@@ -43,6 +43,6 @@ module.exports = {
         )
 
         let statsEmbeds = await interactionUtils.createStatsEmbeds(interaction, user)
-        interaction.reply({ embeds: statsEmbeds, components: [globalStatsComponent] })
+        interaction.reply({ embeds: statsEmbeds, components: [globalStatsComponent], ephemeral: true })
     }
 };

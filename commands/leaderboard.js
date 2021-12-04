@@ -28,6 +28,6 @@ module.exports = {
         let numberOfPages = Math.ceil(numberOfPlayers / statsService.DEFAULT_LEADERBOARD_PAGE_SIZE)
         let leaderboardEmbeds = await interactionUtils.createLeaderBoardEmbeds(interaction, null, 0, numberOfPages, statsService.DEFAULT_LEADERBOARD_PAGE_SIZE)
         let leaderboardPaginationComponent = interactionUtils.createLeaderBoardPaginationComponent(true, 0, numberOfPages) 
-        interaction.reply({ embeds: leaderboardEmbeds, components: [leaderboardPaginationComponent, globalLeaderboardComponent] })
+        interaction.reply({ embeds: leaderboardEmbeds, components: [leaderboardPaginationComponent, globalLeaderboardComponent], ephemeral: true })
     }
 };

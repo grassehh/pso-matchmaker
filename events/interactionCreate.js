@@ -4,18 +4,11 @@ const matchmakingService = require("../services/matchmakingService");
 const teamService = require("../services/teamService");
 const statsService = require("../services/statsService");
 const authorizationService = require("../services/authorizationService");
-const dotenv = require('dotenv');
 
 module.exports = {
     name: 'interactionCreate',
     async execute(interaction) {
         if (interaction.isCommand()) {
-
-            if (!interaction.channel.members.get(process.env.CLIENT_ID)) {
-                interaction.reply('⛔ Please add me to this channel before using any command !')
-                return
-            }
-
             const command = interaction.client.commands.get(interaction.commandName);
 
             if (!command) return;
