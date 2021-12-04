@@ -55,7 +55,7 @@ module.exports = {
             for (let lineupQueue of lineupQueues) {
                 let lineupFieldName = teamService.formatTeamName(lineupQueue.lineup)
                 let lineupFieldValue = lineupQueue.lineup.roles.filter(role => role.user != null).length + ' players signed'
-                if (lineupQueue.lineup.roles.find(role => role.name === "GK")?.user == null) {
+                if (!teamService.hasGkSigned(lineupQueue.lineup)) {
                     lineupFieldValue += ' **(no gk)**'
                 }
                 lineupsEmbed.addField(lineupFieldName, lineupFieldValue, i % 4 !== 0)

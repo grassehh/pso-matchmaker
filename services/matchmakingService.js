@@ -76,14 +76,17 @@ exports.removeUserFromLineupQueuesByGuildId = async (userId, guildId) => {
 
 exports.joinQueue = async (interaction, lineup) => {
     let lineupQueue = await new LineupQueue({ lineup }).save()
-    let teamName = teamService.formatTeamName(lineup)
+    let teamName = `'${teamService.formatTeamName(lineup)}'`
+    if (!teamService.hasGkSigned(lineupQueue.lineup)) {
+        teamName += ' *(no gk)*'
+    }
     let channelIds = await teamService.findAllChannelIdToNotify(lineup.team.region, lineup.channelId, lineup.size)
     let notifyChannelPromises = []
     for (let channelId of channelIds) {
         notifyChannelPromises.push(interaction.client.channels.fetch(channelId).then((channel) => {
             const teamEmbed = new MessageEmbed()
                 .setColor('#0099ff')
-                .setTitle(`Team '${teamName}' has joined the queue for ${lineup.size}v${lineup.size}`)
+                .setTitle(`Team ${teamName} has joined the queue for ${lineup.size}v${lineup.size}`)
                 .setTimestamp()
                 .setFooter(`Author: ${interaction.user.username}`)
 

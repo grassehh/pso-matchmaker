@@ -177,25 +177,24 @@ exports.createLeaderBoardPaginationComponent = (globalStats, page = 0, numberOfP
     return paginationActionsRow
 }
 
-exports.createLineupEmbedForNextMatch = async (interaction, lineup, opponentLineup) => {
+exports.createLineupEmbedForNextMatch = async (interaction, lineup, opponentLineup, lobbyName, lobbyPassword) => {
     let lineupEmbed = new MessageEmbed()
         .setColor('#0099ff')
-        .setTitle(`Lineup for the match against ${teamService.formatTeamName(opponentLineup)}`)
+        .setTitle(`Match lineup against the Team '${teamService.formatTeamName(opponentLineup)}'`)
         .setTimestamp()
         .setFooter(`Author: ${interaction.user.username}`)
-
-    let playerName
-    let user
+    
     let i = 1
     for (role of lineup.roles) {
-        playerName = null
-        if (role.user?.id) {
-            user = await interaction.client.users.fetch(role.user.id)
+        let playerName = '*empty*'
+        if (role.user) {
+            let discordUser = await interaction.client.users.fetch(role.user.id)
+            if (discordUser) {
+                await discordUser.send(`⚽ Match is ready ! Join the custom lobby Lobby **${lobbyName}**. The password is **${lobbyPassword}**`)
+                playerName = discordUser
+            }
         }
-        if (user) {
-            playerName = user.username
-        }
-        lineupEmbed.addField(role.name, playerName || '*empty*', i % 4 !== 0)
+        lineupEmbed.addField(role.name, playerName.toString(), i % 4 !== 0)
     }
 
     return lineupEmbed

@@ -9,6 +9,10 @@ exports.formatTeamName = (lineup) => {
     return name
 }
 
+exports.hasGkSigned = (lineup) => {
+    return lineup.roles.find(role => role.name === 'GK')?.user != null
+}
+
 exports.deleteLineup = async (channelId) => {
     await Lineup.deleteOne({ channelId })
 }
