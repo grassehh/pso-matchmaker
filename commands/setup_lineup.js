@@ -45,7 +45,6 @@ module.exports = {
         }
 
         let lineupSize = interaction.options.getInteger("size")
-        let playerRoles = generateRoles(lineupSize)
         let lineupName = interaction.options.getString("name")
         let autoSearch = interaction.options.getBoolean("auto_search")
         let lineup = teamService.createLineup(interaction.channelId, lineupSize, lineupName, autoSearch, team)
