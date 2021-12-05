@@ -1,4 +1,4 @@
-const { MessageActionRow, MessageButton, MessageEmbed } = require("discord.js");
+const { MessageActionRow, MessageButton, MessageEmbed, MessageSelectMenu } = require("discord.js");
 const teamService = require("../services/teamService");
 const statsService = require("../services/statsService");
 const { Stats } = require("../mongoSchema");
@@ -97,26 +97,30 @@ exports.replyNotAllowed = async (interaction) => {
     await interaction.reply({ content: '❌ You are not allowed to execute this command', ephemeral: true })
 }
 
-exports.createStatsEmbeds = async (interaction, user, guildId) => {
-    let stats = await statsService.findStatsByUserId(user.id, guildId)
-    if (!stats) {
+exports.createStatsEmbeds = async (interaction, userId, guildId) => {
+    let user = await interaction.client.users.resolve(userId)
+    let stats = await statsService.findStats(userId, guildId)
+    if (stats.length === 0) {
         stats = new Stats({
             numberOfGames: 0
         })
+    } else {
+        stats = stats[0]
     }
     const statsEmbed = new MessageEmbed()
         .setColor('#0099ff')
-        .setTitle(`${user.tag} ${guildId ? 'team' : 'global'} stats`)
+        .setTitle(`${guildId ? 'Team' : 'Global'} stats`)
         .setTimestamp()
+        .setDescription(user.toString())
         .setFooter(`Author: ${interaction.user.username}`)
     statsEmbed.addField('⚽ Games played', stats.numberOfGames.toString())
 
     return [statsEmbed]
 }
 
-exports.createLeaderBoardEmbeds = async (interaction, guildId, page = 0, numberOfPages, pageSize = statsService.DEFAULT_LEADERBOARD_PAGE_SIZE) => {
-    let allStats = await statsService.findStats(guildId, page, pageSize)
-
+exports.createLeaderBoardEmbeds = async (interaction, numberOfPages, searchOptions = {}) => {
+    const { guildId, page = 0, pageSize = statsService.DEFAULT_LEADERBOARD_PAGE_SIZE, lineupSizes = [] } = searchOptions
+    let allStats = await statsService.findStats(null, guildId, page, pageSize, lineupSizes)
     let statsEmbed
     if (allStats.length === 0) {
         statsEmbed = new MessageEmbed()
@@ -134,11 +138,11 @@ exports.createLeaderBoardEmbeds = async (interaction, guildId, page = 0, numberO
         let playersStats = ''
         let pos = (pageSize * page) + 1
         for (let stats of allStats) {
-            let user = await interaction.client.users.fetch(stats.user.id)
+            let user = await interaction.client.users.fetch(stats._id)
             if (user) {
                 let isLeader = pos === 1 && page === 0
                 let isTop3 = pos <= 3
-                playersStats += `${isTop3 ? '**' : ''}${pos}. ${isLeader ? '🏆 ' : ''} ${user.username} (${stats.totalNumberOfGames || stats.numberOfGames})${isLeader ? ' 🏆' : ''}${isTop3 ? '**' : ''}\n`
+                playersStats += `${isTop3 ? '**' : ''}${pos}. ${isLeader ? '🏆 ' : ''} ${user.username} (${stats.numberOfGames})${isLeader ? ' 🏆' : ''}${isTop3 ? '**' : ''}\n`
                 pos++
             }
         }
@@ -146,29 +150,39 @@ exports.createLeaderBoardEmbeds = async (interaction, guildId, page = 0, numberO
         statsEmbed.addField(`Page ${page + 1}/${numberOfPages}`, playersStats)
     }
 
+    if (lineupSizes.length > 0) {
+        let description = "Selected sizes: "
+        for (let lineupSize of lineupSizes) {
+            description += `${lineupSize}v${lineupSize}, `
+        }
+        description = description.substring(0, description.length - 2)
+        statsEmbed.setDescription(description)
+    }
+
     return [statsEmbed]
 }
 
-exports.createLeaderBoardPaginationComponent = (globalStats, page = 0, numberOfPages) => {
+exports.createLeaderBoardPaginationComponent = (searchOptions = {}, numberOfPages) => {
+    const { globalStats, page, lineupSizes } = searchOptions
     const paginationActionsRow = new MessageActionRow()
     paginationActionsRow.addComponents(
         new MessageButton()
-            .setCustomId(`leaderboard_first_page_${globalStats}`)
+            .setCustomId(`leaderboard_first_page_${globalStats}_${lineupSizes}`)
             .setLabel('<<')
             .setStyle('SECONDARY')
             .setDisabled(page === 0),
         new MessageButton()
-            .setCustomId(`leaderboard_page_${globalStats}_${page - 1}`)
+            .setCustomId(`leaderboard_page_${globalStats}_${lineupSizes}_${page - 1}`)
             .setLabel('<')
             .setStyle('SECONDARY')
             .setDisabled(page === 0),
         new MessageButton()
-            .setCustomId(`leaderboard_page_${globalStats}_${page + 1}`)
+            .setCustomId(`leaderboard_page_${globalStats}_${lineupSizes}_${page + 1}`)
             .setLabel('>')
             .setStyle('SECONDARY')
             .setDisabled(page >= numberOfPages - 1),
         new MessageButton()
-            .setCustomId(`leaderboard_last_page_${globalStats}`)
+            .setCustomId(`leaderboard_last_page_${globalStats}_${lineupSizes}`)
             .setLabel('>>')
             .setStyle('SECONDARY')
             .setDisabled(page >= numberOfPages - 1)
@@ -183,7 +197,7 @@ exports.createLineupEmbedForNextMatch = async (interaction, lineup, opponentLine
         .setTitle(`Match lineup against the Team '${teamService.formatTeamName(opponentLineup)}'`)
         .setTimestamp()
         .setFooter(`Author: ${interaction.user.username}`)
-    
+
     let i = 1
     for (role of lineup.roles) {
         let playerName = '*empty*'
@@ -207,3 +221,60 @@ exports.createLineupEmbedForNextMatch = async (interaction, lineup, opponentLine
 
     return lineupEmbed
 }
+
+exports.createLeaderBoardLineupSizeComponent = (globalStats) => {
+    return new MessageActionRow().addComponents(
+        new MessageSelectMenu()
+            .setCustomId(`leaderboard_lineup_size_select_${globalStats}`)
+            .setPlaceholder('Lineup Size')
+            .setMinValues(0)
+            .setMaxValues(11)
+            .addOptions([
+                {
+                    label: '1v1',
+                    value: '1'
+                },
+                {
+                    label: '2v2',
+                    value: '2'
+                },
+                {
+                    label: '3v3',
+                    value: '3'
+                },
+                {
+                    label: '4v4',
+                    value: '4'
+                },
+                {
+                    label: '5v5',
+                    value: '5'
+                },
+                {
+                    label: '6v6',
+                    value: '6'
+                },
+                {
+                    label: '7v7',
+                    value: '7'
+                },
+                {
+                    label: '8v8',
+                    value: '8'
+                },
+                {
+                    label: '9v9',
+                    value: '9'
+                },
+                {
+                    label: '10v10',
+                    value: '10'
+                },
+                {
+                    label: '11v11',
+                    value: '11'
+                }
+            ])
+    )
+}
+

@@ -9,7 +9,7 @@ module.exports = {
         .setName('leaderboard')
         .setDescription(`Display stats of all players`),
     async execute(interaction) {
-        let team = await teamService.findTeamByGuildId(interaction.guildId)
+        const team = await teamService.findTeamByGuildId(interaction.guildId)
 
         if (!team) {
             interactionUtils.replyTeamNotRegistered(interaction)
@@ -18,7 +18,7 @@ module.exports = {
 
         const globalLeaderboardComponent = new MessageActionRow().addComponents(
             new MessageSelectMenu()
-                .setCustomId(`leaderboard_global_select`)
+                .setCustomId(`leaderboard_type_select`)
                 .setPlaceholder('Stats Type')
                 .addOptions([
                     {
@@ -29,13 +29,15 @@ module.exports = {
                         label: '👕 Team Stats',
                         value: 'leaderboard_team_value',
                     },
-                ]),
+                ])
         )
 
-        let numberOfPlayers = await statsService.countNumberOfPlayers()
-        let numberOfPages = Math.ceil(numberOfPlayers / statsService.DEFAULT_LEADERBOARD_PAGE_SIZE)
-        let leaderboardEmbeds = await interactionUtils.createLeaderBoardEmbeds(interaction, null, 0, numberOfPages, statsService.DEFAULT_LEADERBOARD_PAGE_SIZE)
-        let leaderboardPaginationComponent = interactionUtils.createLeaderBoardPaginationComponent(true, 0, numberOfPages)
-        interaction.reply({ embeds: leaderboardEmbeds, components: [leaderboardPaginationComponent, globalLeaderboardComponent], ephemeral: true })
+
+        const numberOfPlayers = await statsService.countNumberOfPlayers()
+        const numberOfPages = Math.ceil(numberOfPlayers / statsService.DEFAULT_LEADERBOARD_PAGE_SIZE)
+        const leaderboardEmbeds = await interactionUtils.createLeaderBoardEmbeds(interaction, numberOfPages)
+        const leaderboardPaginationComponent = interactionUtils.createLeaderBoardPaginationComponent({ globalStats: true, page: 0, lineupSizes: [] }, numberOfPages)
+        const lineupSizeComponent = interactionUtils.createLeaderBoardLineupSizeComponent(true)
+        interaction.reply({ embeds: leaderboardEmbeds, components: [leaderboardPaginationComponent, globalLeaderboardComponent, lineupSizeComponent], ephemeral: true })
     }
 };

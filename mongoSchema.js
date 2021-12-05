@@ -110,8 +110,12 @@ const statsSchema = new mongoose.Schema({
         type: String,
         required: true
     },
-    user: {
-        type: Object,
+    lineupSize: {
+        type: Number,
+        required: true
+    },
+    userId: {
+        type: String,
         required: true
     },
     numberOfGames: {

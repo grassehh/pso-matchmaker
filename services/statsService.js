@@ -2,18 +2,19 @@ const { Stats } = require("../mongoSchema")
 
 exports.DEFAULT_LEADERBOARD_PAGE_SIZE = 10
 
-exports.incrementGamesPlayed = async (guildId, users) => {
-    let bulks = distinctUsers(users).map((user) => ({
+exports.incrementGamesPlayed = async (guildId, lineupSize, users) => {
+    let bulks = users.map((user) => ({
         updateOne: {
             filter: {
                 guildId,
-                'user.id': user.id
+                lineupSize,
+                'userId': user.id
             },
             update: {
                 $inc: { numberOfGames: 1 },
                 $setOnInsert: {
                     guildId,
-                    user: { id: user.id }
+                    userId: user.id
                 },
             },
             upsert: true
@@ -22,75 +23,75 @@ exports.incrementGamesPlayed = async (guildId, users) => {
     Stats.bulkWrite(bulks)
 }
 
-exports.findStatsByUserId = async (userId, guildId) => {
-    let stats
+exports.countNumberOfPlayers = async (guildId, lineupSizes = []) => {
+    let match = {}
     if (guildId) {
-        stats = await Stats.findOne({ 'user.id': userId, guildId })
+        match.guildId = guildId
+    }
+    if (lineupSizes.length > 0) {
+        match.lineupSize = { $in: lineupSizes.map(size => parseInt(size)) }
+    }    
+    return (await Stats.distinct('userId', match)).length
+}
 
-    } else {
-        stats = await Stats.aggregate([
+exports.findStats = async (userId, guildId, page, size, lineupSizes = []) => {
+    let skip = page * size
+    let pipeline = []
+
+    if (userId) {
+        pipeline.push(
             {
-                $match: { 'user.id': userId }
-            },
-            {
-                $group: { _id: null, numberOfGames: { $sum: "$numberOfGames" } }
+                $match: { 'userId': userId }
             }
-        ])
-        stats = stats && stats[0]
+        )
     }
-    return stats
-}
 
-exports.countNumberOfPlayers = async (guildId) => {
-    let count
     if (guildId) {
-        count = await Stats.count({ guildId })
-    } else {
-        let distinct = await Stats.distinct( 'user.id' )
-        count = distinct.length
+        pipeline.push(
+            {
+                $match: { 'guildId': guildId }
+            }
+        )
     }
-    return count
-}
 
-exports.findStats = async (guildId, page = 0, size = 10) => {
-    let stats
-    let skip = page*size
-    if (guildId) {
-        stats = await Stats.find({ guildId }).sort({ numberOfGames: -1 }).limit(size).skip(skip)
-    } else {
-        stats = await Stats.aggregate([
+    if (lineupSizes.length > 0) {
+        pipeline.push(
+            {
+                $match: { lineupSize: { $in: lineupSizes.map(size => parseInt(size)) } }
+            }
+        )
+    }
+
+    if (userId) {
+        pipeline.push(
             {
                 $group: {
-                    _id: '$user.id',
-                    data: { $first: '$$ROOT' },
-                    totalNumberOfGames: {
+                    _id: null,
+                    numberOfGames: {
+                        $sum: '$numberOfGames',
+                    }
+                }
+            })
+    } else {
+        pipeline = pipeline.concat([
+            {
+                $group: {
+                    _id: '$userId',
+                    numberOfGames: {
                         $sum: '$numberOfGames',
                     }
                 }
             },
             {
-                $sort: { 'totalNumberOfGames': -1 },
+                $sort: { 'numberOfGames': -1 },
             },
             {
                 $skip: skip
             },
             {
                 $limit: size
-            },
-            {
-                $replaceRoot: {
-                    newRoot: { $mergeObjects: [{ totalNumberOfGames: '$totalNumberOfGames' }, '$data'] },
-                }
             }
         ])
     }
-    return stats
-}
-
-function distinctUsers(users) {
-    return users.filter((user, index, self) =>
-        index === self.findIndex((t) => (
-            t.id === user.id
-        ))
-    )
+    return await Stats.aggregate(pipeline)
 }

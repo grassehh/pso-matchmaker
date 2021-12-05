@@ -35,7 +35,7 @@ module.exports = {
 
         const globalStatsComponent = new MessageActionRow().addComponents(
             new MessageSelectMenu()
-                .setCustomId(`stats_global_select_${user.id}`)
+                .setCustomId(`stats_type_select_${user.id}`)
                 .setPlaceholder('Stats Type')
                 .addOptions([
                     {
@@ -49,7 +49,7 @@ module.exports = {
                 ])
         )
 
-        let statsEmbeds = await interactionUtils.createStatsEmbeds(interaction, user)
+        let statsEmbeds = await interactionUtils.createStatsEmbeds(interaction, user.id)
         interaction.reply({ embeds: statsEmbeds, components: [globalStatsComponent], ephemeral: true })
     }
 };
