@@ -5,7 +5,7 @@ const teamService = require("../services/teamService");
 
 module.exports = {
     data: new SlashCommandBuilder()
-        .setName('stats')
+        .setName('player_stats')
         .setDescription(`Display your own stats or another player's stats`)
         .addStringOption(option => option.setName('player_name')
             .setRequired(false)

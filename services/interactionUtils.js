@@ -1,7 +1,6 @@
 const { MessageActionRow, MessageButton, MessageEmbed } = require("discord.js");
 const teamService = require("../services/teamService");
 const statsService = require("../services/statsService");
-const matchmakingService = require("../services/matchmakingService");
 const { Stats } = require("../mongoSchema");
 
 exports.replyAlreadyQueued = async (interaction, lineupSize) => {

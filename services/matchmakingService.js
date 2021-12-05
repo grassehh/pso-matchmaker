@@ -22,7 +22,7 @@ exports.deleteLineupQueuesByGuildId = async (guildId) => {
     await LineupQueue.deleteMany({ 'team.guildId': guildId })
 }
 
-exports.deleteLineupQueueByChannelId = async (channelId) => {
+exports.deleteLineupQueuesByChannelId = async (channelId) => {
     await LineupQueue.deleteMany({ 'lineup.channelId': channelId })
 }
 
@@ -59,7 +59,7 @@ exports.deleteChallengesByGuildId = async (guildId) => {
 }
 
 exports.deleteChallengesByChannelId = async (channelId) => {
-    return await Challenge.findOne({ $or: [{ 'initiatingTeam.lineup.channelId': channelId }, { 'challengedTeam.lineup.channelId': channelId }] })
+    await Challenge.deleteMany({ $or: [{ 'initiatingTeam.lineup.channelId': channelId }, { 'challengedTeam.lineup.channelId': channelId }] })
 }
 
 exports.addUserToLineupQueue = async (channelId, roleName, user) => {

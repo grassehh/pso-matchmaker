@@ -1,5 +1,4 @@
-const lineup = require("../commands/lineup")
-const { Team, LineupQueue, Lineup } = require("../mongoSchema")
+const { Team, Lineup } = require("../mongoSchema")
 
 exports.formatTeamName = (lineup) => {
     let name = lineup.team.name

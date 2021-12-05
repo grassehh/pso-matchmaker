@@ -1,5 +1,4 @@
 const { SlashCommandBuilder } = require('@discordjs/builders');
-const { LineupQueue } = require('../mongoSchema');
 const interactionUtils = require("../services/interactionUtils");
 const matchmakingService = require("../services/matchmakingService");
 const teamService = require("../services/teamService");

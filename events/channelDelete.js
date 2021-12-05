@@ -5,7 +5,7 @@ module.exports = {
 	name: 'channelDelete',
 	async execute(channel) {
 		matchmakingService.deleteChallengesByChannelId(channel.id)
-		matchmakingService.deleteLineupQueueByChannelId(channel.id)
+		matchmakingService.deleteLineupQueuesByChannelId(channel.id)
 		teamService.deleteLineup(channel.id)
     }
 };

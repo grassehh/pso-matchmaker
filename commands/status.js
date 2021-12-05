@@ -6,14 +6,15 @@ const { MessageEmbed } = require('discord.js');
 
 module.exports = {
     data: new SlashCommandBuilder()
-        .setName('lineup')
-        .setDescription('Displays the current lineup'),
+        .setName('status')
+        .setDescription('Displays the status of your lineup'),
     async execute(interaction) {
         let team = await teamService.findTeamByGuildId(interaction.guildId)
         if (!team) {
             interactionUtils.replyTeamNotRegistered(interaction)
             return
         }
+
         let lineup = await teamService.retrieveLineup(interaction.channelId)
         if (!lineup) {
             interactionUtils.replyLineupNotSetup(interaction)
@@ -26,12 +27,18 @@ module.exports = {
             .setFooter(`Author: ${interaction.user.username}`)
             .addField('Lineup size', `${lineup.size}v${lineup.size}`, true)
             .addField('Auto-search', `${lineup.autoSearch ? '**enabled**' : '*disabled*'}`, true)
-        let lineupQueue = await matchmakingService.findLineupQueueByChannelId(lineup.channelId)
-        if (lineupQueue) {
-            lineupStatusEmbed.setTitle("🔎 Your lineup is searching for a Team")
+
+        let challenge = await matchmakingService.findChallengeByChannelId(interaction.channelId)
+        if (challenge) {
+            lineupStatusEmbed.setTitle(`💬 Your lineup is negotiating a challenge ...`)
         } else {
-            lineupStatusEmbed.setTitle("Your lineup is not searching for a Team")            
-        }    
+            let lineupQueue = await matchmakingService.findLineupQueueByChannelId(lineup.channelId)
+            if (lineupQueue) {
+                lineupStatusEmbed.setTitle("🔎 Your lineup is searching for a Team ...")
+            } else {
+                lineupStatusEmbed.setTitle("Your lineup is not searching for a Team")
+            }
+        }
 
         interaction.reply({ embeds: [lineupStatusEmbed], components: interactionUtils.createLineupComponents(lineup) })
     },

@@ -63,7 +63,7 @@ module.exports = {
                     } else if (!matchmakingService.isLineupAllowedToJoinQueue(lineup) && lineupQueue) {
                         let challenge = await matchmakingService.findChallengeByGuildId(interaction.guildId)
                         if (!challenge) {
-                            await matchmakingService.deleteLineupQueueByChannelId(interaction.channelId)
+                            await matchmakingService.deleteLineupQueuesByChannelId(interaction.channelId)
                             interaction.reply({ content: `Player ${interaction.user} swapped his position with ${roleSigned}. Your team is no longer in the queue !`, components: interactionUtils.createLineupComponents(lineup) })
                             return
                         }
@@ -88,7 +88,7 @@ module.exports = {
                     if (!matchmakingService.isLineupAllowedToJoinQueue(lineup) && lineupQueue) {
                         let challenge = await matchmakingService.findChallengeByGuildId(interaction.guildId)
                         if (!challenge) {
-                            await matchmakingService.deleteLineupQueueByChannelId(interaction.channelId)
+                            await matchmakingService.deleteLineupQueuesByChannelId(interaction.channelId)
                             interaction.reply({ content: `Player ${interaction.user} left the ${roleLeft.name} position. Your team is no longer in the queue !`, components: interactionUtils.createLineupComponents(lineup) })
                             return
                         }
@@ -145,24 +145,24 @@ module.exports = {
                             t.id === user.id
                         ))
                     )
-                    // if (duplicatedUsers.length > 0) {
-                    //     let description = 'The following players are signed in both teams. Please arrange with them before challenging: '
-                    //     for (let duplicatedUser of duplicatedUsers) {
-                    //         let discordUser = await interaction.client.users.fetch(duplicatedUser.id)
-                    //         description += discordUser.toString() + ', '
-                    //     }
-                    //     description = description.substring(0, description.length - 2)
+                    if (duplicatedUsers.length > 0) {
+                        let description = 'The following players are signed in both teams. Please arrange with them before challenging: '
+                        for (let duplicatedUser of duplicatedUsers) {
+                            let discordUser = await interaction.client.users.fetch(duplicatedUser.id)
+                            description += discordUser.toString() + ', '
+                        }
+                        description = description.substring(0, description.length - 2)
 
-                    //     const duplicatedUsersEmbed = new MessageEmbed()
-                    //         .setColor('#0099ff')
-                    //         .setTitle(`⛔ Some players are signed in both teams !`)
-                    //         .setDescription(description)
-                    //         .setTimestamp()
-                    //         .setFooter(`Author: ${interaction.user.username}`)
+                        const duplicatedUsersEmbed = new MessageEmbed()
+                            .setColor('#0099ff')
+                            .setTitle(`⛔ Some players are signed in both teams !`)
+                            .setDescription(description)
+                            .setTimestamp()
+                            .setFooter(`Author: ${interaction.user.username}`)
 
-                    //     interaction.reply({ embeds: [duplicatedUsersEmbed] })
-                    //     return
-                    // }
+                        interaction.reply({ embeds: [duplicatedUsersEmbed] })
+                        return
+                    }
 
                     await matchmakingService.reserveLineupQueuesByIds([lineupQueueIdToChallenge, lineupQueue.id])
                     await interaction.message.edit({ components: [] })
@@ -179,7 +179,7 @@ module.exports = {
 
                 if (interaction.customId.startsWith('accept_challenge_')) {
                     interaction.deferReply()
-                    
+
                     let challengeId = interaction.customId.substring(17);
                     let challenge = await matchmakingService.findChallengeById(challengeId)
                     if (!challenge) {
