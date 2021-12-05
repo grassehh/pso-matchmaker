@@ -30,7 +30,6 @@ module.exports = {
             return
         }
 
-        await matchmakingService.deleteLineupQueueByChannelId(interaction.channelId)
-        interaction.reply(`✅ Your team is now removed from the queue`)
-    },
+        matchmakingService.leaveQueue(interaction, lineupQueue).then(interaction.reply(`✅ Your team is now removed from the queue`))
+    }
 };

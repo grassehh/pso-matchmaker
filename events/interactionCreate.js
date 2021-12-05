@@ -88,8 +88,13 @@ module.exports = {
                     if (!matchmakingService.isLineupAllowedToJoinQueue(lineup) && lineupQueue) {
                         let challenge = await matchmakingService.findChallengeByGuildId(interaction.guildId)
                         if (!challenge) {
-                            await matchmakingService.deleteLineupQueuesByChannelId(interaction.channelId)
-                            interaction.reply({ content: `Player ${interaction.user} left the ${roleLeft.name} position. Your team is no longer in the queue !`, components: interactionUtils.createLineupComponents(lineup) })
+                            matchmakingService.leaveQueue(interaction, lineupQueue)
+                                .then(
+                                    interaction.reply({
+                                        content: `Player ${interaction.user} left the ${roleLeft.name} position. Your team is no longer in the queue !`,
+                                        components: interactionUtils.createLineupComponents(lineup)
+                                    })
+                                )
                             return
                         }
                     }
@@ -101,6 +106,12 @@ module.exports = {
                 if (interaction.customId.startsWith('challenge_')) {
                     let lineupQueueIdToChallenge = interaction.customId.substring(10);
 
+                    let lineupQueueToChallenge = await matchmakingService.findLineupQueueById(lineupQueueIdToChallenge)
+                    if (!lineupQueueToChallenge) {
+                        interaction.reply({ content: "❌ This team is no longer challenging", ephemeral: true })
+                        return
+                    }
+
                     let challenge = await matchmakingService.findChallengeByLineupQueueId(lineupQueueIdToChallenge)
                     if (challenge) {
                         interaction.reply({ content: "❌ This team is negociating a challenge", ephemeral: true })
@@ -110,12 +121,6 @@ module.exports = {
                     let lineup = await teamService.retrieveLineup(interaction.channelId)
                     if (!matchmakingService.isLineupAllowedToJoinQueue(lineup)) {
                         interaction.reply({ content: '⛔ All outfield positions must be filled before challenging a team', ephemeral: true })
-                        return
-                    }
-
-                    let lineupQueueToChallenge = await matchmakingService.findLineupQueueById(lineupQueueIdToChallenge)
-                    if (!lineupQueueToChallenge) {
-                        interaction.reply({ content: "❌ This team is no longer challenging", ephemeral: true })
                         return
                     }
 
@@ -200,7 +205,7 @@ module.exports = {
                     await matchmakingService.deleteChallengeById(challenge.id)
                     await matchmakingService.deleteLineupQueuesByIds([challenge.challengedTeam.id, challenge.initiatingTeam.id])
                     await teamService.clearLineups([interaction.channelId, challenge.initiatingTeam.lineup.channelId])
-                    
+
 
                     let lobbyCreationEmbed = new MessageEmbed()
                         .setColor('#6aa84f')

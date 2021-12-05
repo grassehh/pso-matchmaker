@@ -66,6 +66,19 @@ const lineupQueueSchema = new mongoose.Schema({
         type: Boolean,
         required: true,
         default: false
+    },
+    notificationMessages: {
+        type: [{
+            channelId: {
+                type: String, 
+                required: true
+            },
+            messageId: {
+                type: String, 
+                required: true
+            }
+        }],
+        required: false
     }
 })
 exports.LineupQueue = mongoose.model('LineupQueue', lineupQueueSchema, 'lineup-queues')

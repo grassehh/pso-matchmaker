@@ -1,6 +1,7 @@
 const { MessageEmbed, MessageActionRow, MessageButton } = require("discord.js");
 const { LineupQueue, Challenge } = require("../mongoSchema")
 const teamService = require("../services/teamService");
+const matchmakingService = require("../services/matchmakingService");
 
 exports.findLineupQueueByChannelId = async (channelId) => {
     return await LineupQueue.findOne({ 'lineup.channelId': channelId })
@@ -28,6 +29,10 @@ exports.deleteLineupQueuesByChannelId = async (channelId) => {
 
 exports.deleteLineupQueuesByIds = async (ids) => {
     await LineupQueue.deleteMany({ '_id': { $in: ids } })
+}
+
+exports.deleteLineupQueueByChannelId = async (channelId) => {
+    await LineupQueue.deleteOne({ channelId })
 }
 
 exports.findAvailableLineupQueues = async (region, channelId, lineupSize) => {
@@ -75,7 +80,7 @@ exports.removeUserFromLineupQueuesByGuildId = async (userId, guildId) => {
 }
 
 exports.joinQueue = async (interaction, lineup) => {
-    let lineupQueue = await new LineupQueue({ lineup }).save()
+    let lineupQueue = await new LineupQueue({ lineup })
     let teamName = `'${teamService.formatTeamName(lineup)}'`
     if (!teamService.hasGkSigned(lineupQueue.lineup)) {
         teamName += ' *(no gk)*'
@@ -83,24 +88,48 @@ exports.joinQueue = async (interaction, lineup) => {
     let channelIds = await teamService.findAllChannelIdToNotify(lineup.team.region, lineup.channelId, lineup.size)
     let notifyChannelPromises = []
     for (let channelId of channelIds) {
-        notifyChannelPromises.push(interaction.client.channels.fetch(channelId).then((channel) => {
-            const teamEmbed = new MessageEmbed()
-                .setColor('#0099ff')
-                .setTitle(`Team ${teamName} has joined the queue for ${lineup.size}v${lineup.size}`)
-                .setTimestamp()
-                .setFooter(`Author: ${interaction.user.username}`)
+        notifyChannelPromises.push(
+            interaction.client.channels.fetch(channelId)
+                .then((channel) => {
+                    const teamEmbed = new MessageEmbed()
+                        .setColor('#0099ff')
+                        .setTitle(`Team ${teamName} has joined the queue for ${lineup.size}v${lineup.size}`)
+                        .setTimestamp()
+                        .setFooter(`Author: ${interaction.user.username}`)
 
-            let challengeTeamRow = new MessageActionRow().addComponents(
-                new MessageButton()
-                    .setCustomId(`challenge_${lineupQueue.id}`)
-                    .setLabel('Challenge them !')
-                    .setEmoji('⚽')
-                    .setStyle('PRIMARY')
-            )
-            channel.send({ embeds: [teamEmbed], components: [challengeTeamRow] })
-        }))
+                    let challengeTeamRow = new MessageActionRow().addComponents(
+                        new MessageButton()
+                            .setCustomId(`challenge_${lineupQueue.id}`)
+                            .setLabel('Challenge them !')
+                            .setEmoji('⚽')
+                            .setStyle('PRIMARY')
+                    )
+                    return channel.send({ embeds: [teamEmbed], components: [challengeTeamRow] })
+                })
+                .then((message) => {
+                    return { channelId: message.channelId, messageId: message.id }
+                })
+        )
     }
-    return Promise.all(notifyChannelPromises)
+    return Promise.all(notifyChannelPromises).then(notificationsMessages => {
+        lineupQueue.notificationMessages = notificationsMessages
+        lineupQueue.save()
+    })
+}
+
+exports.leaveQueue = async (interaction, lineupQueue) => {
+    let updateChannelsPromises = []
+    if (lineupQueue.notificationMessages.length > 0) {
+        for await (notificationMessage of lineupQueue.notificationMessages) {
+            updateChannelsPromises.push(
+                interaction.client.channels.fetch(notificationMessage.channelId)
+                    .then((channel) => {
+                        channel.messages.delete(notificationMessage.messageId)
+                    })
+            )
+        }
+    }
+    return Promise.all(updateChannelsPromises).then(matchmakingService.deleteLineupQueueByChannelId(interaction.channelId))
 }
 
 exports.isLineupAllowedToJoinQueue = (lineup) => {
