@@ -44,6 +44,10 @@ exports.findTeamByGuildId = async (guildId) => {
     return await Team.findOne({ guildId })
 }
 
+exports.findTeamByRegionAndName = async (region, name) => {
+    return await Team.findOne({ region, name })
+}
+
 exports.removeUserFromLineupsByGuildId = async (userId, guildId) => {
     return await Lineup.updateMany({ 'team.guildId': guildId, 'roles.user.id': userId }, { $set: { "roles.$.user": null } })
 }

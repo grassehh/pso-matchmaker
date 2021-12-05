@@ -22,22 +22,32 @@ module.exports = {
     authorizedRoles: [authorizationService.BOT_ADMIN_ROLE],
     async execute(interaction) {
         let team = await teamService.findTeamByGuildId(interaction.guildId)
-
-        if (!team) {
-            await new Team({
-                guildId: interaction.guildId,
-                name: interaction.options.getString('team_name'),
-                region: interaction.options.getString('team_region')
-            }).save()
+        if (team) {
             await interaction.reply({
-                content: '✅ Your team has been registered ! You can now register lineups in your channels using the /setup_lineup command',
+                content: `❌ You team is already registered as '${team.name}'. Use the /team_name command if you wish to change the name of your team.`,
                 ephemeral: true
             })
             return
         }
 
+        const region = interaction.options.getString('team_region')
+        const name = interaction.options.getString('team_name')
+        const duplicatedTeam = await teamService.findTeamByRegionAndName(region, name)
+        if (duplicatedTeam) {
+            await interaction.reply({
+                content: `❌ Another team is alraedy registered under the name **'${name}'**. Please chose another name.`,
+                ephemeral: true
+            })
+            return
+        }
+
+        await new Team({
+            guildId: interaction.guildId,
+            name: interaction.options.getString('team_name'),
+            region: interaction.options.getString('team_region')
+        }).save()
         await interaction.reply({
-            content: `❌ You team is already registered as '${team.name}'. Use the /team_name command if you wish to change the name of your team.`,
+            content: '✅ Your team has been registered ! You can now register lineups in your channels using the /setup_lineup command',
             ephemeral: true
         })
     }

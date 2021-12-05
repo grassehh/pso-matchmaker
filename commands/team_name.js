@@ -18,9 +18,19 @@ module.exports = {
             interactionUtils.replyTeamNotRegistered(interaction)
             return
         }
+        
+        const newName = interaction.options.getString('name')
+        const duplicatedTeam = await teamService.findTeamByRegionAndName(team.region, newName)
+        if (duplicatedTeam) {
+            await interaction.reply({
+                content: `❌ Another team is already registered under the name **'${newName}'**. Please chose another name.`,
+                ephemeral: true
+            })
+            return
+        }
 
-        team.name = interaction.options.getString('name')
+        team.name = newName
         await team.save()
-        await interaction.reply(`✅ Your new team name is ${team.name}`)
+        await interaction.reply(`✅ Your new team name is **${team.name}**`)
     },
 };
