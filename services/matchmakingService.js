@@ -75,8 +75,8 @@ exports.removeUserFromLineupQueue = async (channelId, userId) => {
     return await LineupQueue.findOneAndUpdate({ 'lineup.channelId': channelId, 'lineup.roles.user.id': userId }, { $set: { "lineup.roles.$.user": null } }, { new: true })
 }
 
-exports.removeUserFromLineupQueuesByGuildId = async (userId, guildId) => {
-    await LineupQueue.updateMany({ 'lineup.team.guildId': guildId, 'lineup.roles.user.id': userId }, { $set: { "lineup.roles.$.user": null } })
+exports.removeUserFromAllLineupQueues = async (userId, guildId) => {
+    await LineupQueue.updateMany({ 'lineup.roles.user.id': userId }, { $set: { "lineup.roles.$.user": null } })
 }
 
 exports.joinQueue = async (interaction, lineup) => {
@@ -87,7 +87,7 @@ exports.joinQueue = async (interaction, lineup) => {
     }
     let channelIds = await teamService.findAllChannelIdToNotify(lineup.team.region, lineup.channelId, lineup.size)
     let notifyChannelPromises = []
-    for (let channelId of channelIds) {
+    for await (let channelId of channelIds) {
         notifyChannelPromises.push(
             interaction.client.channels.fetch(channelId)
                 .then((channel) => {

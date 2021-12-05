@@ -44,8 +44,8 @@ exports.findTeamByRegionAndName = async (region, name) => {
     return await Team.findOne({ region, name })
 }
 
-exports.removeUserFromLineupsByGuildId = async (userId, guildId) => {
-    return await Lineup.updateMany({ 'team.guildId': guildId, 'roles.user.id': userId }, { $set: { "roles.$.user": null } })
+exports.removeUserFromAllLineups = async (userId) => {
+    return await Lineup.updateMany({ 'roles.user.id': userId }, { $set: { "roles.$.user": null } })
 }
 
 exports.removeUserFromLineupsByChannelIds = async (userId, channelIds) => {
@@ -58,6 +58,10 @@ exports.removeUserFromLineup = async (channelId, userId) => {
 
 exports.addUserToLineup = async (channelId, roleName, user) => {
     return await Lineup.findOneAndUpdate({ channelId, 'roles.name': roleName }, { "$set": { "roles.$.user": user } }, { new: true })
+}
+
+exports.findLineupsByGuildIdAndRemoveUser = async (guildId, userId) => {
+    return await Lineup.updateMany({guildId, 'roles.$.user.id': userId}, {$set: {}})
 }
 
 exports.findAllLineupChannelIdsByUserId = async (userId) => {
