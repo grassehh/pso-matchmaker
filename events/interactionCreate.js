@@ -147,24 +147,24 @@ module.exports = {
                             t.id === user.id
                         ))
                     )
-                    if (duplicatedUsers.length > 0) {
-                        let description = 'The following players are signed in both teams. Please arrange with them before challenging: '
-                        for (let duplicatedUser of duplicatedUsers) {
-                            let discordUser = await interaction.client.users.fetch(duplicatedUser.id)
-                            description += discordUser.toString() + ', '
-                        }
-                        description = description.substring(0, description.length - 2)
+                    // if (duplicatedUsers.length > 0) {
+                    //     let description = 'The following players are signed in both teams. Please arrange with them before challenging: '
+                    //     for (let duplicatedUser of duplicatedUsers) {
+                    //         let discordUser = await interaction.client.users.fetch(duplicatedUser.id)
+                    //         description += discordUser.toString() + ', '
+                    //     }
+                    //     description = description.substring(0, description.length - 2)
 
-                        const duplicatedUsersEmbed = new MessageEmbed()
-                            .setColor('#0099ff')
-                            .setTitle(`⛔ Some players are signed in both teams !`)
-                            .setDescription(description)
-                            .setTimestamp()
-                            .setFooter(`Author: ${interaction.user.username}`)
+                    //     const duplicatedUsersEmbed = new MessageEmbed()
+                    //         .setColor('#0099ff')
+                    //         .setTitle(`⛔ Some players are signed in both teams !`)
+                    //         .setDescription(description)
+                    //         .setTimestamp()
+                    //         .setFooter(`Author: ${interaction.user.username}`)
 
-                        await interaction.reply({ embeds: [duplicatedUsersEmbed] })
-                        return
-                    }
+                    //     await interaction.reply({ embeds: [duplicatedUsersEmbed] })
+                    //     return
+                    // }
 
                     await matchmakingService.reserveLineupQueuesByIds([lineupQueueIdToChallenge, lineupQueue.id])
                     await interaction.message.delete()
@@ -189,9 +189,6 @@ module.exports = {
                         return
                     }
 
-                    let initiatingUser = await interaction.client.users.fetch(challenge.initiatingUser.id)
-
-
                     let challengedTeamLineup = await teamService.retrieveLineup(challenge.challengedTeam.lineup.channelId)
                     let challengedTeamUsers = challengedTeamLineup.roles.map(role => role.user).filter(user => user)
                     let initiatingTeamLineup = await teamService.retrieveLineup(challenge.initiatingTeam.lineup.channelId)
@@ -203,20 +200,34 @@ module.exports = {
                     await matchmakingService.deleteLineupQueuesByIds([challenge.challengedTeam.id, challenge.initiatingTeam.id])
                     await teamService.clearLineups([interaction.channelId, challenge.initiatingTeam.lineup.channelId])
 
+                    let initiatingUser = await interaction.client.users.fetch(challenge.initiatingUser.id)
                     let lobbyCreationEmbed = new MessageEmbed()
                         .setColor('#6aa84f')
                         .setTitle(`⚽ Challenge accepted ⚽`)
                         .setTimestamp()
                         .addField('Every signed player received the lobby information in private message', `${initiatingUser} is responsible of creating the lobby. If he is not available, then ${interaction.user} is the next responsible player.`)
 
-                    let initiatingTeamNextMatchEmbed = await interactionUtils.createLineupEmbedForNextMatch(interaction, initiatingTeamLineup, challenge.challengedTeam.lineup, lobbyName, lobbyPassword)
-                    let initiatingTeamChannel = await interaction.client.channels.fetch(challenge.initiatingTeam.lineup.channelId)
-                    await initiatingTeamChannel.messages.edit(challenge.initiatingMessageId, { components: [] })
-                    initiatingTeamChannel.send({ embeds: [lobbyCreationEmbed, initiatingTeamNextMatchEmbed] })
+                    let promises = []
+                    promises.push(new Promise(async (resolve, reject) => {
+                        let initiatingTeamNextMatchEmbed = await interactionUtils.createLineupEmbedForNextMatch(interaction, initiatingTeamLineup, challenge.challengedTeam.lineup, lobbyName, lobbyPassword)
+                        let newInitiatingTeamLineup = teamService.createLineup(initiatingTeamLineup.channelId, initiatingTeamLineup.size, initiatingTeamLineup.name, initiatingTeamLineup.autoSearch, initiatingTeamLineup.team)
+                        let initiatingTeamLineupComponents = interactionUtils.createLineupComponents(newInitiatingTeamLineup)
+                        let initiatingTeamChannel = await interaction.client.channels.fetch(challenge.initiatingTeam.lineup.channelId)
+                        await initiatingTeamChannel.messages.edit(challenge.initiatingMessageId, { components: [] })
+                        await initiatingTeamChannel.send({ embeds: [lobbyCreationEmbed, initiatingTeamNextMatchEmbed], components: initiatingTeamLineupComponents })
+                        resolve()
+                    }))
 
-                    let challengedTeamNextMatchEmbed = await interactionUtils.createLineupEmbedForNextMatch(interaction, challengedTeamLineup, initiatingTeamLineup, lobbyName, lobbyPassword)
-                    await interaction.message.edit({ components: [] })
-                    await interaction.editReply({ embeds: [lobbyCreationEmbed, challengedTeamNextMatchEmbed] })
+                    promises.push(new Promise(async (resolve, reject) => {
+                        let challengedTeamNextMatchEmbed = await interactionUtils.createLineupEmbedForNextMatch(interaction, challengedTeamLineup, initiatingTeamLineup, lobbyName, lobbyPassword)
+                        let newChallengedTeamLineup = teamService.createLineup(interaction.channelId, challengedTeamLineup.size, challengedTeamLineup.name, challengedTeamLineup.autoSearch, challengedTeamLineup.team)
+                        let challengedTeamLineupComponents = interactionUtils.createLineupComponents(newChallengedTeamLineup)
+                        await interaction.message.edit({ components: [] })
+                        await interaction.editReply({ embeds: [lobbyCreationEmbed, challengedTeamNextMatchEmbed], components: challengedTeamLineupComponents })
+                        resolve()
+                    }))
+
+                    await Promise.all(promises)
 
                     await statsService.incrementGamesPlayed(challenge.challengedTeam.lineup.team.guildId, challenge.challengedTeam.lineup.size, challengedTeamUsers)
                     await statsService.incrementGamesPlayed(challenge.initiatingTeam.lineup.team.guildId, challenge.challengedTeam.lineup.size, initiatingTeamUsers)

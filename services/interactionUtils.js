@@ -212,7 +212,14 @@ exports.createLineupEmbedForNextMatch = async (interaction, lineup, opponentLine
                         await channel.send(`⚠ Player ${discordUser} has gone to play another match. He has been removed from the lineup.`)
                     }
                 }
-                await discordUser.send(`⚽ Match is ready ! Join the custom lobby Lobby **${lobbyName}**. The password is **${lobbyPassword}**`)
+                let playerDmEmbed = new MessageEmbed()
+                    .setColor('#6aa84f')
+                    .setTitle(`⚽ PSO Match ready ⚽`)
+                    .setDescription(`Your are playing **${role.name}** against the team **${teamService.formatTeamName(opponentLineup)}**`)
+                    .addField('Lobby name', `**${lobbyName}**`, true)
+                    .addField('Lobby password', `**${lobbyPassword}**`, true)
+                    .setTimestamp()
+                await discordUser.send({ embeds: [playerDmEmbed] })
                 playerName = discordUser
             }
         }

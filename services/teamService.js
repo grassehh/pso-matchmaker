@@ -32,6 +32,10 @@ exports.clearLineups = async (channelIds) => {
     await Lineup.updateMany({ 'channelId': { $in: channelIds } }, { "$set": { "roles.$[].user": null } })
 }
 
+exports.clearLineup = async (channelId) => {
+    await Lineup.deleteOne({ channelId }, { "$set": { "roles.$[].user": null } })
+}
+
 exports.deleteTeam = async (guildId) => {
     await Team.deleteOne({ guildId })
 }
@@ -135,3 +139,28 @@ exports.findAllChannelIdToNotify = async (region, channelId, lineupSize) => {
 
     return []
 }
+
+exports.createLineup = (channelId, size, name, autoSearch, team) => {
+    return {
+        channelId,
+        size,
+        roles: defaultPlayerRoles.get(size),
+        name,
+        autoSearch,
+        team
+    }
+}
+
+const defaultPlayerRoles = new Map([
+    [1, [{ name: 'CF' }]],
+    [2, [{ name: '🥅 GK' }, { name: 'CF' }]],
+    [3, [{ name: '🥅 GK' }, { name: 'LM' }, { name: 'RM' }]],
+    [4, [{ name: '🥅 GK' }, { name: 'CF' }, { name: 'LB' }, { name: 'RB' }]],
+    [5, [{ name: '🥅 GK' }, { name: 'CF' }, { name: 'LB' }, { name: 'RB' }, { name: 'CB' }]],
+    [6, [{ name: '🥅 GK' }, { name: 'LW' }, { name: 'RW' }, { name: 'CM' }, { name: 'LB' }, { name: 'RB' }]],
+    [7, [{ name: '🥅 GK' }, { name: 'LW' }, { name: 'RW' }, { name: 'CM' }, { name: 'LB' }, { name: 'CB' }, { name: 'RB' }]],
+    [8, [{ name: '🥅 GK' }, { name: 'LW' }, { name: 'CF' }, { name: 'RW' }, { name: 'CM' }, { name: 'LB' }, { name: 'CB' }, { name: 'RB' }]],
+    [9, [{ name: '🥅 GK' }, { name: 'LW' }, { name: 'CF' }, { name: 'RW' }, { name: 'LCM' }, { name: 'RCM' }, { name: 'LB' }, { name: 'CB' }, { name: 'RB' }]],
+    [10, [{ name: '🥅 GK' }, { name: 'LW' }, { name: 'CF' }, { name: 'RW' }, { name: 'LCM' }, { name: 'RCM' }, { name: 'LB' }, { name: 'LCB' }, { name: 'RCB' }, { name: 'RB' }]],
+    [11, [{ name: '🥅 GK' }, { name: 'LW' }, { name: 'CF' }, { name: 'RW' }, { name: 'LM' }, { name: 'CM' }, { name: 'RM' }, { name: 'LB' }, { name: 'LCB' }, { name: 'RCB' }, { name: 'RB' }]]
+])

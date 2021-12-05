@@ -48,33 +48,8 @@ module.exports = {
         let playerRoles = generateRoles(lineupSize)
         let lineupName = interaction.options.getString("name")
         let autoSearch = interaction.options.getBoolean("auto_search")
-        let lineup = {
-            channelId: interaction.channelId,
-            size: lineupSize,
-            roles: playerRoles,
-            name: lineupName,
-            autoSearch: autoSearch,
-            team
-        }
+        let lineup = teamService.createLineup(interaction.channelId, lineupSize, lineupName, autoSearch, team)
         await teamService.upsertLineup(lineup)
         await interaction.reply({ content: `✅ New lineup has now a size of ${lineupSize}. Auto-search is ${autoSearch ? '**enabled**' : '*disabled*'}`, components: interactionUtils.createLineupComponents(lineup) });
     }
 };
-
-function generateRoles(lineupSize) {
-    return defaultPlayerRoles.get(lineupSize)
-}
-
-const defaultPlayerRoles = new Map([
-    [1, [{ name: 'CF' }]],
-    [2, [{ name: '🥅 GK' }, { name: 'CF' }]],
-    [3, [{ name: '🥅 GK' }, { name: 'LM' }, { name: 'RM' }]],
-    [4, [{ name: '🥅 GK' }, { name: 'CF' }, { name: 'LB' }, { name: 'RB' }]],
-    [5, [{ name: '🥅 GK' }, { name: 'CF' }, { name: 'LB' }, { name: 'RB' }, { name: 'CB' }]],
-    [6, [{ name: '🥅 GK' }, { name: 'LW' }, { name: 'RW' }, { name: 'CM' }, { name: 'LB' }, { name: 'RB' }]],
-    [7, [{ name: '🥅 GK' }, { name: 'LW' }, { name: 'RW' }, { name: 'CM' }, { name: 'LB' }, { name: 'CB' }, { name: 'RB' }]],
-    [8, [{ name: '🥅 GK' }, { name: 'LW' }, { name: 'CF' }, { name: 'RW' }, { name: 'CM' }, { name: 'LB' }, { name: 'CB' }, { name: 'RB' }]],
-    [9, [{ name: '🥅 GK' }, { name: 'LW' }, { name: 'CF' }, { name: 'RW' }, { name: 'LCM' }, { name: 'RCM' }, { name: 'LB' }, { name: 'CB' }, { name: 'RB' }]],
-    [10, [{ name: '🥅 GK' }, { name: 'LW' }, { name: 'CF' }, { name: 'RW' }, { name: 'LCM' }, { name: 'RCM' }, { name: 'LB' }, { name: 'LCB' }, { name: 'RCB' }, { name: 'RB' }]],
-    [11, [{ name: '🥅 GK' }, { name: 'LW' }, { name: 'CF' }, { name: 'RW' }, { name: 'LM' }, { name: 'CM' }, { name: 'RM' }, { name: 'LB' }, { name: 'LCB' }, { name: 'RCB' }, { name: 'RB' }]]
-])
