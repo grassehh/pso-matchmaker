@@ -34,9 +34,10 @@ module.exports = {
                     let lineup = await teamService.retrieveLineup(interaction.channelId)
                     let roleSigned = interaction.customId.substring(5)
                     let selectedRole = lineup.roles.find(role => role.name == roleSigned)
+                    let roleLeft = lineup.roles.find(role => role.user?.id === interaction.user.id)
 
                     if (selectedRole.user) {
-                        interaction.reply({ content: 'A player is already signed at this position', ephemeral: true })
+                        await interaction.reply({ content: 'A player is already signed at this position', ephemeral: true })
                         return
                     }
 
@@ -50,26 +51,26 @@ module.exports = {
                     lineup = await teamService.addUserToLineup(interaction.channelId, roleSigned, userToAdd)
                     let lineupQueue = await matchmakingService.addUserToLineupQueue(interaction.channelId, roleSigned, userToAdd)
 
+                    let messageContent = `Player ${interaction.user} signed as **${roleSigned}**`
+
+                    if (roleLeft) {
+                        messageContent = `Player ${interaction.user} swapped **${roleLeft.name}** with **${roleSigned}**`
+                    }
+
                     if (lineup.autoSearch === true && matchmakingService.isLineupAllowedToJoinQueue(lineup)) {
                         if (!lineupQueue) {
-                            matchmakingService.joinQueue(interaction, lineup).then(
-                                interaction.reply({
-                                    content: `Player ${interaction.user} signed into the lineup as ${roleSigned}. Your lineup is full, it is now searching for a ${lineup.size}v${lineup.size} team !`,
-                                    components: interactionUtils.createLineupComponents(lineup)
-                                })
-                            )
-                            return
+                            await matchmakingService.joinQueue(interaction, lineup)
+                            messageContent += `. Your lineup is full, it is now searching for a **${lineup.size}v${lineup.size}** team !`
                         }
                     } else if (!matchmakingService.isLineupAllowedToJoinQueue(lineup) && lineupQueue) {
                         let challenge = await matchmakingService.findChallengeByGuildId(interaction.guildId)
                         if (!challenge) {
-                            await matchmakingService.deleteLineupQueuesByChannelId(interaction.channelId)
-                            interaction.reply({ content: `Player ${interaction.user} swapped his position with ${roleSigned}. Your team is no longer in the queue !`, components: interactionUtils.createLineupComponents(lineup) })
-                            return
+                            await matchmakingService.leaveQueue(interaction, lineupQueue)
+                            messageContent += `. Your team has been removed from the **${lineup.size}v${lineup.size}** queue !`
                         }
                     }
 
-                    interaction.reply({ content: `Player ${interaction.user} signed into the lineup as ${roleSigned}`, components: interactionUtils.createLineupComponents(lineup) })
+                    await interaction.reply({ content: messageContent, components: interactionUtils.createLineupComponents(lineup) })
                     return
                 }
 
@@ -78,28 +79,24 @@ module.exports = {
                     let roleLeft = lineup.roles.find(role => role.user?.id === interaction.user.id)
 
                     if (!roleLeft) {
-                        interaction.reply({ content: `❌ You are not in the lineup`, ephemeral: true })
+                        await interaction.reply({ content: `❌ You are not in the lineup`, ephemeral: true })
                         return
                     }
 
                     lineup = await teamService.removeUserFromLineup(interaction.channelId, interaction.user.id)
                     let lineupQueue = await matchmakingService.removeUserFromLineupQueue(interaction.channelId, interaction.user.id)
 
+                    let messageContent = `Player ${interaction.user} left the **${roleLeft.name}** position`
+
                     if (!matchmakingService.isLineupAllowedToJoinQueue(lineup) && lineupQueue) {
                         let challenge = await matchmakingService.findChallengeByGuildId(interaction.guildId)
                         if (!challenge) {
-                            matchmakingService.leaveQueue(interaction, lineupQueue)
-                                .then(
-                                    interaction.reply({
-                                        content: `Player ${interaction.user} left the ${roleLeft.name} position. Your team is no longer in the queue !`,
-                                        components: interactionUtils.createLineupComponents(lineup)
-                                    })
-                                )
-                            return
+                            await matchmakingService.leaveQueue(interaction, lineupQueue)
+                            messageContent += `. Your team has been removed from the **${lineup.size}v${lineup.size}** queue !`
                         }
                     }
 
-                    interaction.reply({ content: `Player ${interaction.user} left the ${roleLeft.name} position`, components: interactionUtils.createLineupComponents(lineup) })
+                    await interaction.reply({ content: messageContent, components: interactionUtils.createLineupComponents(lineup) })
                     return
                 }
 
@@ -108,24 +105,24 @@ module.exports = {
 
                     let lineupQueueToChallenge = await matchmakingService.findLineupQueueById(lineupQueueIdToChallenge)
                     if (!lineupQueueToChallenge) {
-                        interaction.reply({ content: "❌ This team is no longer challenging", ephemeral: true })
+                        await interaction.reply({ content: "❌ This team is no longer challenging", ephemeral: true })
                         return
                     }
 
                     let challenge = await matchmakingService.findChallengeByLineupQueueId(lineupQueueIdToChallenge)
                     if (challenge) {
-                        interaction.reply({ content: "❌ This team is negociating a challenge", ephemeral: true })
+                        await interaction.reply({ content: "❌ This team is negociating a challenge", ephemeral: true })
                         return
                     }
 
                     let lineup = await teamService.retrieveLineup(interaction.channelId)
                     if (!matchmakingService.isLineupAllowedToJoinQueue(lineup)) {
-                        interaction.reply({ content: '⛔ All outfield positions must be filled before challenging a team', ephemeral: true })
+                        await interaction.reply({ content: '⛔ All outfield positions must be filled before challenging a team', ephemeral: true })
                         return
                     }
 
                     if (lineupQueueToChallenge.lineup.size !== lineup.size) {
-                        interaction.reply({ content: `❌ Your team is configured for ${lineup.size}v${lineup.size} while the team you are trying to challenge is configured for ${lineupQueueToChallenge.lineup.size}v${lineupQueueToChallenge.lineup.size}. Both teams must have the same size to challenge.`, ephemeral: true })
+                        await interaction.reply({ content: `❌ Your team is configured for ${lineup.size}v${lineup.size} while the team you are trying to challenge is configured for ${lineupQueueToChallenge.lineup.size}v${lineupQueueToChallenge.lineup.size}. Both teams must have the same size to challenge.`, ephemeral: true })
                         return
                     }
 
@@ -165,7 +162,7 @@ module.exports = {
                             .setTimestamp()
                             .setFooter(`Author: ${interaction.user.username}`)
 
-                        interaction.reply({ embeds: [duplicatedUsersEmbed] })
+                        await interaction.reply({ embeds: [duplicatedUsersEmbed] })
                         return
                     }
 
@@ -188,7 +185,7 @@ module.exports = {
                     let challengeId = interaction.customId.substring(17);
                     let challenge = await matchmakingService.findChallengeById(challengeId)
                     if (!challenge) {
-                        interaction.reply({ content: "❌ This challenge no longer exists", ephemeral: true })
+                        await interaction.reply({ content: "❌ This challenge no longer exists", ephemeral: true })
                         return
                     }
 
@@ -205,7 +202,6 @@ module.exports = {
                     await matchmakingService.deleteChallengeById(challenge.id)
                     await matchmakingService.deleteLineupQueuesByIds([challenge.challengedTeam.id, challenge.initiatingTeam.id])
                     await teamService.clearLineups([interaction.channelId, challenge.initiatingTeam.lineup.channelId])
-
 
                     let lobbyCreationEmbed = new MessageEmbed()
                         .setColor('#6aa84f')
@@ -232,7 +228,7 @@ module.exports = {
                     let challengeId = interaction.customId.substring(17);
                     let challenge = await matchmakingService.findChallengeById(challengeId)
                     if (!challenge) {
-                        interaction.reply({ content: "❌ This challenge no longer exists", ephemeral: true })
+                        await interaction.reply({ content: "❌ This challenge no longer exists", ephemeral: true })
                         return
                     }
 
@@ -244,7 +240,7 @@ module.exports = {
                     await initiatingTeamChannel.send(`❌ The team '${teamService.formatTeamName(challenge.challengedTeam.lineup)}' has refused your challenge request`)
 
                     await interaction.message.edit({ components: [] })
-                    interaction.reply(`❌ You have refused to challenge the team '${teamService.formatTeamName(challenge.initiatingTeam.lineup)}''`)
+                    await interaction.reply(`❌ You have refused to challenge the team '${teamService.formatTeamName(challenge.initiatingTeam.lineup)}''`)
                     return
                 }
 
@@ -252,7 +248,7 @@ module.exports = {
                     let challengeId = interaction.customId.substring(17);
                     let challenge = await matchmakingService.findChallengeById(challengeId)
                     if (!challenge) {
-                        interaction.reply({ content: "❌ This challenge no longer exists", ephemeral: true })
+                        await interaction.reply({ content: "❌ This challenge no longer exists", ephemeral: true })
                         return
                     }
 
@@ -264,7 +260,7 @@ module.exports = {
                     await challengedTeamChannel.send(`❌ The team '${teamService.formatTeamName(challenge.initiatingTeam.lineup)}' has cancelled the challenge request`)
 
                     await interaction.message.edit({ components: [] })
-                    interaction.reply(`❌ You have cancelled your challenge request for the team '${teamService.formatTeamName(challenge.challengedTeam.lineup)}'`)
+                    await interaction.reply(`❌ You have cancelled your challenge request for the team '${teamService.formatTeamName(challenge.challengedTeam.lineup)}'`)
                     return
                 }
 
@@ -272,12 +268,12 @@ module.exports = {
                     await matchmakingService.deleteChallengesByGuildId(interaction.guildId)
                     await matchmakingService.deleteLineupQueuesByGuildId(interaction.guildId)
                     await teamService.deleteTeam(interaction.guildId)
-                    interaction.reply({ content: '✅ Your team has been deleted', ephemeral: true })
+                    await interaction.reply({ content: '✅ Your team has been deleted', ephemeral: true })
                     return
                 }
 
                 if (interaction.customId.startsWith('delete_team_no_')) {
-                    interaction.reply({ content: 'Easy peasy ! Nothing has been deleted', ephemeral: true })
+                    await interaction.reply({ content: 'Easy peasy ! Nothing has been deleted', ephemeral: true })
                     return
                 }
 
@@ -358,7 +354,7 @@ module.exports = {
                     let statsEmbeds = await interactionUtils.createLeaderBoardEmbeds(interaction = interaction, numberOfPages, { guildId, lineupSizes: selectedSizes })
                     let leaderboardPaginationComponent = interactionUtils.createLeaderBoardPaginationComponent({ globalStats, page: 0, lineupSizes: selectedSizes }, numberOfPages)
                     interaction.message.components[0] = leaderboardPaginationComponent
-                    await interaction.update({ embeds: statsEmbeds, components: interaction.message.components  })
+                    await interaction.update({ embeds: statsEmbeds, components: interaction.message.components })
                     return
                 }
             }

@@ -38,6 +38,6 @@ module.exports = {
         const leaderboardEmbeds = await interactionUtils.createLeaderBoardEmbeds(interaction, numberOfPages)
         const leaderboardPaginationComponent = interactionUtils.createLeaderBoardPaginationComponent({ globalStats: true, page: 0, lineupSizes: [] }, numberOfPages)
         const lineupSizeComponent = interactionUtils.createLeaderBoardLineupSizeComponent(true)
-        interaction.reply({ embeds: leaderboardEmbeds, components: [leaderboardPaginationComponent, globalLeaderboardComponent, lineupSizeComponent], ephemeral: true })
+        await interaction.reply({ embeds: leaderboardEmbeds, components: [leaderboardPaginationComponent, globalLeaderboardComponent, lineupSizeComponent], ephemeral: true })
     }
 };

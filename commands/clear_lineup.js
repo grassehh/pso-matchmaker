@@ -32,6 +32,6 @@ module.exports = {
         }
 
         lineup = await teamService.clearLineup(interaction.channelId)
-        interaction.reply({ content: '✅ Lineup has been cleared !', components: interactionUtils.createLineupComponents(lineup) })
+        await interaction.reply({ content: '✅ Lineup has been cleared !', components: interactionUtils.createLineupComponents(lineup) })
     },
 };

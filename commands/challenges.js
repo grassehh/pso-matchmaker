@@ -29,13 +29,13 @@ module.exports = {
             } else {
                 reply = interactionUtils.createDecideChallengeReply(interaction, challenge)
             }
-            interaction.reply(reply)
+            await interaction.reply(reply)
             return
         }
 
         let lineupQueues = await matchmakingService.findAvailableLineupQueues(team.region, lineup.channelId, lineup.size)
         if (lineupQueues.length === 0) {
-            interaction.reply({
+            await interaction.reply({
                 embeds: [
                     new MessageEmbed()
                         .setColor('#0099ff')
@@ -72,9 +72,9 @@ module.exports = {
             embeds.push(lineupsEmbed)
 
             if (teamsActionRow.components.length === 0) {
-                interaction.reply({ embeds })
+                await interaction.reply({ embeds })
             } else {
-                interaction.reply({ embeds, components: [teamsActionRow] })
+                await interaction.reply({ embeds, components: [teamsActionRow] })
             }
         }
     },

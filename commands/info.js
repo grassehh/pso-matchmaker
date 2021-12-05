@@ -21,7 +21,7 @@ module.exports = {
             .setTimestamp()
         teamEmbed.addField('Team name', team.name)
         teamEmbed.addField('Team region', team.region)
-        interaction.reply({
+        await interaction.reply({
             embeds: [teamEmbed],
             ephemeral: true
         })

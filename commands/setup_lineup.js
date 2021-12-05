@@ -57,7 +57,7 @@ module.exports = {
             team
         }
         await teamService.upsertLineup(lineup)
-        interaction.reply({ content: `✅ New lineup has now a size of ${lineupSize}. Auto-search is ${autoSearch ? '**enabled**' : '*disabled*'}`, components: interactionUtils.createLineupComponents(lineup) });
+        await interaction.reply({ content: `✅ New lineup has now a size of ${lineupSize}. Auto-search is ${autoSearch ? '**enabled**' : '*disabled*'}`, components: interactionUtils.createLineupComponents(lineup) });
     }
 };
 
@@ -69,12 +69,12 @@ const defaultPlayerRoles = new Map([
     [1, [{ name: 'CF' }]],
     [2, [{ name: '🥅 GK' }, { name: 'CF' }]],
     [3, [{ name: '🥅 GK' }, { name: 'LM' }, { name: 'RM' }]],
-    [4, [{ name: '🥅 GK' }, { name: 'LW' }, { name: 'RW' }, { name: 'CM' }]],
-    [5, [{ name: '🥅 GK' }, { name: 'CF' }, { name: 'LM' }, { name: 'RM' }, { name: 'CB' }]],
-    [6, [{ name: '🥅 GK' }, { name: 'CF' }, { name: 'LM' }, { name: 'RM' }, { name: 'LB' }, { name: 'RB' }]],
-    [7, [{ name: '🥅 GK' }, { name: 'CF' }, { name: 'LM' }, { name: 'CM' }, { name: 'RM' }, { name: 'LB' }, { name: 'RB' }]],
+    [4, [{ name: '🥅 GK' }, { name: 'CF' }, { name: 'LB' }, { name: 'RB' }]],
+    [5, [{ name: '🥅 GK' }, { name: 'CF' }, { name: 'LB' }, { name: 'RB' }, { name: 'CB' }]],
+    [6, [{ name: '🥅 GK' }, { name: 'LW' }, { name: 'RW' }, { name: 'CM' }, { name: 'LB' }, { name: 'RB' }]],
+    [7, [{ name: '🥅 GK' }, { name: 'LW' }, { name: 'RW' }, { name: 'CM' }, { name: 'LB' }, { name: 'CB' }, { name: 'RB' }]],
     [8, [{ name: '🥅 GK' }, { name: 'LW' }, { name: 'CF' }, { name: 'RW' }, { name: 'CM' }, { name: 'LB' }, { name: 'CB' }, { name: 'RB' }]],
-    [9, [{ name: '🥅 GK' }, { name: 'LF' }, { name: 'RF' }, { name: 'LM' }, { name: 'CM' }, { name: 'LM' }, { name: 'LB' }, { name: 'CB' }, { name: 'RB' }]],
-    [10, [{ name: '🥅 GK' }, { name: 'LF' }, { name: 'RF' }, { name: 'LM' }, { name: 'CM' }, { name: 'RM' }, { name: 'LB' }, { name: 'LCB' }, { name: 'RCB' }, { name: 'RB' }]],
+    [9, [{ name: '🥅 GK' }, { name: 'LW' }, { name: 'CF' }, { name: 'RW' }, { name: 'LCM' }, { name: 'RCM' }, { name: 'LB' }, { name: 'CB' }, { name: 'RB' }]],
+    [10, [{ name: '🥅 GK' }, { name: 'LW' }, { name: 'CF' }, { name: 'RW' }, { name: 'LCM' }, { name: 'RCM' }, { name: 'LB' }, { name: 'LCB' }, { name: 'RCB' }, { name: 'RB' }]],
     [11, [{ name: '🥅 GK' }, { name: 'LW' }, { name: 'CF' }, { name: 'RW' }, { name: 'LM' }, { name: 'CM' }, { name: 'RM' }, { name: 'LB' }, { name: 'LCB' }, { name: 'RCB' }, { name: 'RB' }]]
 ])

@@ -29,14 +29,14 @@ module.exports = {
                 name: interaction.options.getString('team_name'),
                 region: interaction.options.getString('team_region')
             }).save()
-            interaction.reply({
+            await interaction.reply({
                 content: '✅ Your team has been registered ! You can now register lineups in your channels using the /setup_lineup command',
                 ephemeral: true
             })
             return
         }
 
-        interaction.reply({
+        await interaction.reply({
             content: `❌ You team is already registered as '${team.name}'. Use the /team_name command if you wish to change the name of your team.`,
             ephemeral: true
         })

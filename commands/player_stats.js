@@ -26,7 +26,7 @@ module.exports = {
                     .setColor('#0099ff')
                     .setTitle(`❌ Player **${playerName}** not found`)
                     .setTimestamp()
-                interaction.reply({ embeds: [statsEmbed], ephemeral: true})
+                await interaction.reply({ embeds: [statsEmbed], ephemeral: true})
                 return
             } else {
                 user = matchingUsers.at(0).user
@@ -50,6 +50,6 @@ module.exports = {
         )
 
         let statsEmbeds = await interactionUtils.createStatsEmbeds(interaction, user.id)
-        interaction.reply({ embeds: statsEmbeds, components: [globalStatsComponent], ephemeral: true })
+        await interaction.reply({ embeds: statsEmbeds, components: [globalStatsComponent], ephemeral: true })
     }
 };

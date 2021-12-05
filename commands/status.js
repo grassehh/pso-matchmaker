@@ -40,6 +40,6 @@ module.exports = {
             }
         }
 
-        interaction.reply({ embeds: [lineupStatusEmbed], components: interactionUtils.createLineupComponents(lineup) })
+        await interaction.reply({ embeds: [lineupStatusEmbed], components: interactionUtils.createLineupComponents(lineup) })
     },
 };

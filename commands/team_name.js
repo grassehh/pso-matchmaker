@@ -21,6 +21,6 @@ module.exports = {
 
         team.name = interaction.options.getString('name')
         await team.save()
-        interaction.reply(`✅ Your new team name is ${team.name}`)
+        await interaction.reply(`✅ Your new team name is ${team.name}`)
     },
 };
