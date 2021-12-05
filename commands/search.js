@@ -9,24 +9,24 @@ module.exports = {
         .setName('search')
         .setDescription('Put your team in the matchmaking queue'),
     async execute(interaction) {
-
         let challenge = await matchmakingService.findChallengeByChannelId(interaction.channelId)
         if (challenge) {
-            await interactionUtils.replyAlreadyChallenging(interaction, challenge)
+            interactionUtils.replyAlreadyChallenging(interaction, challenge)
             return
         }
         let team = await teamService.findTeamByGuildId(interaction.guildId)
         if (!team) {
-            await interactionUtils.replyTeamNotRegistered(interaction)
-            return
-        }
-        let lineup = teamService.retrieveLineup(team, interaction.channelId)
-        if (!lineup) {
-            await interactionUtils.replyLineupNotSetup(interaction)
+            interactionUtils.replyTeamNotRegistered(interaction)
             return
         }
 
-        let currentQueuedLineup = await LineupQueue.findOne({ 'lineup.channelId': interaction.channelId })
+        let lineup = await teamService.retrieveLineup(interaction.channelId)
+        if (!lineup) {
+            interactionUtils.replyLineupNotSetup(interaction)
+            return
+        }
+
+        let currentQueuedLineup = await matchmakingService.findLineupQueueByChannelId(interaction.channelId)
         if (currentQueuedLineup) {
             interactionUtils.replyAlreadyQueued(interaction, currentQueuedLineup.lineup.size)
             return
@@ -37,6 +37,6 @@ module.exports = {
             return
         }
 
-        matchmakingService.joinQueue(interaction, team, lineup).then(interaction.reply(`✅ Your team is now queued for ${lineup.size}v${lineup.size}`))
+        matchmakingService.joinQueue(interaction, lineup).then(interaction.reply(`✅ Your team is now queued for ${lineup.size}v${lineup.size}`))
     }
 };

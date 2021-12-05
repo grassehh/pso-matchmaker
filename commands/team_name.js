@@ -15,12 +15,12 @@ module.exports = {
     async execute(interaction) {
         let team = await teamService.findTeamByGuildId(interaction.guildId)
         if (!team) {
-            await interactionUtils.replyTeamNotRegistered(interaction)
+            interactionUtils.replyTeamNotRegistered(interaction)
             return
         }
 
         team.name = interaction.options.getString('name')
         await team.save()
-        await interaction.reply(`✅ Your new team name is ${team.name}`)
+        interaction.reply(`✅ Your new team name is ${team.name}`)
     },
 };

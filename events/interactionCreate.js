@@ -4,6 +4,7 @@ const matchmakingService = require("../services/matchmakingService");
 const teamService = require("../services/teamService");
 const statsService = require("../services/statsService");
 const authorizationService = require("../services/authorizationService");
+const { MessageEmbed } = require("discord.js");
 
 module.exports = {
     name: 'interactionCreate',
@@ -29,35 +30,29 @@ module.exports = {
 
         try {
             if (interaction.isButton()) {
-                let team = await teamService.findTeamByGuildId(interaction.guildId)
-                let lineup = await teamService.retrieveLineup(team, interaction.channelId)
-
                 if (interaction.customId.startsWith("role_")) {
+                    let lineup = await teamService.retrieveLineup(interaction.channelId)
                     let roleSigned = interaction.customId.substring(5)
                     let selectedRole = lineup.roles.find(role => role.name == roleSigned)
 
                     if (selectedRole.user) {
-                        await interaction.reply({ content: 'A player is already signed at this position', ephemeral: true })
+                        interaction.reply({ content: 'A player is already signed at this position', ephemeral: true })
                         return
                     }
 
-                    await matchmakingService.removeUserFromChallenge(interaction.guildId, interaction.channelId, interaction.user.id)
-                    await teamService.removeUserFromLineup(interaction.guildId, interaction.channelId, interaction.user.id)
-                    await teamService.removeUserFromLineupQueue(interaction.guildId, interaction.channelId, interaction.user.id)
+                    await teamService.removeUserFromLineup(interaction.channelId, interaction.user.id)
+                    await matchmakingService.removeUserFromLineupQueue(interaction.channelId, interaction.user.id)
                     let userToAdd = {
                         id: interaction.user.id,
                         name: interaction.user.username,
                         mention: interaction.user.toString()
                     }
-                    await matchmakingService.addUserToChallenge(interaction.guildId, interaction.channelId, roleSigned, userToAdd)
-                    await teamService.addUserToLineup(interaction.guildId, interaction.channelId, roleSigned, userToAdd)
-                    await teamService.addUserToLineupQueue(interaction.guildId, interaction.channelId, roleSigned, userToAdd)
+                    lineup = await teamService.addUserToLineup(interaction.channelId, roleSigned, userToAdd)
+                    let lineupQueue = await matchmakingService.addUserToLineupQueue(interaction.channelId, roleSigned, userToAdd)
 
-                    lineup = await teamService.findLineupByChannelId(interaction.guildId, interaction.channelId)
-                    let lineupQueue = await matchmakingService.findLineupQueueByChannelId(interaction.channelId)
                     if (lineup.autoSearch === true && matchmakingService.isLineupAllowedToJoinQueue(lineup)) {
                         if (!lineupQueue) {
-                            matchmakingService.joinQueue(interaction, team, lineup).then(
+                            matchmakingService.joinQueue(interaction, lineup).then(
                                 interaction.reply({
                                     content: `Player ${interaction.user} signed into the lineup as ${roleSigned}. Your lineup is full, it is now searching for a ${lineup.size}v${lineup.size} team !`,
                                     components: interactionUtils.createLineupComponents(lineup)
@@ -68,68 +63,75 @@ module.exports = {
                     } else if (!matchmakingService.isLineupAllowedToJoinQueue(lineup) && lineupQueue) {
                         let challenge = await matchmakingService.findChallengeByGuildId(interaction.guildId)
                         if (!challenge) {
-                            await LineupQueue.deleteOne({ 'lineup.channelId': interaction.channelId })
-                            await interaction.reply({ content: `Player ${interaction.user} swapped his position with ${roleSigned}. Your team is no longer in the queue !`, components: interactionUtils.createLineupComponents(lineup) })
+                            await matchmakingService.deleteLineupQueuesByChannelId(interaction.channelId)
+                            interaction.reply({ content: `Player ${interaction.user} swapped his position with ${roleSigned}. Your team is no longer in the queue !`, components: interactionUtils.createLineupComponents(lineup) })
                             return
                         }
                     }
 
-                    await interaction.reply({ content: `Player ${interaction.user} signed into the lineup as ${roleSigned}`, components: interactionUtils.createLineupComponents(lineup) })
+                    interaction.reply({ content: `Player ${interaction.user} signed into the lineup as ${roleSigned}`, components: interactionUtils.createLineupComponents(lineup) })
                     return
                 }
 
                 if (interaction.customId === 'leaveLineup') {
+                    let lineup = await teamService.retrieveLineup(interaction.channelId)
                     let roleLeft = lineup.roles.find(role => role.user?.id === interaction.user.id)
 
                     if (!roleLeft) {
-                        await interaction.reply({ content: `❌ You are not in the lineup`, ephemeral: true })
+                        interaction.reply({ content: `❌ You are not in the lineup`, ephemeral: true })
                         return
                     }
 
-                    await matchmakingService.removeUserFromChallenge(interaction.guildId, interaction.channelId, interaction.user.id)
-                    await teamService.removeUserFromLineup(interaction.guildId, interaction.channelId, interaction.user.id)
-                    await teamService.removeUserFromLineupQueue(interaction.guildId, interaction.channelId, interaction.user.id)
+                    lineup = await teamService.removeUserFromLineup(interaction.channelId, interaction.user.id)
+                    let lineupQueue = await matchmakingService.removeUserFromLineupQueue(interaction.channelId, interaction.user.id)
 
-                    lineup = await teamService.findLineupByChannelId(interaction.guildId, interaction.channelId)
-
-                    if (!matchmakingService.isLineupAllowedToJoinQueue(lineup)) {
+                    if (!matchmakingService.isLineupAllowedToJoinQueue(lineup) && lineupQueue) {
                         let challenge = await matchmakingService.findChallengeByGuildId(interaction.guildId)
                         if (!challenge) {
-                            await LineupQueue.deleteOne({ 'lineup.channelId': interaction.channelId })
-                            await interaction.reply({ content: `Player ${interaction.user} left the ${roleLeft.name} position. Your team is no longer in the queue !`, components: interactionUtils.createLineupComponents(lineup) })
+                            matchmakingService.leaveQueue(interaction, lineupQueue)
+                                .then(
+                                    interaction.reply({
+                                        content: `Player ${interaction.user} left the ${roleLeft.name} position. Your team is no longer in the queue !`,
+                                        components: interactionUtils.createLineupComponents(lineup)
+                                    })
+                                )
                             return
                         }
                     }
 
-                    await interaction.reply({ content: `Player ${interaction.user} left the ${roleLeft.name} position`, components: interactionUtils.createLineupComponents(lineup) })
+                    interaction.reply({ content: `Player ${interaction.user} left the ${roleLeft.name} position`, components: interactionUtils.createLineupComponents(lineup) })
                     return
                 }
 
                 if (interaction.customId.startsWith('challenge_')) {
-                    let lineupQueueId = interaction.customId.substring(10);
-                    let lineupQueueToChallenge = await matchmakingService.reserveAndGetLineupQueueById(lineupQueueId)
+                    let lineupQueueIdToChallenge = interaction.customId.substring(10);
 
+                    let lineupQueueToChallenge = await matchmakingService.findLineupQueueById(lineupQueueIdToChallenge)
                     if (!lineupQueueToChallenge) {
                         interaction.reply({ content: "❌ This team is no longer challenging", ephemeral: true })
                         return
                     }
 
-                    let challenge = await matchmakingService.findChallengeByGuildId(lineupQueueToChallenge.team.guildId)
+                    let challenge = await matchmakingService.findChallengeByLineupQueueId(lineupQueueIdToChallenge)
                     if (challenge) {
                         interaction.reply({ content: "❌ This team is negociating a challenge", ephemeral: true })
                         return
                     }
 
-                    let lineupQueue = await matchmakingService.reserveAndGetLineupQueueByChannelId(interaction.channelId)
+                    let lineup = await teamService.retrieveLineup(interaction.channelId)
+                    if (!matchmakingService.isLineupAllowedToJoinQueue(lineup)) {
+                        interaction.reply({ content: '⛔ All outfield positions must be filled before challenging a team', ephemeral: true })
+                        return
+                    }
+
+                    if (lineupQueueToChallenge.lineup.size !== lineup.size) {
+                        interaction.reply({ content: `❌ Your team is configured for ${lineup.size}v${lineup.size} while the team you are trying to challenge is configured for ${lineupQueueToChallenge.lineup.size}v${lineupQueueToChallenge.lineup.size}. Both teams must have the same size to challenge.`, ephemeral: true })
+                        return
+                    }
+
+                    let lineupQueue = await matchmakingService.findLineupQueueByChannelId(interaction.channelId)
                     if (!lineupQueue) {
-                        lineupQueue = new LineupQueue({
-                            team: {
-                                guildId: team.guildId,
-                                name: team.name,
-                                region: team.region
-                            },
-                            lineup: lineup
-                        })
+                        lineupQueue = new LineupQueue({ lineup })
                     }
                     challenge = new Challenge({
                         initiatingUser: {
@@ -141,6 +143,33 @@ module.exports = {
                         challengedTeam: lineupQueueToChallenge
                     })
 
+                    let challengedTeamUsers = lineupQueueToChallenge.lineup.roles.map(role => role.user).filter(user => user)
+                    let initiatingTeamUsers = lineupQueue.lineup.roles.map(role => role.user).filter(user => user)
+                    let duplicatedUsers = challengedTeamUsers.filter((user, index, self) =>
+                        index === initiatingTeamUsers.findIndex((t) => (
+                            t.id === user.id
+                        ))
+                    )
+                    // if (duplicatedUsers.length > 0) {
+                    //     let description = 'The following players are signed in both teams. Please arrange with them before challenging: '
+                    //     for (let duplicatedUser of duplicatedUsers) {
+                    //         let discordUser = await interaction.client.users.fetch(duplicatedUser.id)
+                    //         description += discordUser.toString() + ', '
+                    //     }
+                    //     description = description.substring(0, description.length - 2)
+
+                    //     const duplicatedUsersEmbed = new MessageEmbed()
+                    //         .setColor('#0099ff')
+                    //         .setTitle(`⛔ Some players are signed in both teams !`)
+                    //         .setDescription(description)
+                    //         .setTimestamp()
+                    //         .setFooter(`Author: ${interaction.user.username}`)
+
+                    //     interaction.reply({ embeds: [duplicatedUsersEmbed] })
+                    //     return
+                    // }
+
+                    await matchmakingService.reserveLineupQueuesByIds([lineupQueueIdToChallenge, lineupQueue.id])
                     await interaction.message.edit({ components: [] })
                     await interaction.reply(interactionUtils.createCancelChallengeReply(challenge))
                     let initiatingMessage = await interaction.fetchReply()
@@ -149,12 +178,13 @@ module.exports = {
                     let channel = await interaction.client.channels.fetch(challenge.challengedTeam.lineup.channelId)
                     let challengedMessage = await channel.send(interactionUtils.createDecideChallengeReply(interaction, challenge))
                     challenge.challengedMessageId = challengedMessage.id
-
-                    await challenge.save()
+                    challenge.save()
                     return
                 }
 
                 if (interaction.customId.startsWith('accept_challenge_')) {
+                    interaction.deferReply()
+
                     let challengeId = interaction.customId.substring(17);
                     let challenge = await matchmakingService.findChallengeById(challengeId)
                     if (!challenge) {
@@ -162,39 +192,38 @@ module.exports = {
                         return
                     }
 
-                    let challengedTeamUsers = challenge.challengedTeam.lineup.roles.map(role => role.user).filter(user => user)
-                    let initiatingTeamUsers = challenge.initiatingTeam.lineup.roles.map(role => role.user).filter(user => user)
-                    let allUsers = challengedTeamUsers.concat(initiatingTeamUsers)
+                    let initiatingUser = await interaction.client.users.fetch(challenge.initiatingUser.id)
+
+
+                    let challengedTeamLineup = await teamService.retrieveLineup(challenge.challengedTeam.lineup.channelId)
+                    let challengedTeamUsers = challengedTeamLineup.roles.map(role => role.user).filter(user => user)
+                    let initiatingTeamLineup = await teamService.retrieveLineup(challenge.initiatingTeam.lineup.channelId)
+                    let initiatingTeamUsers = initiatingTeamLineup.roles.map(role => role.user).filter(user => user)
                     let lobbyName = Math.floor(Math.random() * 1000) + 1000
                     let lobbyPassword = Math.random().toString(36).slice(-4)
-                    for (let user of allUsers) {
-                        let discordUser = await interaction.client.users.fetch(user.id)
-                        discordUser.send(`Match is ready ! Join the custom lobby Lobby **${lobbyName}**. The password is **${lobbyPassword}**`)
-                    }
 
-                    await teamService.clearLineup(interaction.guildId, interaction.channelId)
-                    await teamService.clearLineup(challenge.initiatingTeam.team.guildId, challenge.initiatingTeam.lineup.channelId)
-                    await LineupQueue.deleteOne({ '_id': challenge.challengedTeam.id })
-                    await LineupQueue.deleteOne({ '_id': challenge.initiatingTeam.id })
-                    await Challenge.deleteOne({ '_id': challenge.id })
+                    await matchmakingService.deleteChallengeById(challenge.id)
+                    await matchmakingService.deleteLineupQueuesByIds([challenge.challengedTeam.id, challenge.initiatingTeam.id])
+                    await teamService.clearLineups([interaction.channelId, challenge.initiatingTeam.lineup.channelId])
 
-                    let initiatingTeamNextMatchEmbed = await interactionUtils.createLineupEmbedForNextMatch(interaction, challenge.initiatingTeam.lineup, challenge.challengedTeam.team, challenge.challengedTeam.lineup)
+
+                    let lobbyCreationEmbed = new MessageEmbed()
+                        .setColor('#6aa84f')
+                        .setTitle(`⚽ Challenge accepted ⚽`)
+                        .setTimestamp()
+                        .addField('Every signed player received the lobby information in private message', `${initiatingUser} is responsible of creating the lobby. If he is not available, then ${interaction.user} is the next responsible player.`)
+
+                    let initiatingTeamNextMatchEmbed = await interactionUtils.createLineupEmbedForNextMatch(interaction, initiatingTeamLineup, challenge.challengedTeam.lineup, lobbyName, lobbyPassword)
                     let initiatingTeamChannel = await interaction.client.channels.fetch(challenge.initiatingTeam.lineup.channelId)
                     await initiatingTeamChannel.messages.edit(challenge.initiatingMessageId, { components: [] })
-                    initiatingTeamChannel.send({
-                        content: `⚽ The team '${teamService.formatTeamName(challenge.challengedTeam.team, challenge.challengedTeam.lineup)}'' has accepted your challenge request ! Check your private messages for lobby info !`,
-                        embeds: [initiatingTeamNextMatchEmbed]
-                    })
+                    initiatingTeamChannel.send({ embeds: [lobbyCreationEmbed, initiatingTeamNextMatchEmbed] })
 
-                    let challengedTeamNextMatchEmbed = await interactionUtils.createLineupEmbedForNextMatch(interaction, challenge.challengedTeam.lineup, challenge.initiatingTeam.team, challenge.initiatingTeam.lineup)
+                    let challengedTeamNextMatchEmbed = await interactionUtils.createLineupEmbedForNextMatch(interaction, challengedTeamLineup, initiatingTeamLineup, lobbyName, lobbyPassword)
                     await interaction.message.edit({ components: [] })
-                    await interaction.reply({
-                        content: `⚽ You have accepted to challenge the team '${teamService.formatTeamName(challenge.initiatingTeam.team, challenge.initiatingTeam.lineup)}' ! Check your private messages for lobby info !`,
-                        embeds: [challengedTeamNextMatchEmbed]
-                    })
+                    await interaction.editReply({ embeds: [lobbyCreationEmbed, challengedTeamNextMatchEmbed] })
 
-                    await statsService.incrementGamesPlayed(challenge.challengedTeam.team.guildId, challengedTeamUsers)
-                    await statsService.incrementGamesPlayed(challenge.initiatingTeam.team.guildId, initiatingTeamUsers)
+                    await statsService.incrementGamesPlayed(challenge.challengedTeam.lineup.team.guildId, challenge.challengedTeam.lineup.size, challengedTeamUsers)
+                    await statsService.incrementGamesPlayed(challenge.initiatingTeam.lineup.team.guildId, challenge.challengedTeam.lineup.size, initiatingTeamUsers)
 
                     return
                 }
@@ -207,16 +236,15 @@ module.exports = {
                         return
                     }
 
-                    await matchmakingService.freeLineupQueueById(challenge.challengedTeam.id)
-                    await matchmakingService.freeLineupQueueById(challenge.initiatingTeam.id)
-                    await Challenge.deleteOne({ '_id': challenge.id })
+                    await matchmakingService.deleteChallengeById(challengeId)
+                    await matchmakingService.freeLineupQueuesByIds([challenge.challengedTeam.id, challenge.initiatingTeam.id])
 
                     let initiatingTeamChannel = await interaction.client.channels.fetch(challenge.initiatingTeam.lineup.channelId)
                     await initiatingTeamChannel.messages.edit(challenge.initiatingMessageId, { components: [] })
-                    await initiatingTeamChannel.send(`The team '${teamService.formatTeamName(challenge.challengedTeam.team, challenge.challengedTeam.lineup)}' has refused your challenge request`)
+                    await initiatingTeamChannel.send(`❌ The team '${teamService.formatTeamName(challenge.challengedTeam.lineup)}' has refused your challenge request`)
 
                     await interaction.message.edit({ components: [] })
-                    await interaction.reply(`You have refused to challenge the team '${teamService.formatTeamName(challenge.initiatingTeam.team, challenge.initiatingTeam.lineup)}''`)
+                    interaction.reply(`❌ You have refused to challenge the team '${teamService.formatTeamName(challenge.initiatingTeam.lineup)}''`)
                     return
                 }
 
@@ -228,41 +256,41 @@ module.exports = {
                         return
                     }
 
-                    await matchmakingService.freeLineupQueueById(challenge.challengedTeam.id)
-                    await matchmakingService.freeLineupQueueById(challenge.initiatingTeam.id)
-                    await Challenge.deleteOne({ '_id': challenge.id })
+                    await matchmakingService.deleteChallengeById(challenge.id)
+                    await matchmakingService.freeLineupQueuesByIds([challenge.challengedTeam.id, challenge.initiatingTeam.id])
 
                     let challengedTeamChannel = await interaction.client.channels.fetch(challenge.challengedTeam.lineup.channelId)
                     await challengedTeamChannel.messages.edit(challenge.challengedMessageId, { components: [] })
-                    await challengedTeamChannel.send(`The team '${challenge.initiatingTeam.team.name}' has cancelled the challenge request`)
+                    await challengedTeamChannel.send(`❌ The team '${teamService.formatTeamName(challenge.initiatingTeam.lineup)}' has cancelled the challenge request`)
 
                     await interaction.message.edit({ components: [] })
-                    await interaction.reply(`You have cancelled your challenge request for the team '${teamService.formatTeamName(challenge.challengedTeam.team, challenge.challengedTeam.lineup)}'`)
+                    interaction.reply(`❌ You have cancelled your challenge request for the team '${teamService.formatTeamName(challenge.challengedTeam.lineup)}'`)
                     return
                 }
 
                 if (interaction.customId.startsWith('delete_team_yes_')) {
                     await matchmakingService.deleteChallengesByGuildId(interaction.guildId)
-                    matchmakingService.deleteLineupQueuesByGuildId(interaction.guildId)
+                    await matchmakingService.deleteLineupQueuesByGuildId(interaction.guildId)
                     await teamService.deleteTeam(interaction.guildId)
-                    await interaction.reply({ content: '✅ Your team has been deleted', ephemeral: true })
+                    interaction.reply({ content: '✅ Your team has been deleted', ephemeral: true })
                     return
                 }
 
                 if (interaction.customId.startsWith('delete_team_no_')) {
-                    await interaction.reply({ content: 'Easy peasy ! Nothing has been deleted', ephemeral: true })
+                    interaction.reply({ content: 'Easy peasy ! Nothing has been deleted', ephemeral: true })
                     return
                 }
 
                 if (interaction.customId.startsWith('leaderboard_page_')) {
                     let split = interaction.customId.split('_')
                     let globalStats = split[2] === 'true'
-                    let page = parseInt(split[3])
+                    let lineupSizes = split[3].split(',').filter(i => i)
+                    let page = parseInt(split[4])
                     let guildId = globalStats ? null : interaction.guildId
                     let numberOfPlayers = await statsService.countNumberOfPlayers(guildId)
                     let numberOfPages = Math.ceil(numberOfPlayers / statsService.DEFAULT_LEADERBOARD_PAGE_SIZE)
-                    let statsEmbeds = await interactionUtils.createLeaderBoardEmbeds(interaction, guildId, page, numberOfPages)
-                    let leaderboardPaginationComponent = interactionUtils.createLeaderBoardPaginationComponent(globalStats, page, numberOfPages)
+                    let statsEmbeds = await interactionUtils.createLeaderBoardEmbeds(interaction, numberOfPages, { guildId, page, lineupSizes })
+                    let leaderboardPaginationComponent = interactionUtils.createLeaderBoardPaginationComponent({ globalStats, page, lineupSizes }, numberOfPages)
                     interaction.message.components[0] = leaderboardPaginationComponent
                     await interaction.update({ embeds: statsEmbeds, components: interaction.message.components })
                     return
@@ -271,11 +299,12 @@ module.exports = {
                 if (interaction.customId.startsWith('leaderboard_first_page_')) {
                     let split = interaction.customId.split('_')
                     let globalStats = split[3] === 'true'
+                    let lineupSizes = split[4].split(',').filter(i => i)
                     let guildId = globalStats ? null : interaction.guildId
                     let numberOfPlayers = await statsService.countNumberOfPlayers(guildId)
                     let numberOfPages = Math.ceil(numberOfPlayers / statsService.DEFAULT_LEADERBOARD_PAGE_SIZE)
-                    let statsEmbeds = await interactionUtils.createLeaderBoardEmbeds(interaction, guildId, 0, numberOfPages)
-                    let leaderboardPaginationComponent = interactionUtils.createLeaderBoardPaginationComponent(globalStats, 0, numberOfPages)
+                    let statsEmbeds = await interactionUtils.createLeaderBoardEmbeds(interaction, numberOfPages, { guildId })
+                    let leaderboardPaginationComponent = interactionUtils.createLeaderBoardPaginationComponent({ globalStats, page: 0, lineupSizes }, numberOfPages)
                     interaction.message.components[0] = leaderboardPaginationComponent
                     await interaction.update({ embeds: statsEmbeds, components: interaction.message.components })
                     return
@@ -285,11 +314,12 @@ module.exports = {
                 if (interaction.customId.startsWith('leaderboard_last_page_')) {
                     let split = interaction.customId.split('_')
                     let globalStats = split[3] === 'true'
+                    let lineupSizes = split[4].split(',').filter(i => i)
                     let guildId = globalStats ? null : interaction.guildId
                     let numberOfPlayers = await statsService.countNumberOfPlayers(guildId)
                     let numberOfPages = Math.ceil(numberOfPlayers / statsService.DEFAULT_LEADERBOARD_PAGE_SIZE)
-                    let statsEmbeds = await interactionUtils.createLeaderBoardEmbeds(interaction, guildId, numberOfPages, numberOfPages)
-                    let leaderboardPaginationComponent = interactionUtils.createLeaderBoardPaginationComponent(globalStats, numberOfPages, numberOfPages)
+                    let statsEmbeds = await interactionUtils.createLeaderBoardEmbeds(interaction, numberOfPages, { guildId, page: numberOfPages - 1 })
+                    let leaderboardPaginationComponent = interactionUtils.createLeaderBoardPaginationComponent({ globalStats, page: numberOfPages - 1, lineupSizes }, numberOfPages)
                     interaction.message.components[0] = leaderboardPaginationComponent
                     await interaction.update({ embeds: statsEmbeds, components: interaction.message.components })
                     return
@@ -297,23 +327,38 @@ module.exports = {
             }
 
             if (interaction.isSelectMenu()) {
-                if (interaction.customId.startsWith('stats_global_select_')) {
-                    let userId = interaction.customId.substring(20)
-                    let user = await interaction.client.users.resolve(userId)
-                    let statsEmbeds = await interactionUtils.createStatsEmbeds(interaction, user, interaction.values[0] === 'stats_team_value' ? interaction.guildId : null)
+                if (interaction.customId.startsWith('stats_type_select_')) {
+                    let split = interaction.customId.split('_')
+                    let userId = split[3]
+                    let statsEmbeds = await interactionUtils.createStatsEmbeds(interaction, userId, interaction.values[0] === 'stats_team_value' ? interaction.guildId : null)
                     await interaction.update({ embeds: statsEmbeds })
                     return
                 }
 
-                if (interaction.customId.startsWith('leaderboard_global_select')) {
+                if (interaction.customId.startsWith('leaderboard_type_select')) {
                     let globalStats = interaction.values[0] === 'leaderboard_global_value'
                     let guildId = globalStats ? null : interaction.guildId
                     let numberOfPlayers = await statsService.countNumberOfPlayers(guildId)
                     let numberOfPages = Math.ceil(numberOfPlayers / statsService.DEFAULT_LEADERBOARD_PAGE_SIZE)
-                    let statsEmbeds = await interactionUtils.createLeaderBoardEmbeds(interaction, guildId, 0, numberOfPages)
-                    let leaderboardPaginationComponent = interactionUtils.createLeaderBoardPaginationComponent(true, 0, numberOfPages)
+                    let statsEmbeds = await interactionUtils.createLeaderBoardEmbeds(interaction, numberOfPages, { guildId })
+                    let leaderboardPaginationComponent = interactionUtils.createLeaderBoardPaginationComponent({ globalStats, page: 0, lineupSizes: [] }, numberOfPages)
                     interaction.message.components[0] = leaderboardPaginationComponent
+                    interaction.message.components[2] = interactionUtils.createLeaderBoardLineupSizeComponent(globalStats)
                     await interaction.update({ embeds: statsEmbeds, components: interaction.message.components })
+                    return
+                }
+
+                if (interaction.customId.startsWith('leaderboard_lineup_size_select_')) {
+                    let split = interaction.customId.split('_')
+                    let globalStats = split[4] === 'true'
+                    let selectedSizes = interaction.values
+                    let guildId = globalStats ? null : interaction.guildId
+                    let numberOfPlayers = await statsService.countNumberOfPlayers(guildId, selectedSizes)
+                    let numberOfPages = Math.ceil(numberOfPlayers / statsService.DEFAULT_LEADERBOARD_PAGE_SIZE)
+                    let statsEmbeds = await interactionUtils.createLeaderBoardEmbeds(interaction = interaction, numberOfPages, { guildId, lineupSizes: selectedSizes })
+                    let leaderboardPaginationComponent = interactionUtils.createLeaderBoardPaginationComponent({ globalStats, page: 0, lineupSizes: selectedSizes }, numberOfPages)
+                    interaction.message.components[0] = leaderboardPaginationComponent
+                    await interaction.update({ embeds: statsEmbeds, components: interaction.message.components  })
                     return
                 }
             }

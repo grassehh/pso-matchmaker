@@ -11,26 +11,25 @@ module.exports = {
     async execute(interaction) {
         let team = await teamService.findTeamByGuildId(interaction.guildId)
         if (!team) {
-            await interactionUtils.replyTeamNotRegistered(interaction)
+            interactionUtils.replyTeamNotRegistered(interaction)
             return
         }
-        let lineup = teamService.retrieveLineup(team, interaction.channelId)
+        let lineup = await teamService.retrieveLineup(interaction.channelId)
         if (!lineup) {
-            await interactionUtils.replyLineupNotSetup(interaction)
+            interactionUtils.replyLineupNotSetup(interaction)
             return
         }
         let challenge = await matchmakingService.findChallengeByChannelId(interaction.channelId)
         if (challenge) {
-            await interactionUtils.replyAlreadyChallenging(interaction, challenge)
+            interactionUtils.replyAlreadyChallenging(interaction, challenge)
             return
         }
         let lineupQueue = await matchmakingService.findLineupQueueByChannelId(interaction.channelId)
         if (!lineupQueue) {
-            await interaction.reply({ content: `❌ Your team is not queued for matchmaking`, ephemeral: true })
+            interaction.reply({ content: `❌ Your team is not queued for matchmaking`, ephemeral: true })
             return
         }
 
-        await LineupQueue.deleteOne({ 'lineup.channelId': interaction.channelId })
-        await interaction.reply(`✅ Your team is now removed from the queue`)
-    },
+        matchmakingService.leaveQueue(interaction, lineupQueue).then(interaction.reply(`✅ Your team is now removed from the queue`))
+    }
 };

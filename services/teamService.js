@@ -1,31 +1,35 @@
-const { Team, LineupQueue } = require("../mongoSchema")
+const { Team, Lineup } = require("../mongoSchema")
 
-exports.formatTeamName = (team, lineup) => {
-    let name = team.name
+exports.formatTeamName = (lineup) => {
+    let name = lineup.team.name
     if (lineup.name) {
         name += ` *(${lineup.name})*`
     }
     return name
 }
 
-exports.deleteLineup = async (guildId, channelId) => {
-    await Team.updateOne({ guildId }, { $pull: { 'lineups': { channelId } } })
+exports.hasGkSigned = (lineup) => {
+    return lineup.roles.find(role => role.name === 'GK')?.user != null
 }
 
-exports.retrieveLineup = (team, channelId) => {
-    return team.lineups.find(lineup => lineup.channelId == channelId)
+exports.deleteLineup = async (channelId) => {
+    await Lineup.deleteOne({ channelId })
 }
 
-exports.clearLineup = async (guildId, channelId) => {
-    await Team.updateOne(
-        {
-            guildId,
-            "lineups.channelId": channelId,
-        },
-        {
-            "$set": { "lineups.$[].roles.$[].user": null }
-        }
-    )
+exports.retrieveLineup = async (channelId) => {
+    return await Lineup.findOne({ channelId })
+}
+
+exports.upsertLineup = async (lineup) => {
+    await Lineup.updateOne({ 'channelId': lineup.channelId }, lineup, { upsert: true })
+}
+
+exports.clearLineup = async (channelId) => {
+    return await Lineup.findOneAndUpdate({ channelId }, { "$set": { "roles.$[].user": null } }, { new: true })
+}
+
+exports.clearLineups = async (channelIds) => {
+    await Lineup.updateMany({ 'channelId': { $in: channelIds } }, { "$set": { "roles.$[].user": null } })
 }
 
 exports.deleteTeam = async (guildId) => {
@@ -36,139 +40,98 @@ exports.findTeamByGuildId = async (guildId) => {
     return await Team.findOne({ guildId })
 }
 
-exports.findLineupByChannelId = async (guildId, channelId) => {
-    let team = await this.findTeamByGuildId(guildId)
-    return this.retrieveLineup(team, channelId)
+exports.removeUserFromLineupsByGuildId = async (userId, guildId) => {
+    return await Lineup.updateMany({ 'team.guildId': guildId, 'roles.user.id': userId }, { $set: { "roles.$.user": null } })
 }
 
-exports.removeUserFromAllLineupQueue = async (userId) => {
-    await LineupQueue.updateMany({ 'lineup.roles.user.id': userId }, { $set: { "lineup.roles.$.user": null } })
+exports.removeUserFromLineupsByChannelIds = async (userId, channelIds) => {
+    return await Lineup.updateMany({ 'channelId': { $in: channelIds }, 'roles.user.id': userId }, { $set: { "roles.$.user": null } })
 }
 
-exports.removeUserFromAllLineups = async (userId) => {
-    await Team.updateMany(
-        {
-            "lineups": {
-                "$elemMatch": {
-                    "roles.user.id": userId
-                }
-            }
-        },
-        {
-            "$set": { "lineups.$[].roles.$[inner].user": null }
-        },
-        {
-            "arrayFilters": [{ "inner.user.id": userId }]
-        }
-    )
+exports.removeUserFromLineup = async (channelId, userId) => {
+    return await Lineup.findOneAndUpdate({ channelId, 'roles.user.id': userId }, { "$set": { "roles.$.user": null } }, { new: true })
 }
 
-exports.removeUserFromLineup = async (guildId, channelId, userId) => {
-    await Team.updateOne(
-        {
-            guildId,
-            "lineups.channelId": channelId,
-        },
-        {
-            "$set": { "lineups.$.roles.$[inner].user": null }
-        },
-        {
-            "arrayFilters": [{ "inner.user.id": userId }]
-        }
-    )
+exports.addUserToLineup = async (channelId, roleName, user) => {
+    return await Lineup.findOneAndUpdate({ channelId, 'roles.name': roleName }, { "$set": { "roles.$.user": user } }, { new: true })
 }
 
-exports.addUserToLineup = async (guildId, channelId, roleName, user) => {
-    await Team.updateOne(
-        {
-            guildId,
-            "lineups.channelId": channelId,
-        },
-        {
-            "$set": { "lineups.$.roles.$[inner].user": user }
-        },
-        {
-            "arrayFilters": [{ "inner.name": roleName }]
-        }
-    )
-}
-
-exports.removeUserFromLineupQueue = async (guildId, channelId, userId) => {
-    await LineupQueue.updateOne({ guildId, 'lineup.channelId': channelId, 'lineup.roles.user.id': userId }, { $set: { "lineup.roles.$.user": null } })
-}
-
-exports.addUserToLineupQueue = async (guildId, channelId, roleName, user) => {
-    await LineupQueue.updateOne({ guildId, 'lineup.channelId': channelId, 'lineup.roles.name': roleName }, { $set: { "lineup.roles.$.user": user } })
-}
-
-exports.removeUserFromTeams = async (userId) => {
-    return await Team.updateMany(
-        {
-            "lineups": {
-                "$elemMatch": {
-                    "roles": {
-                        "$elemMatch": {
-                            'user.id': userId
-                        }
-                    }
-                }
-            }
-        },
-        {
-            "$set": { "lineups.$.roles.$[inner].user": null }
-        },
-        {
-            "new": true,
-            "arrayFilters": [{ "inner.user.id": userId }]
-        }
-    )
-}
-
-exports.findTeamsByUserId = async (userId) => {
-    return await Team.find(
-        {
-            "lineups": {
-                "$elemMatch": {
-                    "roles": {
-                        "$elemMatch": {
-                            'user.id': userId
-                        }
-                    }
-                }
-            }
-        }
-    )
-}
-
-exports.findAllChannelIdToNotify = async (region, channelId, lineupSize) => {
-    let res = await Team.aggregate([
+exports.findAllLineupChannelIdsByUserId = async (userId) => {
+    let res = await Lineup.aggregate([
         {
             $match: {
-                region
-            }
-        },
-        {
-            $unwind: '$lineups'
-        },
-        {
-            $match: {
-                'lineups.channelId': { $ne: channelId },
-                'lineups.size': lineupSize
+                roles: {
+                    $elemMatch: { 'user.id': userId }
+                }
             }
         },
         {
             $group: {
                 _id: null,
                 channelIds: {
-                    $addToSet: '$lineups.channelId'
+                    $addToSet: '$$ROOT.channelId'
                 }
             }
         }
     ])
 
-    let allChannelIds = []
     if (res.length > 0) {
-        allChannelIds = res[0].channelIds
+        return res[0].channelIds
     }
-    return allChannelIds
+
+    return []
+}
+
+
+exports.findAllLineupChannelIdsByUserIds = async (userIds) => {
+    let res = await Lineup.aggregate([
+        {
+            $match: {
+                roles: {
+                    $elemMatch: { 'user.id': userId }
+                }
+            }
+        },
+        {
+            $group: {
+                _id: null,
+                channelIds: {
+                    $addToSet: '$$ROOT.channelId'
+                }
+            }
+        }
+    ])
+
+    if (res.length > 0) {
+        return res[0].channelIds
+    }
+
+    return []
+}
+
+
+exports.findAllChannelIdToNotify = async (region, channelId, lineupSize) => {
+    let res = await Lineup.aggregate([
+        {
+            $match: {
+                'team.region': region,
+                channelId: { $ne: channelId },
+                size: lineupSize
+            }
+        },
+        {
+            $group: {
+                _id: null,
+                channelIds: {
+                    $addToSet: '$$ROOT.channelId'
+                }
+            }
+        }
+    ])
+
+    if (res.length > 0) {
+        return res[0].channelIds
+    }
+
+    return []
 }
