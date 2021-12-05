@@ -19,8 +19,8 @@ module.exports = {
             .setColor('#0099ff')
             .setTitle(`Team information`)
             .setTimestamp()
-        teamEmbed.addField('Team name', team.name)
-        teamEmbed.addField('Team region', team.region)
+        teamEmbed.addField('Name', team.name, true)
+        teamEmbed.addField('Region', team.region, true)
         await interaction.reply({
             embeds: [teamEmbed],
             ephemeral: true

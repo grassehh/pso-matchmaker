@@ -60,10 +60,6 @@ exports.addUserToLineup = async (channelId, roleName, user) => {
     return await Lineup.findOneAndUpdate({ channelId, 'roles.name': roleName }, { "$set": { "roles.$.user": user } }, { new: true })
 }
 
-exports.findLineupsByGuildIdAndRemoveUser = async (guildId, userId) => {
-    return await Lineup.updateMany({guildId, 'roles.$.user.id': userId}, {$set: {}})
-}
-
 exports.findAllLineupChannelIdsByUserId = async (userId) => {
     let res = await Lineup.aggregate([
         {
@@ -89,34 +85,6 @@ exports.findAllLineupChannelIdsByUserId = async (userId) => {
 
     return []
 }
-
-
-exports.findAllLineupChannelIdsByUserIds = async (userIds) => {
-    let res = await Lineup.aggregate([
-        {
-            $match: {
-                roles: {
-                    $elemMatch: { 'user.id': userId }
-                }
-            }
-        },
-        {
-            $group: {
-                _id: null,
-                channelIds: {
-                    $addToSet: '$$ROOT.channelId'
-                }
-            }
-        }
-    ])
-
-    if (res.length > 0) {
-        return res[0].channelIds
-    }
-
-    return []
-}
-
 
 exports.findAllChannelIdToNotify = async (region, channelId, lineupSize) => {
     let res = await Lineup.aggregate([

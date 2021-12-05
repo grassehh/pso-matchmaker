@@ -21,14 +21,14 @@ module.exports = {
         ),
     authorizedRoles: [authorizationService.BOT_ADMIN_ROLE],
     async execute(interaction) {
-        let team = await teamService.findTeamByGuildId(interaction.guildId)
-        if (team) {
-            await interaction.reply({
-                content: `❌ You team is already registered as '${team.name}'. Use the /team_name command if you wish to change the name of your team.`,
-                ephemeral: true
-            })
-            return
-        }
+        // let team = await teamService.findTeamByGuildId(interaction.guildId)
+        // if (team) {
+        //     await interaction.reply({
+        //         content: `❌ You team is already registered as '${team.name}'. Use the /team_name command if you wish to change the name of your team.`,
+        //         ephemeral: true
+        //     })
+        //     return
+        // }
 
         const region = interaction.options.getString('team_region')
         const name = interaction.options.getString('team_name')
