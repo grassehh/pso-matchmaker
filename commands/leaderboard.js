@@ -12,7 +12,7 @@ module.exports = {
         const team = await teamService.findTeamByGuildId(interaction.guildId)
 
         if (!team) {
-            interactionUtils.replyTeamNotRegistered(interaction)
+            await interactionUtils.replyTeamNotRegistered(interaction)
             return
         }
 

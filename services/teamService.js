@@ -32,10 +32,6 @@ exports.clearLineups = async (channelIds) => {
     await Lineup.updateMany({ 'channelId': { $in: channelIds } }, { "$set": { "roles.$[].user": null } })
 }
 
-exports.clearLineup = async (channelId) => {
-    await Lineup.deleteOne({ channelId }, { "$set": { "roles.$[].user": null } })
-}
-
 exports.deleteTeam = async (guildId) => {
     await Team.deleteOne({ guildId })
 }

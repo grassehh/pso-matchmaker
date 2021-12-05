@@ -11,13 +11,13 @@ module.exports = {
     async execute(interaction) {
         let team = await teamService.findTeamByGuildId(interaction.guildId)
         if (!team) {
-            interactionUtils.replyTeamNotRegistered(interaction)
+            await interactionUtils.replyTeamNotRegistered(interaction)
             return
         }
 
         let lineup = await teamService.retrieveLineup(interaction.channelId)
         if (!lineup) {
-            interactionUtils.replyLineupNotSetup(interaction)
+            await interactionUtils.replyLineupNotSetup(interaction)
             return
         }
 
