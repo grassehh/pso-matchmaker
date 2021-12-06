@@ -26,6 +26,7 @@ module.exports = {
             .setTimestamp()
             .setFooter(`Author: ${interaction.user.username}`)
             .addField('Lineup size', `${lineup.size}v${lineup.size}`, true)
+            .addField('Lineup name', lineup.name ? lineup.name : '*none*', true)
             .addField('Auto-search', `${lineup.autoSearch ? '**enabled**' : '*disabled*'}`, true)
 
         let challenge = await matchmakingService.findChallengeByChannelId(interaction.channelId)

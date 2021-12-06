@@ -198,32 +198,38 @@ exports.createLineupEmbedForNextMatch = async (interaction, lineup, opponentLine
         .setTimestamp()
         .setFooter(`Author: ${interaction.user.username}`)
 
-    let i = 1
-    for (role of lineup.roles) {
+    let promises = lineup.roles.filter(role => role.user).map(role => new Promise(async (resolve, reject) => {
         let playerName = '*empty*'
-        if (role.user) {
-            let discordUser = await interaction.client.users.fetch(role.user.id)
-            if (discordUser) {
-                let channelIds = await teamService.findAllLineupChannelIdsByUserId(role.user.id)
-                if (channelIds.length > 0) {
-                    await teamService.removeUserFromLineupsByChannelIds(role.user.id, channelIds)
-                    for (let channelId of channelIds) {
-                        let channel = await interaction.client.channels.fetch(channelId)
-                        await channel.send(`⚠ Player ${discordUser} has gone to play another match. He has been removed from the lineup.`)
-                    }
+        let discordUser = await interaction.client.users.fetch(role.user.id)
+        if (discordUser) {
+            let channelIds = await teamService.findAllLineupChannelIdsByUserId(role.user.id)
+            if (channelIds.length > 0) {
+                await teamService.removeUserFromLineupsByChannelIds(role.user.id, channelIds)
+                for (let channelId of channelIds) {
+                    let channel = await interaction.client.channels.fetch(channelId)
+                    await channel.send(`⚠ Player ${discordUser} has gone to play another match. He has been removed from the lineup.`)
                 }
-                let playerDmEmbed = new MessageEmbed()
-                    .setColor('#6aa84f')
-                    .setTitle(`⚽ PSO Match ready ⚽`)
-                    .setDescription(`Your are playing **${role.name}** against the team **${teamService.formatTeamName(opponentLineup)}**`)
-                    .addField('Lobby name', `**${lobbyName}**`, true)
-                    .addField('Lobby password', `**${lobbyPassword}**`, true)
-                    .setTimestamp()
-                await discordUser.send({ embeds: [playerDmEmbed] })
-                playerName = discordUser
             }
+            let playerDmEmbed = new MessageEmbed()
+                .setColor('#6aa84f')
+                .setTitle(`⚽ PSO Match ready ⚽`)
+                .setDescription(`Your are playing **${role.name}** against the team **${teamService.formatTeamName(opponentLineup)}**`)
+                .addField('Lobby name', `**${lobbyName}**`, true)
+                .addField('Lobby password', `**${lobbyPassword}**`, true)
+                .setTimestamp()
+            await discordUser.send({ embeds: [playerDmEmbed] })
+            playerName = discordUser
         }
-        lineupEmbed.addField(role.name, playerName.toString(), i % 4 !== 0)
+
+        resolve({ role, playerName })
+    }))
+
+    const rolesWithPlayer = await Promise.all(promises)
+
+    let i = 1
+    for (let roleWithPlayer of rolesWithPlayer) {
+        lineupEmbed.addField(roleWithPlayer.role.name, roleWithPlayer.playerName.toString(), i % 4 !== 0)
+        i++
     }
 
     return lineupEmbed
@@ -284,4 +290,3 @@ exports.createLeaderBoardLineupSizeComponent = (globalStats) => {
             ])
     )
 }
-

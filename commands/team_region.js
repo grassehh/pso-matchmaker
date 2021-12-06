@@ -23,7 +23,6 @@ module.exports = {
             return
         }
 
-        console.log(interaction.options)
         const newRegion = interaction.options.getString('region')
         const duplicatedTeam = await teamService.findTeamByRegionAndName(newRegion, team.name)
         if (duplicatedTeam) {
