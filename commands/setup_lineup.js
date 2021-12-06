@@ -3,6 +3,7 @@ const interactionUtils = require("../services/interactionUtils");
 const teamService = require("../services/teamService");
 const authorizationService = require("../services/authorizationService");
 const matchmakingService = require("../services/matchmakingService");
+const constants = require("../constants");
 
 module.exports = {
     data:
@@ -44,8 +45,16 @@ module.exports = {
             return
         }
 
-        let lineupSize = interaction.options.getInteger("size")
         let lineupName = interaction.options.getString("name")
+        if (!teamService.validateLineupName(lineupName)) {
+            await interaction.reply({
+                content: `❌ Please choose a name with less than ${constants.MAX_LINEUP_NAME_LENGTH} characters.`,
+                ephemeral: true
+            })
+            return
+        }
+
+        let lineupSize = interaction.options.getInteger("size")
         let autoSearch = interaction.options.getBoolean("auto_search")
         let lineup = teamService.createLineup(interaction.channelId, lineupSize, lineupName, autoSearch, team)
         await teamService.upsertLineup(lineup)

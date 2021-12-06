@@ -1,4 +1,27 @@
 const { Team, Lineup } = require("../mongoSchema")
+const constants = require("../constants")
+
+const DEFAULT_PLAYER_ROLES = new Map([
+    [1, [{ name: 'CF' }]],
+    [2, [{ name: '🥅 GK' }, { name: 'CF' }]],
+    [3, [{ name: '🥅 GK' }, { name: 'LM' }, { name: 'RM' }]],
+    [4, [{ name: '🥅 GK' }, { name: 'CF' }, { name: 'LB' }, { name: 'RB' }]],
+    [5, [{ name: '🥅 GK' }, { name: 'CF' }, { name: 'LB' }, { name: 'RB' }, { name: 'CB' }]],
+    [6, [{ name: '🥅 GK' }, { name: 'LW' }, { name: 'RW' }, { name: 'CM' }, { name: 'LB' }, { name: 'RB' }]],
+    [7, [{ name: '🥅 GK' }, { name: 'LW' }, { name: 'RW' }, { name: 'CM' }, { name: 'LB' }, { name: 'CB' }, { name: 'RB' }]],
+    [8, [{ name: '🥅 GK' }, { name: 'LW' }, { name: 'CF' }, { name: 'RW' }, { name: 'CM' }, { name: 'LB' }, { name: 'CB' }, { name: 'RB' }]],
+    [9, [{ name: '🥅 GK' }, { name: 'LW' }, { name: 'CF' }, { name: 'RW' }, { name: 'LCM' }, { name: 'RCM' }, { name: 'LB' }, { name: 'CB' }, { name: 'RB' }]],
+    [10, [{ name: '🥅 GK' }, { name: 'LW' }, { name: 'CF' }, { name: 'RW' }, { name: 'LCM' }, { name: 'RCM' }, { name: 'LB' }, { name: 'LCB' }, { name: 'RCB' }, { name: 'RB' }]],
+    [11, [{ name: '🥅 GK' }, { name: 'LW' }, { name: 'CF' }, { name: 'RW' }, { name: 'LM' }, { name: 'CM' }, { name: 'RM' }, { name: 'LB' }, { name: 'LCB' }, { name: 'RCB' }, { name: 'RB' }]]
+])
+
+exports.validateTeamName = (name) => {
+    return name.length > 0 && name.length < constants.MAX_TEAM_NAME_LENGTH
+}
+
+exports.validateLineupName = (name) => {
+    return !name || (name.length > 0 && name.length < constants.MAX_LINEUP_NAME_LENGTH)
+}
 
 exports.formatTeamName = (lineup) => {
     let name = lineup.team.name
@@ -10,6 +33,11 @@ exports.formatTeamName = (lineup) => {
 
 exports.hasGkSigned = (lineup) => {
     return lineup.roles.find(role => role.name === 'GK')?.user != null
+}
+
+exports.updateTeamNameByGuildId = async (guildId, name) => {
+    await Team.updateOne({ guildId }, { name })
+    await Lineup.updateMany({ 'team.guildId': guildId }, { 'team.name': name })
 }
 
 exports.deleteLineup = async (channelId) => {
@@ -34,6 +62,10 @@ exports.clearLineups = async (channelIds) => {
 
 exports.deleteTeam = async (guildId) => {
     await Team.deleteOne({ guildId })
+}
+
+exports.deleteLineupsByGuildId = async (guildId) => {
+    await Lineup.deleteMany({ 'team.guildId': guildId })
 }
 
 exports.findTeamByGuildId = async (guildId) => {
@@ -116,23 +148,9 @@ exports.createLineup = (channelId, size, name, autoSearch, team) => {
     return {
         channelId,
         size,
-        roles: defaultPlayerRoles.get(size),
+        roles: DEFAULT_PLAYER_ROLES.get(size),
         name,
         autoSearch,
         team
     }
 }
-
-const defaultPlayerRoles = new Map([
-    [1, [{ name: 'CF' }]],
-    [2, [{ name: '🥅 GK' }, { name: 'CF' }]],
-    [3, [{ name: '🥅 GK' }, { name: 'LM' }, { name: 'RM' }]],
-    [4, [{ name: '🥅 GK' }, { name: 'CF' }, { name: 'LB' }, { name: 'RB' }]],
-    [5, [{ name: '🥅 GK' }, { name: 'CF' }, { name: 'LB' }, { name: 'RB' }, { name: 'CB' }]],
-    [6, [{ name: '🥅 GK' }, { name: 'LW' }, { name: 'RW' }, { name: 'CM' }, { name: 'LB' }, { name: 'RB' }]],
-    [7, [{ name: '🥅 GK' }, { name: 'LW' }, { name: 'RW' }, { name: 'CM' }, { name: 'LB' }, { name: 'CB' }, { name: 'RB' }]],
-    [8, [{ name: '🥅 GK' }, { name: 'LW' }, { name: 'CF' }, { name: 'RW' }, { name: 'CM' }, { name: 'LB' }, { name: 'CB' }, { name: 'RB' }]],
-    [9, [{ name: '🥅 GK' }, { name: 'LW' }, { name: 'CF' }, { name: 'RW' }, { name: 'LCM' }, { name: 'RCM' }, { name: 'LB' }, { name: 'CB' }, { name: 'RB' }]],
-    [10, [{ name: '🥅 GK' }, { name: 'LW' }, { name: 'CF' }, { name: 'RW' }, { name: 'LCM' }, { name: 'RCM' }, { name: 'LB' }, { name: 'LCB' }, { name: 'RCB' }, { name: 'RB' }]],
-    [11, [{ name: '🥅 GK' }, { name: 'LW' }, { name: 'CF' }, { name: 'RW' }, { name: 'LM' }, { name: 'CM' }, { name: 'RM' }, { name: 'LB' }, { name: 'LCB' }, { name: 'RCB' }, { name: 'RB' }]]
-])

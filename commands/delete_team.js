@@ -30,6 +30,7 @@ module.exports = {
         )
 		await matchmakingService.deleteChallengesByGuildId(team.guildId)
 		await matchmakingService.deleteLineupQueuesByGuildId(team.guildId)
+        await teamService.deleteLineupsByGuildId(team.guildId)
 		await teamService.deleteTeam(team.guildId)
         await interaction.reply({ content: '🛑 This will delete your team and all associated lineups', components: [deleteTeamActionRow], ephemeral: true })
     },
