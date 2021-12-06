@@ -87,6 +87,7 @@ exports.joinQueue = async (interaction, lineup) => {
     }
     let channelIds = await teamService.findAllChannelIdToNotify(lineup.team.region, lineup.channelId, lineup.size)
     const notifyChannelPromises = channelIds.map(channelId => new Promise(async (resolve, reject) => {
+        throw new Error("MON ERREUR")
         const teamEmbed = new MessageEmbed()
             .setColor('#0099ff')
             .setTitle(`Team ${teamName} has joined the queue for ${lineup.size}v${lineup.size}`)

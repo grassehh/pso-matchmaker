@@ -6,6 +6,10 @@ __dirname = path.resolve();
 
 dotenv.config()
 
+process.on('unhandledRejection', error => {
+	console.error('Unhandled promise rejection:', error);
+});
+
 const client = new Client({
     intents: [
         Intents.FLAGS.GUILDS,
