@@ -32,7 +32,7 @@ exports.formatTeamName = (lineup) => {
 }
 
 exports.hasGkSigned = (lineup) => {
-    return lineup.roles.find(role => role.name === 'GK')?.user != null
+    return lineup.roles.find(role => role.name.includes('GK'))?.user != null
 }
 
 exports.updateTeamNameByGuildId = async (guildId, name) => {
