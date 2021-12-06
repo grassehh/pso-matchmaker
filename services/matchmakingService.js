@@ -32,7 +32,7 @@ exports.deleteLineupQueuesByIds = async (ids) => {
 }
 
 exports.deleteLineupQueueByChannelId = async (channelId) => {
-    await LineupQueue.deleteOne({ channelId })
+    await LineupQueue.deleteOne({ 'lineup.channelId': channelId })
 }
 
 exports.findAvailableLineupQueues = async (region, channelId, lineupSize) => {
@@ -86,31 +86,25 @@ exports.joinQueue = async (interaction, lineup) => {
         teamName += ' *(no gk)*'
     }
     let channelIds = await teamService.findAllChannelIdToNotify(lineup.team.region, lineup.channelId, lineup.size)
-    let notifyChannelPromises = []
-    for await (let channelId of channelIds) {
-        notifyChannelPromises.push(
-            interaction.client.channels.fetch(channelId)
-                .then((channel) => {
-                    const teamEmbed = new MessageEmbed()
-                        .setColor('#0099ff')
-                        .setTitle(`Team ${teamName} has joined the queue for ${lineup.size}v${lineup.size}`)
-                        .setTimestamp()
-                        .setFooter(`Author: ${interaction.user.username}`)
+    const notifyChannelPromises = channelIds.map(channelId => new Promise(async (resolve, reject) => {
+        const teamEmbed = new MessageEmbed()
+            .setColor('#0099ff')
+            .setTitle(`Team ${teamName} has joined the queue for ${lineup.size}v${lineup.size}`)
+            .setTimestamp()
+            .setFooter(`Author: ${interaction.user.username}`)
 
-                    let challengeTeamRow = new MessageActionRow().addComponents(
-                        new MessageButton()
-                            .setCustomId(`challenge_${lineupQueue.id}`)
-                            .setLabel('Challenge them !')
-                            .setEmoji('⚽')
-                            .setStyle('PRIMARY')
-                    )
-                    return channel.send({ embeds: [teamEmbed], components: [challengeTeamRow] })
-                })
-                .then((message) => {
-                    return { channelId: message.channelId, messageId: message.id }
-                })
+        let challengeTeamRow = new MessageActionRow().addComponents(
+            new MessageButton()
+                .setCustomId(`challenge_${lineupQueue.id}`)
+                .setLabel('Challenge them !')
+                .setEmoji('⚽')
+                .setStyle('PRIMARY')
         )
-    }
+        const channel = await interaction.client.channels.fetch(channelId)
+        const message = await channel.send({ embeds: [teamEmbed], components: [challengeTeamRow] })
+        return resolve({ channelId: message.channelId, messageId: message.id })
+    }))
+
     return Promise.all(notifyChannelPromises).then(notificationsMessages => {
         lineupQueue.notificationMessages = notificationsMessages
         lineupQueue.save()
@@ -120,16 +114,12 @@ exports.joinQueue = async (interaction, lineup) => {
 exports.leaveQueue = async (interaction, lineupQueue) => {
     let updateChannelsPromises = []
     if (lineupQueue.notificationMessages.length > 0) {
-        for await (notificationMessage of lineupQueue.notificationMessages) {
-            updateChannelsPromises.push(
-                interaction.client.channels.fetch(notificationMessage.channelId)
-                    .then((channel) => {
-                        channel.messages.delete(notificationMessage.messageId)
-                    })
-            )
-        }
+        lineupQueue.notificationMessages.map(notificationMessage => new Promise(async (resolve, reject) => {
+            const channel = await interaction.client.channels.fetch(notificationMessage.channelId)
+            channel.messages.delete(notificationMessage.messageId).catch(console.error)
+        }))
     }
-    return Promise.all(updateChannelsPromises).then(matchmakingService.deleteLineupQueueByChannelId(interaction.channelId))
+    return Promise.all(updateChannelsPromises).then(matchmakingService.deleteLineupQueueByChannelId(lineupQueue.lineup.channelId))
 }
 
 exports.isLineupAllowedToJoinQueue = (lineup) => {

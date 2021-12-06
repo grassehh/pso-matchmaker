@@ -9,6 +9,8 @@ const { MessageEmbed } = require("discord.js");
 module.exports = {
     name: 'interactionCreate',
     async execute(interaction) {
+
+
         if (interaction.isCommand()) {
             const command = interaction.client.commands.get(interaction.commandName);
 
@@ -32,6 +34,11 @@ module.exports = {
             if (interaction.isButton()) {
                 if (interaction.customId.startsWith("role_")) {
                     let lineup = await teamService.retrieveLineup(interaction.channelId)
+                    if (!lineup) {
+                        await interactionUtils.replyLineupNotSetup(interaction)
+                        return
+                    }
+
                     let roleSigned = interaction.customId.substring(5)
                     let selectedRole = lineup.roles.find(role => role.name == roleSigned)
                     let roleLeft = lineup.roles.find(role => role.user?.id === interaction.user.id)
@@ -109,13 +116,24 @@ module.exports = {
                         return
                     }
 
-                    let challenge = await matchmakingService.findChallengeByLineupQueueId(lineupQueueIdToChallenge)
+                    let challenge = await matchmakingService.findChallengeByChannelId(interaction.channelId)
+                    if (challenge) {
+                        await interactionUtils.replyAlreadyChallenging(interaction, challenge)
+                        return
+                    }
+
+                    challenge = await matchmakingService.findChallengeByLineupQueueId(lineupQueueIdToChallenge)
                     if (challenge) {
                         await interaction.reply({ content: "❌ This team is negociating a challenge", ephemeral: true })
                         return
                     }
 
                     let lineup = await teamService.retrieveLineup(interaction.channelId)
+                    if (!lineup) {
+                        await interactionUtils.replyLineupNotSetup(interaction)
+                        return
+                    }
+
                     if (!matchmakingService.isLineupAllowedToJoinQueue(lineup)) {
                         await interaction.reply({ content: '⛔ All outfield positions must be filled before challenging a team', ephemeral: true })
                         return
@@ -167,7 +185,6 @@ module.exports = {
                     }
 
                     await matchmakingService.reserveLineupQueuesByIds([lineupQueueIdToChallenge, lineupQueue.id])
-                    await interaction.message.delete()
                     await interaction.reply(interactionUtils.createCancelChallengeReply(challenge))
                     let initiatingMessage = await interaction.fetchReply()
                     challenge.initiatingMessageId = initiatingMessage.id
@@ -196,7 +213,6 @@ module.exports = {
                     let lobbyPassword = Math.random().toString(36).slice(-4)
 
                     await matchmakingService.deleteChallengeById(challenge.id)
-                    await matchmakingService.deleteLineupQueuesByIds([challenge.challengedTeam.id, challenge.initiatingTeam.id])
                     await teamService.clearLineups([interaction.channelId, challenge.initiatingTeam.lineup.channelId])
 
                     let initiatingUser = await interaction.client.users.fetch(challenge.initiatingUser.id)
@@ -208,13 +224,13 @@ module.exports = {
 
                     let promises = []
                     promises.push(new Promise(async (resolve, reject) => {
-                        let toto = interactionUtils.createLineupEmbedForNextMatch(interaction, initiatingTeamLineup, challenge.challengedTeam.lineup, lobbyName, lobbyPassword).catch(error => console.log("ERROR CATCH"))
-                        let initiatingTeamNextMatchEmbed = await toto 
+                        let initiatingTeamNextMatchEmbed = await interactionUtils.createLineupEmbedForNextMatch(interaction, initiatingTeamLineup, challenge.challengedTeam.lineup, lobbyName, lobbyPassword)
                         let newInitiatingTeamLineup = teamService.createLineup(initiatingTeamLineup.channelId, initiatingTeamLineup.size, initiatingTeamLineup.name, initiatingTeamLineup.autoSearch, initiatingTeamLineup.team)
                         let initiatingTeamLineupComponents = interactionUtils.createLineupComponents(newInitiatingTeamLineup)
                         let initiatingTeamChannel = await interaction.client.channels.fetch(challenge.initiatingTeam.lineup.channelId)
                         await initiatingTeamChannel.send({ embeds: [lobbyCreationEmbed, initiatingTeamNextMatchEmbed], components: initiatingTeamLineupComponents })
                         await initiatingTeamChannel.messages.edit(challenge.initiatingMessageId, { components: [] })
+                        await matchmakingService.leaveQueue(interaction, challenge.initiatingTeam)
                         resolve()
                     }))
 
@@ -224,6 +240,7 @@ module.exports = {
                         let challengedTeamLineupComponents = interactionUtils.createLineupComponents(newChallengedTeamLineup)
                         await interaction.editReply({ embeds: [lobbyCreationEmbed, challengedTeamNextMatchEmbed], components: challengedTeamLineupComponents })
                         await interaction.message.edit({ components: [] })
+                        await matchmakingService.leaveQueue(interaction, challenge.challengedTeam)
                         resolve()
                     }))
 
