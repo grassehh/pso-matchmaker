@@ -164,33 +164,34 @@ module.exports = {
                             t.id === user.id
                         ))
                     )
-                    if (duplicatedUsers.length > 0) {
-                        let description = 'The following players are signed in both teams. Please arrange with them before challenging: '
-                        for (let duplicatedUser of duplicatedUsers) {
-                            let discordUser = await interaction.client.users.fetch(duplicatedUser.id)
-                            description += discordUser.toString() + ', '
-                        }
-                        description = description.substring(0, description.length - 2)
+                    // if (duplicatedUsers.length > 0) {
+                    //     let description = 'The following players are signed in both teams. Please arrange with them before challenging: '
+                    //     for (let duplicatedUser of duplicatedUsers) {
+                    //         let discordUser = await interaction.client.users.fetch(duplicatedUser.id)
+                    //         description += discordUser.toString() + ', '
+                    //     }
+                    //     description = description.substring(0, description.length - 2)
 
-                        const duplicatedUsersEmbed = new MessageEmbed()
-                            .setColor('#0099ff')
-                            .setTitle(`⛔ Some players are signed in both teams !`)
-                            .setDescription(description)
-                            .setTimestamp()
-                            .setFooter(`Author: ${interaction.user.username}`)
+                    //     const duplicatedUsersEmbed = new MessageEmbed()
+                    //         .setColor('#0099ff')
+                    //         .setTitle(`⛔ Some players are signed in both teams !`)
+                    //         .setDescription(description)
+                    //         .setTimestamp()
+                    //         .setFooter(`Author: ${interaction.user.username}`)
 
-                        await interaction.reply({ embeds: [duplicatedUsersEmbed] })
-                        return
-                    }
+                    //     await interaction.reply({ embeds: [duplicatedUsersEmbed] })
+                    //     return
+                    // }
+
+                    let channel = await interaction.client.channels.fetch(challenge.challengedTeam.lineup.channelId)
+                    let challengedMessage = await channel.send(interactionUtils.createDecideChallengeReply(interaction, challenge))
+                    challenge.challengedMessageId = challengedMessage.id
 
                     await matchmakingService.reserveLineupQueuesByIds([lineupQueueIdToChallenge, lineupQueue.id])
                     await interaction.reply(interactionUtils.createCancelChallengeReply(challenge))
                     let initiatingMessage = await interaction.fetchReply()
                     challenge.initiatingMessageId = initiatingMessage.id
 
-                    let channel = await interaction.client.channels.fetch(challenge.challengedTeam.lineup.channelId)
-                    let challengedMessage = await channel.send(interactionUtils.createDecideChallengeReply(interaction, challenge))
-                    challenge.challengedMessageId = challengedMessage.id
                     challenge.save()
                     return
                 }
@@ -230,9 +231,7 @@ module.exports = {
                         await initiatingTeamChannel.send({ embeds: [lobbyCreationEmbed, initiatingTeamNextMatchEmbed], components: initiatingTeamLineupComponents })
                         await initiatingTeamChannel.messages.edit(challenge.initiatingMessageId, { components: [] })
                         await matchmakingService.leaveQueue(interaction, challenge.initiatingTeam)
-                        resolve()
                     }))
-
                     promises.push(new Promise(async (resolve, reject) => {
                         let challengedTeamNextMatchEmbed = await interactionUtils.createLineupEmbedForNextMatch(interaction, challengedTeamLineup, initiatingTeamLineup, lobbyName, lobbyPassword)
                         let newChallengedTeamLineup = teamService.createLineup(interaction.channelId, challengedTeamLineup.size, challengedTeamLineup.name, challengedTeamLineup.autoSearch, challengedTeamLineup.team)
@@ -240,7 +239,6 @@ module.exports = {
                         await interaction.editReply({ embeds: [lobbyCreationEmbed, challengedTeamNextMatchEmbed], components: challengedTeamLineupComponents })
                         await interaction.message.edit({ components: [] })
                         await matchmakingService.leaveQueue(interaction, challenge.challengedTeam)
-                        resolve()
                     }))
 
                     await Promise.all(promises)
