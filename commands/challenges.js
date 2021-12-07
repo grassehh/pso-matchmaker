@@ -53,16 +53,15 @@ module.exports = {
 
             let i = 1
             for (let lineupQueue of lineupQueues) {
-                let lineupFieldName = teamService.formatTeamName(lineupQueue.lineup, true)
                 let lineupFieldValue = lineupQueue.lineup.roles.filter(role => role.user != null).length + ' players signed'
                 if (!teamService.hasGkSigned(lineupQueue.lineup)) {
                     lineupFieldValue += ' **(no gk)**'
                 }
-                lineupsEmbed.addField(lineupFieldName, lineupFieldValue, i % 4 !== 0)
+                lineupsEmbed.addField(teamService.formatTeamName(lineupQueue.lineup, false), lineupFieldValue, i % 4 !== 0)
                 teamsActionRow.addComponents(
                     new MessageButton()
                         .setCustomId(`challenge_${lineupQueue.id}`)
-                        .setLabel(lineupFieldName)
+                        .setLabel(teamService.formatTeamName(lineupQueue.lineup, true))
                         .setStyle('PRIMARY')
                 )
                 i++

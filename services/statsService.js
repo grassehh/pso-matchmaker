@@ -20,7 +20,7 @@ exports.incrementGamesPlayed = async (guildId, lineupSize, users) => {
             upsert: true
         }
     }))
-    Stats.bulkWrite(bulks)
+    await Stats.bulkWrite(bulks)
 }
 
 exports.countNumberOfPlayers = async (guildId, lineupSizes = []) => {

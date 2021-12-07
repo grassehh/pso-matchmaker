@@ -274,6 +274,7 @@ module.exports = {
                         await initiatingTeamChannel.send({ embeds: [lobbyCreationEmbed, initiatingTeamNextMatchEmbed], components: initiatingTeamLineupComponents })
                         await initiatingTeamChannel.messages.edit(challenge.initiatingMessageId, { components: [] })
                         await matchmakingService.leaveQueue(interaction, challenge.initiatingTeam)
+                        resolve()
                     }))
                     promises.push(new Promise(async (resolve, reject) => {
                         let challengedTeamNextMatchEmbed = await interactionUtils.createLineupEmbedForNextMatch(interaction, challengedTeamLineup, initiatingTeamLineup, lobbyName, lobbyPassword)
@@ -282,6 +283,7 @@ module.exports = {
                         await interaction.editReply({ embeds: [lobbyCreationEmbed, challengedTeamNextMatchEmbed], components: challengedTeamLineupComponents })
                         await interaction.message.edit({ components: [] })
                         await matchmakingService.leaveQueue(interaction, challenge.challengedTeam)
+                        resolve()
                     }))
 
                     await Promise.all(promises)
