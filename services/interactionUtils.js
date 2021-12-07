@@ -67,19 +67,54 @@ exports.createDecideChallengeReply = (interaction, challenge) => {
 exports.createLineupComponents = (lineup) => {
 
     let components = []
-    for (var i = 0; i < lineup.roles.length; i++) {
-        if (i % 4 === 0) {
-            components.push(new MessageActionRow())
+
+    const gkActionRow = new MessageActionRow()
+    const midfieldersActionRow = new MessageActionRow()
+    const attackersActionRow = new MessageActionRow()
+    const defendersActionRow = new MessageActionRow()
+
+    for (role of lineup.roles) {
+        let actionRow
+        switch (role.type) {
+            case teamService.ROLE_GOAL_KEEPER: {
+                actionRow = gkActionRow
+                break
+            }
+            case teamService.ROLE_ATTACKER: {
+                actionRow = attackersActionRow
+                break
+            }
+            case teamService.ROLE_MIDFIELDER: {
+                actionRow = midfieldersActionRow
+                break
+            }
+            case teamService.ROLE_DEFENDER: {
+                actionRow = defendersActionRow
+                break
+            }
         }
 
-        let playerRole = lineup.roles[i]
-        components[components.length - 1].addComponents(
+        let playerName = role.user ? role.user.name.substring(0, 60) : null
+        actionRow.addComponents(
             new MessageButton()
-                .setCustomId(`role_${playerRole.name}`)
-                .setLabel(playerRole.user == null ? playerRole.name : `${playerRole.name}: ${playerRole.user.name}`)
+                .setCustomId(`role_${role.name}`)
+                .setLabel(role.user == null ? role.name : `${role.name}: ${playerName}`)
                 .setStyle('PRIMARY')
-                .setDisabled(playerRole.user != null)
+                .setDisabled(role.user != null)
         )
+    }
+
+    if (attackersActionRow.components.length > 0) {
+        components.push(attackersActionRow)
+    }
+    if (midfieldersActionRow.components.length > 0) {
+        components.push(midfieldersActionRow)
+    }
+    if (defendersActionRow.components.length > 0) {
+        components.push(defendersActionRow)
+    }
+    if (gkActionRow.components.length > 0) {
+        components.push(gkActionRow)
     }
 
     const lineupActionsRow = new MessageActionRow()

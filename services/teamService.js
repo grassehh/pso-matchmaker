@@ -1,19 +1,44 @@
 const { Team, Lineup } = require("../mongoSchema")
 const constants = require("../constants")
 
+const ROLE_GOAL_KEEPER = 0
+const ROLE_ATTACKER = 1
+const ROLE_DEFENDER = 2
+const ROLE_MIDFIELDER = 3
+
+const GK = { name: '🥅 GK', type: ROLE_GOAL_KEEPER }
+const LW = { name: 'LW', type: ROLE_ATTACKER }
+const CF = { name: 'CF', type: ROLE_ATTACKER }
+const RW = { name: 'RW', type: ROLE_ATTACKER }
+const LM = { name: 'LM', type: ROLE_MIDFIELDER }
+const LCM = { name: 'LCM', type: ROLE_MIDFIELDER }
+const CM = { name: 'CM', type: ROLE_MIDFIELDER }
+const RCM = { name: 'RCM', type: ROLE_MIDFIELDER }
+const RM = { name: 'RM', type: ROLE_MIDFIELDER }
+const LB = { name: 'LB', type: ROLE_DEFENDER }
+const LCB = { name: 'LCB', type: ROLE_DEFENDER }
+const CB = { name: 'CB', type: ROLE_DEFENDER }
+const RCB = { name: 'RCB', type: ROLE_DEFENDER }
+const RB = { name: 'RB', type: ROLE_DEFENDER }
+
 const DEFAULT_PLAYER_ROLES = new Map([
-    [1, [{ name: 'CF' }]],
-    [2, [{ name: '🥅 GK' }, { name: 'CF' }]],
-    [3, [{ name: '🥅 GK' }, { name: 'LM' }, { name: 'RM' }]],
-    [4, [{ name: '🥅 GK' }, { name: 'CF' }, { name: 'LB' }, { name: 'RB' }]],
-    [5, [{ name: '🥅 GK' }, { name: 'CF' }, { name: 'LB' }, { name: 'RB' }, { name: 'CB' }]],
-    [6, [{ name: '🥅 GK' }, { name: 'LW' }, { name: 'RW' }, { name: 'CM' }, { name: 'LB' }, { name: 'RB' }]],
-    [7, [{ name: '🥅 GK' }, { name: 'LW' }, { name: 'RW' }, { name: 'CM' }, { name: 'LB' }, { name: 'CB' }, { name: 'RB' }]],
-    [8, [{ name: '🥅 GK' }, { name: 'LW' }, { name: 'CF' }, { name: 'RW' }, { name: 'CM' }, { name: 'LB' }, { name: 'CB' }, { name: 'RB' }]],
-    [9, [{ name: '🥅 GK' }, { name: 'LW' }, { name: 'CF' }, { name: 'RW' }, { name: 'LCM' }, { name: 'RCM' }, { name: 'LB' }, { name: 'CB' }, { name: 'RB' }]],
-    [10, [{ name: '🥅 GK' }, { name: 'LW' }, { name: 'CF' }, { name: 'RW' }, { name: 'LCM' }, { name: 'RCM' }, { name: 'LB' }, { name: 'LCB' }, { name: 'RCB' }, { name: 'RB' }]],
-    [11, [{ name: '🥅 GK' }, { name: 'LW' }, { name: 'CF' }, { name: 'RW' }, { name: 'LM' }, { name: 'CM' }, { name: 'RM' }, { name: 'LB' }, { name: 'LCB' }, { name: 'RCB' }, { name: 'RB' }]]
+    [1, [CF]],
+    [2, [GK, CF]],
+    [3, [GK, LM, RM]],
+    [4, [GK, CF, LB, RB]],
+    [5, [GK, CF, LB, RB, CB]],
+    [6, [GK, LW, RW, CM, LB, RB]],
+    [7, [GK, LW, RW, CM, LB, CB, RB]],
+    [8, [GK, LW, CF, RW, CM, LB, CB, RB]],
+    [9, [GK, LW, CF, RW, LCM, RCM, LB, CB, RB]],
+    [10, [GK, LW, CF, RW, LCM, RCM, LB, LCB, RCB, RB]],
+    [11, [GK, LW, CF, RW, LM, CM, RM, LB, LCB, RCB, RB]]
 ])
+
+exports.ROLE_ATTACKER = ROLE_ATTACKER
+exports.ROLE_DEFENDER = ROLE_DEFENDER
+exports.ROLE_MIDFIELDER = ROLE_MIDFIELDER
+exports.ROLE_GOAL_KEEPER = ROLE_GOAL_KEEPER
 
 exports.validateTeamName = (name) => {
     return name.length > 0 && name.length < constants.MAX_TEAM_NAME_LENGTH

@@ -1,6 +1,12 @@
-const { Permissions } = require("discord.js")
+const { ChannelType } = require("discord-api-types/v9");
+const { Permissions } = require("discord.js");
 
 exports.BOT_ADMIN_ROLE = 'PSO MM ADMIN'
+
+exports.isBotAllowed = (interaction) => {
+    return interaction.channel.type === 'GUILD_TEXT'
+        && interaction.channel.permissionsFor(interaction.guild.me).has([Permissions.FLAGS.VIEW_CHANNEL, Permissions.FLAGS.SEND_MESSAGES])
+}
 
 exports.isAllowedToExecuteCommand = (command, member) => {
     return !command.authorizedRoles

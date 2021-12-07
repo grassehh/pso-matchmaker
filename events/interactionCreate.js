@@ -9,6 +9,11 @@ const { MessageEmbed } = require("discord.js");
 module.exports = {
     name: 'interactionCreate',
     async execute(interaction) {
+        if (!authorizationService.isBotAllowed(interaction)) {
+            await interaction.reply({ content: '⛔ Please add me to this channel before using any command (I need  SEND_MESSAGES and VIEW_CHANNEL permissions)', ephemeral: true })
+            return
+        }
+
 
         if (interaction.isCommand()) {
             const command = interaction.client.commands.get(interaction.commandName);
@@ -164,24 +169,24 @@ module.exports = {
                             t.id === user.id
                         ))
                     )
-                    // if (duplicatedUsers.length > 0) {
-                    //     let description = 'The following players are signed in both teams. Please arrange with them before challenging: '
-                    //     for (let duplicatedUser of duplicatedUsers) {
-                    //         let discordUser = await interaction.client.users.fetch(duplicatedUser.id)
-                    //         description += discordUser.toString() + ', '
-                    //     }
-                    //     description = description.substring(0, description.length - 2)
+                    if (duplicatedUsers.length > 0) {
+                        let description = 'The following players are signed in both teams. Please arrange with them before challenging: '
+                        for (let duplicatedUser of duplicatedUsers) {
+                            let discordUser = await interaction.client.users.fetch(duplicatedUser.id)
+                            description += discordUser.toString() + ', '
+                        }
+                        description = description.substring(0, description.length - 2)
 
-                    //     const duplicatedUsersEmbed = new MessageEmbed()
-                    //         .setColor('#0099ff')
-                    //         .setTitle(`⛔ Some players are signed in both teams !`)
-                    //         .setDescription(description)
-                    //         .setTimestamp()
-                    //         .setFooter(`Author: ${interaction.user.username}`)
+                        const duplicatedUsersEmbed = new MessageEmbed()
+                            .setColor('#0099ff')
+                            .setTitle(`⛔ Some players are signed in both teams !`)
+                            .setDescription(description)
+                            .setTimestamp()
+                            .setFooter(`Author: ${interaction.user.username}`)
 
-                    //     await interaction.reply({ embeds: [duplicatedUsersEmbed] })
-                    //     return
-                    // }
+                        await interaction.reply({ embeds: [duplicatedUsersEmbed] })
+                        return
+                    }
 
                     let channel = await interaction.client.channels.fetch(challenge.challengedTeam.lineup.channelId)
                     let challengedMessage = await channel.send(interactionUtils.createDecideChallengeReply(interaction, challenge))
