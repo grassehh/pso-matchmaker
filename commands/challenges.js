@@ -53,7 +53,7 @@ module.exports = {
 
             let i = 1
             for (let lineupQueue of lineupQueues) {
-                let lineupFieldName = teamService.formatTeamName(lineupQueue.lineup)
+                let lineupFieldName = teamService.formatTeamName(lineupQueue.lineup, true)
                 let lineupFieldValue = lineupQueue.lineup.roles.filter(role => role.user != null).length + ' players signed'
                 if (!teamService.hasGkSigned(lineupQueue.lineup)) {
                     lineupFieldValue += ' **(no gk)**'
@@ -63,7 +63,6 @@ module.exports = {
                     new MessageButton()
                         .setCustomId(`challenge_${lineupQueue.id}`)
                         .setLabel(lineupFieldName)
-                        .setEmoji('⚽')
                         .setStyle('PRIMARY')
                 )
                 i++

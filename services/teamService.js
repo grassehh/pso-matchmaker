@@ -40,20 +40,26 @@ exports.ROLE_DEFENDER = ROLE_DEFENDER
 exports.ROLE_MIDFIELDER = ROLE_MIDFIELDER
 exports.ROLE_GOAL_KEEPER = ROLE_GOAL_KEEPER
 
+function removeSpecialCharacters(name) {
+    return name.replace(/(:[^:]*:)|(<.*>)/ig, '')
+}
+
 exports.validateTeamName = (name) => {
-    return name.length > 0 && name.length < constants.MAX_TEAM_NAME_LENGTH
+    const filteredName = removeSpecialCharacters(name)
+    return filteredName.length > 0 && filteredName.length < constants.MAX_TEAM_NAME_LENGTH
 }
 
 exports.validateLineupName = (name) => {
     return !name || (name.length > 0 && name.length < constants.MAX_LINEUP_NAME_LENGTH)
 }
 
-exports.formatTeamName = (lineup) => {
+exports.formatTeamName = (lineup, filterName) => {
     let name = lineup.team.name
     if (lineup.name) {
         name += ` *(${lineup.name})*`
     }
-    return name
+
+    return filterName ? removeSpecialCharacters(name) : name
 }
 
 exports.hasGkSigned = (lineup) => {

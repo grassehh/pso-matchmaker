@@ -39,6 +39,6 @@ module.exports = {
         }
 
         await teamService.updateTeamNameByGuildId(team.guildId, newName)
-        await interaction.reply(`✅ Your new team name is **${team.name}**`)
+        await interaction.reply(`✅ Your new team name is **${newName}**`)
     },
 };
