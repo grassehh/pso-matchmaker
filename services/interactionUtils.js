@@ -2,6 +2,7 @@ const { MessageActionRow, MessageButton, MessageEmbed, MessageSelectMenu } = req
 const teamService = require("../services/teamService");
 const statsService = require("../services/statsService");
 const { Stats } = require("../mongoSchema");
+const { handle } = require("../utils");
 
 exports.replyAlreadyQueued = async (interaction, lineupSize) => {
     await interaction.reply({
@@ -198,17 +199,19 @@ exports.createLineupEmbedForNextMatch = async (interaction, lineup, opponentLine
         .setTimestamp()
         .setFooter(`Author: ${interaction.user.username}`)
 
-    let promises = lineup.roles.filter(role => role.user).map(role => new Promise(async (resolve, reject) => {
+    let promises = lineup.roles.filter(role => role.user).map(async (role) => {
         let playerName = '*empty*'
-        let discordUser = await interaction.client.users.fetch(role.user.id)
+        let [discordUser] = await handle(interaction.client.users.fetch(role.user.id))
         if (discordUser) {
             let channelIds = await teamService.findAllLineupChannelIdsByUserId(role.user.id)
             if (channelIds.length > 0) {
                 await teamService.removeUserFromLineupsByChannelIds(role.user.id, channelIds)
-                for (let channelId of channelIds) {
-                    let channel = await interaction.client.channels.fetch(channelId)
-                    await channel.send(`⚠ Player ${discordUser} has gone to play another match. He has been removed from the lineup.`)
-                }
+                await Promise.all(channelIds.map(async channelId => {
+                    let [channel] = await handle(interaction.client.channels.fetch(channelId))
+                    if (channel) {
+                        handle(channel.send(`⚠ Player ${discordUser} has gone to play another match. He has been removed from the lineup.`))
+                    }
+                }))
             }
             let playerDmEmbed = new MessageEmbed()
                 .setColor('#6aa84f')
@@ -217,12 +220,12 @@ exports.createLineupEmbedForNextMatch = async (interaction, lineup, opponentLine
                 .addField('Lobby name', `**${lobbyName}**`, true)
                 .addField('Lobby password', `**${lobbyPassword}**`, true)
                 .setTimestamp()
-            await discordUser.send({ embeds: [playerDmEmbed] })
+            await handle(discordUser.send({ embeds: [playerDmEmbed] }))
             playerName = discordUser
         }
 
-        resolve({ role, playerName })
-    }))
+        return { role, playerName }
+    })
 
     const rolesWithPlayer = await Promise.all(promises)
 

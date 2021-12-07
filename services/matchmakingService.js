@@ -2,6 +2,7 @@ const { MessageEmbed, MessageActionRow, MessageButton } = require("discord.js");
 const { LineupQueue, Challenge } = require("../mongoSchema")
 const teamService = require("../services/teamService");
 const matchmakingService = require("../services/matchmakingService");
+const { handle } = require("../utils");
 
 exports.findLineupQueueByChannelId = async (channelId) => {
     return await LineupQueue.findOne({ 'lineup.channelId': channelId })
@@ -80,20 +81,21 @@ exports.removeUserFromAllLineupQueues = async (userId, guildId) => {
 }
 
 exports.joinQueue = async (interaction, lineup) => {
-    let lineupQueue = await new LineupQueue({ lineup })
+    const lineupQueue = new LineupQueue({ lineup })
     let teamName = `'${teamService.formatTeamName(lineup)}'`
     if (!teamService.hasGkSigned(lineupQueue.lineup)) {
         teamName += ' *(no gk)*'
     }
-    let channelIds = await teamService.findAllChannelIdToNotify(lineup.team.region, lineup.channelId, lineup.size)
-    const notifyChannelPromises = channelIds.map(channelId => new Promise(async (resolve, reject) => {
+    const channelIds = await teamService.findAllChannelIdToNotify(lineup.team.region, lineup.channelId, lineup.size)
+
+    return Promise.all(channelIds.map(async channelId => {
         const teamEmbed = new MessageEmbed()
             .setColor('#0099ff')
             .setTitle(`Team ${teamName} has joined the queue for ${lineup.size}v${lineup.size}`)
             .setTimestamp()
             .setFooter(`Author: ${interaction.user.username}`)
 
-        let challengeTeamRow = new MessageActionRow().addComponents(
+        const challengeTeamRow = new MessageActionRow().addComponents(
             new MessageButton()
                 .setCustomId(`challenge_${lineupQueue.id}`)
                 .setLabel('Challenge them !')
@@ -101,25 +103,23 @@ exports.joinQueue = async (interaction, lineup) => {
                 .setStyle('PRIMARY')
         )
         const channel = await interaction.client.channels.fetch(channelId)
-        const message = await channel.send({ embeds: [teamEmbed], components: [challengeTeamRow] })
-        return resolve({ channelId: message.channelId, messageId: message.id })
+        const [message] = await handle(channel.send({ embeds: [teamEmbed], components: [challengeTeamRow] }))
+        return message ? { channelId: message.channelId, messageId: message.id } : null
     }))
-
-    return Promise.all(notifyChannelPromises).then(notificationsMessages => {
-        lineupQueue.notificationMessages = notificationsMessages
-        lineupQueue.save()
-    })
+        .then(notificationsMessages => {
+            lineupQueue.notificationMessages = notificationsMessages.filter(notificationMessage => notificationMessage)
+        })
+        .catch(console.error)
+        .finally(() => lineupQueue.save())
 }
 
 exports.leaveQueue = async (interaction, lineupQueue) => {
-    let updateChannelsPromises = []
-    if (lineupQueue.notificationMessages.length > 0) {
-        lineupQueue.notificationMessages.map(notificationMessage => new Promise(async (resolve, reject) => {
-            const channel = await interaction.client.channels.fetch(notificationMessage.channelId)
-            channel.messages.delete(notificationMessage.messageId).catch(console.error)
-        }))
-    }
-    return Promise.all(updateChannelsPromises).then(matchmakingService.deleteLineupQueueByChannelId(lineupQueue.lineup.channelId))
+    Promise.all(lineupQueue.notificationMessages.map(async notificationMessage => {
+        const channel = await interaction.client.channels.fetch(notificationMessage.channelId)
+        handle(channel.messages.delete(notificationMessage.messageId))
+    }))
+        .catch(console.error)
+        .finally(() => matchmakingService.deleteLineupQueueByChannelId(lineupQueue.lineup.channelId))
 }
 
 exports.isLineupAllowedToJoinQueue = (lineup) => {
