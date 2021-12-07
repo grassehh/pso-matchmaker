@@ -1,12 +1,20 @@
 const { MessageActionRow, MessageButton, MessageEmbed, MessageSelectMenu } = require("discord.js");
 const teamService = require("../services/teamService");
 const statsService = require("../services/statsService");
+const matchmakingService = require("../services/matchmakingService");
 const { Stats } = require("../mongoSchema");
 const { handle } = require("../utils");
 
 exports.replyAlreadyQueued = async (interaction, lineupSize) => {
     await interaction.reply({
-        content: `❌ You are already queued for ${lineupSize}v${lineupSize}. Please use the /stop_search command before using this command.`,
+        content: `❌ You are already queued for ${lineupSize}v${lineupSize}. Please use the /stop_search command before using this command`,
+        ephemeral: true
+    })
+}
+
+exports.replyNotQueued = async (interaction) => {
+    await interaction.reply({
+        content: `❌ Your team is not queued for matchmaking`,
         ephemeral: true
     })
 }
@@ -64,7 +72,7 @@ exports.createDecideChallengeReply = (interaction, challenge) => {
     return { embeds: [challengeEmbed], components: [challengeActionRow] }
 }
 
-exports.createLineupComponents = (lineup) => {
+exports.createLineupComponents = (lineup, lineupQueue) => {
 
     let components = []
 
@@ -124,6 +132,23 @@ exports.createLineupComponents = (lineup) => {
             .setLabel(`Leave`)
             .setStyle('DANGER')
     )
+
+    if (lineupQueue) {
+        lineupActionsRow.addComponents(
+            new MessageButton()
+                .setCustomId(`stopSearch`)
+                .setLabel(`Stop search`)
+                .setStyle('DANGER')
+        )
+    } else {
+        lineupActionsRow.addComponents(
+            new MessageButton()
+                .setCustomId(`startSearch`)
+                .setLabel('Search')
+                .setDisabled(!matchmakingService.isLineupAllowedToJoinQueue(lineup))
+                .setStyle('PRIMARY')
+        )
+    }
     components.push(lineupActionsRow)
 
     return components

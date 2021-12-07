@@ -26,11 +26,11 @@ module.exports = {
         }
         let lineupQueue = await matchmakingService.findLineupQueueByChannelId(interaction.channelId)
         if (!lineupQueue) {
-            await interaction.reply({ content: `❌ Your team is not queued for matchmaking`, ephemeral: true })
+            await interactionUtils.replyNotQueued(interaction)
             return
         }
 
         await matchmakingService.leaveQueue(interaction, lineupQueue)
-        await interaction.reply(`✅ Your team is now removed from the queue`)
+        await interaction.reply(`Your team is no longer searching for a challenge`)
     }
 };

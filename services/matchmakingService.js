@@ -88,7 +88,7 @@ exports.joinQueue = async (interaction, lineup) => {
     }
     const channelIds = await teamService.findAllChannelIdToNotify(lineup.team.region, lineup.channelId, lineup.size)
 
-    return Promise.all(channelIds.map(async channelId => {
+    await Promise.all(channelIds.map(async channelId => {
         const teamEmbed = new MessageEmbed()
             .setColor('#0099ff')
             .setTitle(`Team ${teamName} has joined the queue for ${lineup.size}v${lineup.size}`)
@@ -111,6 +111,8 @@ exports.joinQueue = async (interaction, lineup) => {
         })
         .catch(console.error)
         .finally(() => lineupQueue.save())
+
+    return lineupQueue
 }
 
 exports.leaveQueue = async (interaction, lineupQueue) => {

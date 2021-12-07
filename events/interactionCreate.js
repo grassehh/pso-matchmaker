@@ -113,6 +113,35 @@ module.exports = {
                     return
                 }
 
+                if (interaction.customId === 'startSearch') {
+                    let lineupQueue = await matchmakingService.findLineupQueueByChannelId(interaction.channelId)
+                    if (lineupQueue) {
+                        await interactionUtils.replyAlreadyQueued(interaction, lineupQueue.lineup.size)
+                        return
+                    }
+                    let lineup = await teamService.retrieveLineup(interaction.channelId)
+                    if (!lineup) {
+                        await interactionUtils.replyLineupNotSetup(interaction)
+                        return
+                    }
+                    lineupQueue = await matchmakingService.joinQueue(interaction, lineup)
+                    await interaction.message.edit({ components: [] })
+                    await interaction.reply({ content: `🔎 Your team is now searching for a ${lineupQueue.lineup.size}v${lineupQueue.lineup.size} challenge`, components: interactionUtils.createLineupComponents(lineup, lineupQueue) })
+                    return
+                }
+
+                if (interaction.customId === 'stopSearch') {
+                    let lineupQueue = await matchmakingService.findLineupQueueByChannelId(interaction.channelId)
+                    if (!lineupQueue) {
+                        await interactionUtils.replyNotQueued(interaction)
+                        return
+                    }
+                    await matchmakingService.leaveQueue(interaction, lineupQueue)
+                    await interaction.message.edit({ components: [] })
+                    await interaction.reply({ content: `Your team is no longer searching for a challenge`, components: interactionUtils.createLineupComponents(lineupQueue.lineup) })
+                    return
+                }
+
                 if (interaction.customId.startsWith('challenge_')) {
                     let lineupQueueIdToChallenge = interaction.customId.substring(10);
 

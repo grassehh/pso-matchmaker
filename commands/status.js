@@ -41,6 +41,7 @@ module.exports = {
             }
         }
 
-        await interaction.reply({ embeds: [lineupStatusEmbed], components: interactionUtils.createLineupComponents(lineup) })
+        const lineupQueue = await matchmakingService.findLineupQueueByChannelId(interaction.channelId)
+        await interaction.reply({ embeds: [lineupStatusEmbed], components: interactionUtils.createLineupComponents(lineup, lineupQueue) })
     },
 };
