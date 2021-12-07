@@ -82,7 +82,7 @@ module.exports = {
                     }
 
                     await interaction.message.edit({ components: [] })
-                    await interaction.reply({ content: messageContent, components: interactionUtils.createLineupComponents(lineup) })
+                    await interaction.channel.send({ content: messageContent, components: interactionUtils.createLineupComponents(lineup) })
                     return
                 }
 
@@ -109,7 +109,7 @@ module.exports = {
                     }
 
                     await interaction.message.edit({ components: [] })
-                    await interaction.reply({ content: messageContent, components: interactionUtils.createLineupComponents(lineup) })
+                    await interaction.channel.send({ content: messageContent, components: interactionUtils.createLineupComponents(lineup) })
                     return
                 }
 
@@ -126,7 +126,7 @@ module.exports = {
                     }
                     lineupQueue = await matchmakingService.joinQueue(interaction, lineup)
                     await interaction.message.edit({ components: [] })
-                    await interaction.reply({ content: `🔎 Your team is now searching for a ${lineupQueue.lineup.size}v${lineupQueue.lineup.size} challenge`, components: interactionUtils.createLineupComponents(lineup, lineupQueue) })
+                    await interaction.channel.send({ content: `🔎 Your team is now searching for a ${lineupQueue.lineup.size}v${lineupQueue.lineup.size} challenge`, components: interactionUtils.createLineupComponents(lineup, lineupQueue) })
                     return
                 }
 
@@ -138,7 +138,7 @@ module.exports = {
                     }
                     await matchmakingService.leaveQueue(interaction, lineupQueue)
                     await interaction.message.edit({ components: [] })
-                    await interaction.reply({ content: `Your team is no longer searching for a challenge`, components: interactionUtils.createLineupComponents(lineupQueue.lineup) })
+                    await interaction.channel.send({ content: `Your team is no longer searching for a challenge`, components: interactionUtils.createLineupComponents(lineupQueue.lineup) })
                     return
                 }
 
@@ -200,35 +200,37 @@ module.exports = {
                             t.id === user.id
                         ))
                     )
-                    if (duplicatedUsers.length > 0) {
-                        let description = 'The following players are signed in both teams. Please arrange with them before challenging: '
-                        for (let duplicatedUser of duplicatedUsers) {
-                            let discordUser = await interaction.client.users.fetch(duplicatedUser.id)
-                            description += discordUser.toString() + ', '
-                        }
-                        description = description.substring(0, description.length - 2)
+                    // if (duplicatedUsers.length > 0) {
+                    //     let description = 'The following players are signed in both teams. Please arrange with them before challenging: '
+                    //     for (let duplicatedUser of duplicatedUsers) {
+                    //         let discordUser = await interaction.client.users.fetch(duplicatedUser.id)
+                    //         description += discordUser.toString() + ', '
+                    //     }
+                    //     description = description.substring(0, description.length - 2)
 
-                        const duplicatedUsersEmbed = new MessageEmbed()
-                            .setColor('#0099ff')
-                            .setTitle(`⛔ Some players are signed in both teams !`)
-                            .setDescription(description)
-                            .setTimestamp()
-                            .setFooter(`Author: ${interaction.user.username}`)
+                    //     const duplicatedUsersEmbed = new MessageEmbed()
+                    //         .setColor('#0099ff')
+                    //         .setTitle(`⛔ Some players are signed in both teams !`)
+                    //         .setDescription(description)
+                    //         .setTimestamp()
+                    //         .setFooter(`Author: ${interaction.user.username}`)
 
-                        await interaction.reply({ embeds: [duplicatedUsersEmbed] })
-                        return
-                    }
+                    //     await interaction.channel.send({ embeds: [duplicatedUsersEmbed] })
+                    //     await interaction.deferUpdate()
+                    //     return
+                    // }
 
                     let channel = await interaction.client.channels.fetch(challenge.challengedTeam.lineup.channelId)
                     let challengedMessage = await channel.send(interactionUtils.createDecideChallengeReply(interaction, challenge))
                     challenge.challengedMessageId = challengedMessage.id
 
                     await matchmakingService.reserveLineupQueuesByIds([lineupQueueIdToChallenge, lineupQueue.id])
-                    await interaction.reply(interactionUtils.createCancelChallengeReply(challenge))
-                    let initiatingMessage = await interaction.fetchReply()
+                    let initiatingMessage = await interaction.channel.send(interactionUtils.createCancelChallengeReply(interaction, challenge))
                     challenge.initiatingMessageId = initiatingMessage.id
 
                     challenge.save()
+
+                    await interaction.deferUpdate()
                     return
                 }
 
@@ -301,7 +303,7 @@ module.exports = {
                     await initiatingTeamChannel.send(`❌ The team '${teamService.formatTeamName(challenge.challengedTeam.lineup)}' has refused your challenge request`)
 
                     await interaction.message.edit({ components: [] })
-                    await interaction.reply(`❌ You have refused to challenge the team '${teamService.formatTeamName(challenge.initiatingTeam.lineup)}''`)
+                    await interaction.channel.send(`❌ ${interaction.user} has refused to challenge the team '${teamService.formatTeamName(challenge.initiatingTeam.lineup)}''`)
                     return
                 }
 
@@ -321,7 +323,7 @@ module.exports = {
                     await challengedTeamChannel.send(`❌ The team '${teamService.formatTeamName(challenge.initiatingTeam.lineup)}' has cancelled the challenge request`)
 
                     await interaction.message.edit({ components: [] })
-                    await interaction.reply(`❌ You have cancelled your challenge request for the team '${teamService.formatTeamName(challenge.challengedTeam.lineup)}'`)
+                    await interaction.channel.send(`❌ ${interaction.user} have cancelled your challenge request for the team '${teamService.formatTeamName(challenge.challengedTeam.lineup)}'`)
                     return
                 }
 

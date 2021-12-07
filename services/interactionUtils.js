@@ -40,7 +40,7 @@ exports.replyLineupNotSetup = async (interaction) => {
     })
 }
 
-exports.createCancelChallengeReply = (challenge) => {
+exports.createCancelChallengeReply = (interaction, challenge) => {
     let cancelChallengeRow = new MessageActionRow()
         .addComponents(
             new MessageButton()
@@ -48,7 +48,7 @@ exports.createCancelChallengeReply = (challenge) => {
                 .setLabel(`Cancel Request`)
                 .setStyle('DANGER')
         )
-    return { content: `💬 You have sent a challenge request to the team '${teamService.formatTeamName(challenge.challengedTeam.lineup)}'. You can either wait for their answer, or cancel your request.`, components: [cancelChallengeRow] }
+    return { content: `💬 ${interaction.user} has sent a challenge request to the team '${teamService.formatTeamName(challenge.challengedTeam.lineup)}'. You can either wait for their answer, or cancel your request.`, components: [cancelChallengeRow] }
 }
 
 exports.createDecideChallengeReply = (interaction, challenge) => {
@@ -146,7 +146,7 @@ exports.createLineupComponents = (lineup, lineupQueue) => {
                 .setCustomId(`startSearch`)
                 .setLabel('Search')
                 .setDisabled(!matchmakingService.isLineupAllowedToJoinQueue(lineup))
-                .setStyle('PRIMARY')
+                .setStyle('SUCCESS')
         )
     }
     components.push(lineupActionsRow)

@@ -25,7 +25,7 @@ module.exports = {
         if (challenge) {
             let reply
             if (challenge.initiatingTeam.lineup.channelId == interaction.channelId) {
-                reply = interactionUtils.createCancelChallengeReply(challenge)
+                reply = interactionUtils.createCancelChallengeReply(interaction, challenge)
             } else {
                 reply = interactionUtils.createDecideChallengeReply(interaction, challenge)
             }
