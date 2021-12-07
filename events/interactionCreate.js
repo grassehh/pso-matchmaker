@@ -200,25 +200,25 @@ module.exports = {
                             t.id === user.id
                         ))
                     )
-                    // if (duplicatedUsers.length > 0) {
-                    //     let description = 'The following players are signed in both teams. Please arrange with them before challenging: '
-                    //     for (let duplicatedUser of duplicatedUsers) {
-                    //         let discordUser = await interaction.client.users.fetch(duplicatedUser.id)
-                    //         description += discordUser.toString() + ', '
-                    //     }
-                    //     description = description.substring(0, description.length - 2)
+                    if (duplicatedUsers.length > 0) {
+                        let description = 'The following players are signed in both teams. Please arrange with them before challenging: '
+                        for (let duplicatedUser of duplicatedUsers) {
+                            let discordUser = await interaction.client.users.fetch(duplicatedUser.id)
+                            description += discordUser.toString() + ', '
+                        }
+                        description = description.substring(0, description.length - 2)
 
-                    //     const duplicatedUsersEmbed = new MessageEmbed()
-                    //         .setColor('#0099ff')
-                    //         .setTitle(`⛔ Some players are signed in both teams !`)
-                    //         .setDescription(description)
-                    //         .setTimestamp()
-                    //         .setFooter(`Author: ${interaction.user.username}`)
+                        const duplicatedUsersEmbed = new MessageEmbed()
+                            .setColor('#0099ff')
+                            .setTitle(`⛔ Some players are signed in both teams !`)
+                            .setDescription(description)
+                            .setTimestamp()
+                            .setFooter(`Author: ${interaction.user.username}`)
 
-                    //     await interaction.channel.send({ embeds: [duplicatedUsersEmbed] })
-                    //     await interaction.deferUpdate()
-                    //     return
-                    // }
+                        await interaction.channel.send({ embeds: [duplicatedUsersEmbed] })
+                        await interaction.deferUpdate()
+                        return
+                    }
 
                     let channel = await interaction.client.channels.fetch(challenge.challengedTeam.lineup.channelId)
                     let challengedMessage = await channel.send(interactionUtils.createDecideChallengeReply(interaction, challenge))
@@ -241,6 +241,11 @@ module.exports = {
                         await interaction.reply({ content: "❌ This challenge no longer exists", ephemeral: true })
                         return
                     }
+
+                    if (challenge.initiatingUser.id === interaction.user.id) {
+                        await interaction.reply({ content: "⛔ You cannot accept your own challenge request", ephemeral: true })
+                        return
+                    }                    
 
                     await interaction.deferReply()
                     let challengedTeamLineup = await teamService.retrieveLineup(challenge.challengedTeam.lineup.channelId)
@@ -292,6 +297,11 @@ module.exports = {
                     let challenge = await matchmakingService.findChallengeById(challengeId)
                     if (!challenge) {
                         await interaction.reply({ content: "❌ This challenge no longer exists", ephemeral: true })
+                        return
+                    }
+                    
+                    if (challenge.initiatingUser.id === interaction.user.id) {
+                        await interaction.reply({ content: "⛔ You cannot refuse your own challenge request", ephemeral: true })
                         return
                     }
 
