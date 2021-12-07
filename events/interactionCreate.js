@@ -81,6 +81,7 @@ module.exports = {
                         }
                     }
 
+                    await interaction.message.edit({ components: [] })
                     await interaction.reply({ content: messageContent, components: interactionUtils.createLineupComponents(lineup) })
                     return
                 }
@@ -107,6 +108,7 @@ module.exports = {
                         }
                     }
 
+                    await interaction.message.edit({ components: [] })
                     await interaction.reply({ content: messageContent, components: interactionUtils.createLineupComponents(lineup) })
                     return
                 }
