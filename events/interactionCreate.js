@@ -71,19 +71,20 @@ module.exports = {
 
                     if (lineup.autoSearch === true && matchmakingService.isLineupAllowedToJoinQueue(lineup)) {
                         if (!lineupQueue) {
-                            await matchmakingService.joinQueue(interaction, lineup)
+                            lineupQueue = await matchmakingService.joinQueue(interaction, lineup)
                             messageContent += `. Your lineup is full, it is now searching for a **${lineup.size}v${lineup.size}** team !`
                         }
                     } else if (!matchmakingService.isLineupAllowedToJoinQueue(lineup) && lineupQueue) {
                         let challenge = await matchmakingService.findChallengeByGuildId(interaction.guildId)
                         if (!challenge) {
-                            await matchmakingService.leaveQueue(interaction, lineupQueue)
+                            await matchmakingService.leaveQueue(interaction.client, lineupQueue)
+                            lineupQueue = null
                             messageContent += `. Your team has been removed from the **${lineup.size}v${lineup.size}** queue !`
                         }
                     }
 
                     await interaction.message.edit({ components: [] })
-                    await interaction.channel.send({ content: messageContent, components: interactionUtils.createLineupComponents(lineup) })
+                    await interaction.channel.send({ content: messageContent, components: interactionUtils.createLineupComponents(lineup, lineupQueue) })
                     return
                 }
 
@@ -104,7 +105,7 @@ module.exports = {
                     if (!matchmakingService.isLineupAllowedToJoinQueue(lineup) && lineupQueue) {
                         let challenge = await matchmakingService.findChallengeByGuildId(interaction.guildId)
                         if (!challenge) {
-                            await matchmakingService.leaveQueue(interaction, lineupQueue)
+                            await matchmakingService.leaveQueue(interaction.client, lineupQueue)
                             messageContent += `. Your team has been removed from the **${lineup.size}v${lineup.size}** queue !`
                         }
                     }
@@ -137,7 +138,7 @@ module.exports = {
                         await interactionUtils.replyNotQueued(interaction)
                         return
                     }
-                    await matchmakingService.leaveQueue(interaction, lineupQueue)
+                    await matchmakingService.leaveQueue(interaction.client, lineupQueue)
                     await interaction.message.edit({ components: [] })
                     await interaction.channel.send({ content: `Your team is no longer searching for a challenge`, components: interactionUtils.createLineupComponents(lineupQueue.lineup) })
                     return
@@ -274,7 +275,7 @@ module.exports = {
                         let initiatingTeamChannel = await interaction.client.channels.fetch(challenge.initiatingTeam.lineup.channelId)
                         await initiatingTeamChannel.send({ embeds: [lobbyCreationEmbed, initiatingTeamNextMatchEmbed], components: initiatingTeamLineupComponents })
                         await initiatingTeamChannel.messages.edit(challenge.initiatingMessageId, { components: [] })
-                        await matchmakingService.leaveQueue(interaction, challenge.initiatingTeam)
+                        await matchmakingService.leaveQueue(interaction.client, challenge.initiatingTeam)
                         resolve()
                     }))
                     promises.push(new Promise(async (resolve, reject) => {
@@ -283,7 +284,7 @@ module.exports = {
                         let challengedTeamLineupComponents = interactionUtils.createLineupComponents(newChallengedTeamLineup)
                         await interaction.editReply({ embeds: [lobbyCreationEmbed, challengedTeamNextMatchEmbed], components: challengedTeamLineupComponents })
                         await interaction.message.edit({ components: [] })
-                        await matchmakingService.leaveQueue(interaction, challenge.challengedTeam)
+                        await matchmakingService.leaveQueue(interaction.client, challenge.challengedTeam)
                         resolve()
                     }))
 
