@@ -126,13 +126,6 @@ exports.createLineupComponents = (lineup, lineupQueue) => {
     }
 
     const lineupActionsRow = new MessageActionRow()
-    lineupActionsRow.addComponents(
-        new MessageButton()
-            .setCustomId(`leaveLineup`)
-            .setLabel(`Leave`)
-            .setStyle('DANGER')
-    )
-
     if (lineupQueue) {
         lineupActionsRow.addComponents(
             new MessageButton()
@@ -149,6 +142,30 @@ exports.createLineupComponents = (lineup, lineupQueue) => {
                 .setStyle('SUCCESS')
         )
     }
+
+    lineupActionsRow.addComponents(
+        new MessageButton()
+            .setCustomId(`leaveLineup`)
+            .setLabel(`Leave`)
+            .setStyle('DANGER')
+    )
+
+    const numberOfSignedPlayers = lineup.roles.filter(role => role.user != null).length
+    const numberOfMissingPlayers = lineup.size - numberOfSignedPlayers
+    lineupActionsRow.addComponents(
+        new MessageButton()
+            .setCustomId(`clearRole`)
+            .setLabel("Clear a position")
+            .setDisabled(numberOfSignedPlayers === 0)
+            .setStyle('SECONDARY')
+    )
+    lineupActionsRow.addComponents(
+        new MessageButton()
+            .setCustomId(`addMerc`)
+            .setLabel('Sign another player')
+            .setDisabled(numberOfMissingPlayers === 0)
+            .setStyle('SECONDARY')
+    )
     components.push(lineupActionsRow)
 
     return components
@@ -259,13 +276,17 @@ exports.createLineupEmbedForNextMatch = async (interaction, lineup, opponentLine
         .setTimestamp()
         .setFooter(`Author: ${interaction.user.username}`)
 
-    let promises = lineup.roles.filter(role => role.user).map(async (role) => {
-        let playerName = '*empty*'
+    let promises = lineup.roles.map(async (role) => {
+        if (!role.user) {
+            return { role, playerName: '*empty*' }
+        }
+
+        let playerName = `**${role.user.name}**`
         let [discordUser] = await handle(interaction.client.users.fetch(role.user.id))
         if (discordUser) {
             let channelIds = await teamService.findAllLineupChannelIdsByUserId(role.user.id)
             if (channelIds.length > 0) {
-				await matchmakingService.removeUserFromAllLineupQueues(role.user.id)
+                await matchmakingService.removeUserFromAllLineupQueues(role.user.id)
                 await teamService.removeUserFromLineupsByChannelIds(role.user.id, channelIds)
                 await Promise.all(channelIds.map(async channelId => {
                     await teamService.notifyChannelForUserLeaving(interaction.client, channelId, `⚠ Player ${discordUser} has gone to play another match.`)

@@ -4,8 +4,9 @@ const matchmakingService = require("../services/matchmakingService");
 const teamService = require("../services/teamService");
 const statsService = require("../services/statsService");
 const authorizationService = require("../services/authorizationService");
-const { MessageEmbed } = require("discord.js");
-const { PSO_EU_MINIMUM_LINEUP_SIZE_LEVELING } = require("../constants");
+const { MessageEmbed, MessageActionRow, MessageSelectMenu } = require("discord.js");
+const { PSO_EU_MINIMUM_LINEUP_SIZE_LEVELING, MERC_USER_ID } = require("../constants");
+const { handle } = require("../utils");
 
 module.exports = {
     name: 'interactionCreate',
@@ -57,8 +58,7 @@ module.exports = {
                     await matchmakingService.removeUserFromLineupQueue(interaction.channelId, interaction.user.id)
                     let userToAdd = {
                         id: interaction.user.id,
-                        name: interaction.user.username,
-                        mention: interaction.user.toString()
+                        name: interaction.user.username
                     }
                     lineup = await teamService.addUserToLineup(interaction.channelId, roleSigned, userToAdd)
                     let lineupQueue = await matchmakingService.addUserToLineupQueue(interaction.channelId, roleSigned, userToAdd)
@@ -85,6 +85,38 @@ module.exports = {
 
                     await interaction.message.edit({ components: [] })
                     await interaction.channel.send({ content: messageContent, components: interactionUtils.createLineupComponents(lineup, lineupQueue) })
+                    return
+                }
+
+                if (interaction.customId === 'addMerc') {
+                    let lineup = await teamService.retrieveLineup(interaction.channelId)
+
+                    const mercRoleSelectMenu = new MessageSelectMenu()
+                        .setCustomId(`addMerc_select`)
+                        .setPlaceholder('Which position do you want to sign the player on ?')
+
+                    const availableRoles = lineup.roles.filter(role => !role.user)
+                    for (let role of availableRoles) {
+                        mercRoleSelectMenu.addOptions([{ label: role.name, value: role.name }])
+                    }
+
+                    await interaction.reply({ content: 'Select a position', components: [new MessageActionRow().addComponents(mercRoleSelectMenu)], ephemeral: true })
+                    return
+                }
+
+                if (interaction.customId === 'clearRole') {
+                    let lineup = await teamService.retrieveLineup(interaction.channelId)
+
+                    const clearRoleSelectMenu = new MessageSelectMenu()
+                        .setCustomId(`clearRole_select`)
+                        .setPlaceholder('Select the position you want to clear')
+
+                    const takenRoles = lineup.roles.filter(role => role.user)
+                    for (let role of takenRoles) {
+                        clearRoleSelectMenu.addOptions([{ label: role.name, value: role.name }])
+                    }
+
+                    await interaction.reply({ content: 'Select a position', components: [new MessageActionRow().addComponents(clearRoleSelectMenu)], ephemeral: true })
                     return
                 }
 
@@ -198,6 +230,7 @@ module.exports = {
                     let challengedTeamUsers = lineupQueueToChallenge.lineup.roles.map(role => role.user).filter(user => user)
                     let initiatingTeamUsers = lineupQueue.lineup.roles.map(role => role.user).filter(user => user)
                     let duplicatedUsers = challengedTeamUsers.filter((user, index, self) =>
+                        user.id !== MERC_USER_ID &&
                         index === initiatingTeamUsers.findIndex((t) => (
                             t.id === user.id
                         ))
@@ -437,6 +470,115 @@ module.exports = {
                     let leaderboardPaginationComponent = interactionUtils.createLeaderBoardPaginationComponent({ globalStats, page: 0, lineupSizes: selectedSizes }, numberOfPages)
                     interaction.message.components[0] = leaderboardPaginationComponent
                     await interaction.update({ embeds: statsEmbeds, components: interaction.message.components })
+                    return
+                }
+
+                if (interaction.customId === 'addMerc_select') {
+                    const selectedMercRole = interaction.values[0]
+
+                    let lineup = await teamService.retrieveLineup(interaction.channelId)
+                    if (lineup.roles.find(role => role.name === selectedMercRole).user?.id) {
+                        await interaction.reply({ content: `Too late ! Someone has already signed as **${selectedMercRole}**. Please try again.`, ephemeral: true })
+                        return
+                    }
+
+                    const filter = m => interaction.user.id === m.author.id
+                    const collector = interaction.channel.createMessageCollector({ filter, time: 10000, max: 1 });
+                    collector.on('collect', async m => {
+                        let lineup = await teamService.retrieveLineup(interaction.channelId)
+                        if (lineup.roles.find(role => role.name === selectedMercRole).user?.id) {
+                            await interaction.followUp({ content: `Too late ! Someone has already signed as **${selectedMercRole}**. Please try again.`, ephemeral: true })
+                            return
+                        }
+
+                        let userToAdd
+                        let addedPlayerName
+                        if (m.mentions.users.size > 0) {
+                            const [user] = await handle(interaction.client.users.fetch(m.mentions.users.at(0).id))
+                            if (user) {
+                                if (lineup.roles.some(role => role.user?.id === user.id)) {
+                                    await interaction.followUp({ content: `Player ${m.content} is already signed !`, ephemeral: true })
+                                    return
+                                }
+                                addedPlayerName = user.toString()
+                                userToAdd = {
+                                    id: user.id,
+                                    name: user.username
+                                }
+                            }
+                        } else {
+                            addedPlayerName = m.content
+                            userToAdd = {
+                                id: "merc",
+                                name: m.content
+                            }
+                        }
+
+                        lineup = await teamService.addUserToLineup(interaction.channelId, selectedMercRole, userToAdd)
+
+                        let messageContent = `Player ${interaction.user} manually signed **${addedPlayerName}** as **${selectedMercRole}**`
+
+                        let lineupQueue = await matchmakingService.findLineupQueueByChannelId(interaction.channelId)
+
+                        if (lineup.autoSearch === true && matchmakingService.isLineupAllowedToJoinQueue(lineup)) {
+                            if (!lineupQueue) {
+                                lineupQueue = await matchmakingService.joinQueue(interaction, lineup)
+                                messageContent += `. Your lineup is full, it is now searching for a **${lineup.size}v${lineup.size}** team !`
+                            }
+                        } else if (!matchmakingService.isLineupAllowedToJoinQueue(lineup) && lineupQueue) {
+                            let challenge = await matchmakingService.findChallengeByGuildId(interaction.guildId)
+                            if (!challenge) {
+                                await matchmakingService.leaveQueue(interaction.client, lineupQueue)
+                                lineupQueue = null
+                                messageContent += `. Your team has been removed from the **${lineup.size}v${lineup.size}** queue !`
+                            }
+                        }
+
+                        await interaction.channel.send({ content: messageContent, components: interactionUtils.createLineupComponents(lineup, lineupQueue) })
+                    })
+
+                    collector.on('end', async collected => {
+                        if (collected.size === 0) {
+                            await interaction.followUp({ content: "Sorry, you have taken too long to answer me ...", components: [], ephemeral: true })
+                            return
+                        }
+                    })
+
+                    await interaction.reply({ content: `Type the name of the player you want to sign to the **${selectedMercRole}** position`, components: [], ephemeral: true })
+                    return
+                }
+
+                if (interaction.customId === 'clearRole_select') {
+                    const selectedRoleToClear = interaction.values[0]
+
+                    let lineup = await teamService.retrieveLineup(interaction.channelId)
+                    if (!lineup.roles.find(role => role.name === selectedRoleToClear).user) {
+                        await interaction.reply({ content: `The ${selectedRoleToClear} is already empty !`, ephemeral: true })
+                        return
+                    }
+
+                    lineup = await teamService.clearRoleFromLineup(interaction.channelId, selectedRoleToClear)
+
+                    let messageContent = `Player ${interaction.user} cleared the **${selectedRoleToClear}** position`
+
+                    let lineupQueue = await matchmakingService.findLineupQueueByChannelId(interaction.channelId)
+
+                    if (lineup.autoSearch === true && matchmakingService.isLineupAllowedToJoinQueue(lineup)) {
+                        if (!lineupQueue) {
+                            lineupQueue = await matchmakingService.joinQueue(interaction, lineup)
+                            messageContent += `. Your lineup is full, it is now searching for a **${lineup.size}v${lineup.size}** team !`
+                        }
+                    } else if (!matchmakingService.isLineupAllowedToJoinQueue(lineup) && lineupQueue) {
+                        let challenge = await matchmakingService.findChallengeByGuildId(interaction.guildId)
+                        if (!challenge) {
+                            await matchmakingService.leaveQueue(interaction.client, lineupQueue)
+                            lineupQueue = null
+                            messageContent += `. Your team has been removed from the **${lineup.size}v${lineup.size}** queue !`
+                        }
+                    }
+
+                    await interaction.channel.send({ content: messageContent, components: interactionUtils.createLineupComponents(lineup, lineupQueue) })
+                    await interaction.update({ components: [], ephemeral: true })
                     return
                 }
             }

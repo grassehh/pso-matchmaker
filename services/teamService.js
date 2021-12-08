@@ -120,7 +120,7 @@ exports.removeUserFromAllLineups = async (userId) => {
 }
 
 exports.removeUserFromLineupsByChannelIds = async (userId, channelIds) => {
-    return await Lineup.updateMany({ 'channelId': { $in: channelIds }, 'roles.user.id': userId }, { $set: { "roles.$.user": null } })
+    await Lineup.updateMany({ 'channelId': { $in: channelIds }, 'roles.user.id': userId }, { $set: { "roles.$.user": null } })
 }
 
 exports.removeUserFromLineup = async (channelId, userId) => {
@@ -129,6 +129,10 @@ exports.removeUserFromLineup = async (channelId, userId) => {
 
 exports.addUserToLineup = async (channelId, roleName, user) => {
     return await Lineup.findOneAndUpdate({ channelId, 'roles.name': roleName }, { "$set": { "roles.$.user": user } }, { new: true })
+}
+
+exports.clearRoleFromLineup = async (channelId, roleName) => {
+    return await Lineup.findOneAndUpdate({ channelId, 'roles.name': roleName }, { "$set": { "roles.$.user": null } }, { new: true })
 }
 
 exports.notifyChannelForUserLeaving = async (client, channelId, message) => {
