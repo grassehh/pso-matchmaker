@@ -2,8 +2,8 @@
     "scripts": {
         "dev": "nodemon index.js",
         "start": "node index.js",
-        "migrate-stats": "node migrate-stats.js",
-        "deploy-commands": "node deploy-commands.js"
+        "deploy-commands": "node deploy-commands.js",
+        "migrate-stats": "node migration/migrate-stats.js"
     },
     "dependencies": {
         "@discordjs/builders": "^0.8.2",
