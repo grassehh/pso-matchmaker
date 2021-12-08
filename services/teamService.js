@@ -71,6 +71,11 @@ exports.updateTeamNameByGuildId = async (guildId, name) => {
     await Lineup.updateMany({ 'team.guildId': guildId }, { 'team.name': name })
 }
 
+exports.updateTeamRegionByGuildId = async (guildId, region) => {
+    await Team.updateOne({ guildId }, { region })
+    await Lineup.updateMany({ 'team.guildId': guildId }, { 'team.region': region })
+}
+
 exports.deleteLineup = async (channelId) => {
     await Lineup.deleteOne({ channelId })
 }
