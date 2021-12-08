@@ -5,6 +5,7 @@ const teamService = require("../services/teamService");
 const statsService = require("../services/statsService");
 const authorizationService = require("../services/authorizationService");
 const { MessageEmbed } = require("discord.js");
+const { PSO_EU_MINIMUM_LINEUP_SIZE_LEVELING } = require("../constants");
 
 module.exports = {
     name: 'interactionCreate',
@@ -245,7 +246,7 @@ module.exports = {
                     if (challenge.initiatingUser.id === interaction.user.id) {
                         await interaction.reply({ content: "⛔ You cannot accept your own challenge request", ephemeral: true })
                         return
-                    }                    
+                    }
 
                     await interaction.deferReply()
                     let challengedTeamLineup = await teamService.retrieveLineup(challenge.challengedTeam.lineup.channelId)
@@ -288,9 +289,14 @@ module.exports = {
 
                     await Promise.all(promises)
 
-                    await statsService.incrementGamesPlayed(challenge.challengedTeam.lineup.team.guildId, challenge.challengedTeam.lineup.size, challengedTeamUsers)
-                    await statsService.incrementGamesPlayed(challenge.initiatingTeam.lineup.team.guildId, challenge.challengedTeam.lineup.size, initiatingTeamUsers)
+                    if (challenge.challengedTeam.lineup.team.region === 'EU') {
+                        await statsService.incrementGamesPlayed(challenge.challengedTeam.lineup.team.guildId, challenge.challengedTeam.lineup.size, challengedTeamUsers)
+                        await statsService.incrementGamesPlayed(challenge.initiatingTeam.lineup.team.guildId, challenge.challengedTeam.lineup.size, initiatingTeamUsers)
 
+                        if (challengedTeamLineup.size >= PSO_EU_MINIMUM_LINEUP_SIZE_LEVELING) {
+                            await statsService.upgradePlayersLevel(interaction, challengedTeamUsers.map(user => user.id).concat(initiatingTeamUsers.map(user => user.id)))
+                        }
+                    }
                     return
                 }
 
@@ -301,7 +307,7 @@ module.exports = {
                         await interaction.reply({ content: "❌ This challenge no longer exists", ephemeral: true })
                         return
                     }
-                    
+
                     if (challenge.initiatingUser.id === interaction.user.id) {
                         await interaction.reply({ content: "⛔ You cannot refuse your own challenge request", ephemeral: true })
                         return
