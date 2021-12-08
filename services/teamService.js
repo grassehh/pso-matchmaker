@@ -1,5 +1,8 @@
 const { Team, Lineup } = require("../mongoSchema")
 const constants = require("../constants")
+const { handle } = require("../utils")
+const matchmakingService = require('../services/matchmakingService');
+const interactionUtils = require('../services/interactionUtils');
 
 const ROLE_GOAL_KEEPER = 0
 const ROLE_ATTACKER = 1
@@ -128,10 +131,55 @@ exports.addUserToLineup = async (channelId, roleName, user) => {
     return await Lineup.findOneAndUpdate({ channelId, 'roles.name': roleName }, { "$set": { "roles.$.user": user } }, { new: true })
 }
 
+exports.notifyChannelForUserLeaving = async (client, channelId, message) => {
+    const [channel] = await handle(client.channels.fetch(channelId))
+    if (channel) {
+        const lineup = await this.retrieveLineup(channelId)
+        const components = interactionUtils.createLineupComponents(lineup)
+        const lineupQueue = await matchmakingService.findLineupQueueByChannelId(channelId)
+        if (lineupQueue && !matchmakingService.isLineupAllowedToJoinQueue(lineupQueue.lineup)) {
+            let challenge = await matchmakingService.findChallengeByLineupQueueId(lineupQueue._id)
+            if (!challenge) {
+                await matchmakingService.leaveQueue(client, lineupQueue)
+                message += `. Your team has been removed from the **${lineupQueue.lineup.size}v${lineupQueue.lineup.size}** queue !`
+            }
+        }
+
+        await channel.send({ content: message, components })
+    }
+}
+
 exports.findAllLineupChannelIdsByUserId = async (userId) => {
     let res = await Lineup.aggregate([
         {
             $match: {
+                roles: {
+                    $elemMatch: { 'user.id': userId }
+                }
+            }
+        },
+        {
+            $group: {
+                _id: null,
+                channelIds: {
+                    $addToSet: '$$ROOT.channelId'
+                }
+            }
+        }
+    ])
+
+    if (res.length > 0) {
+        return res[0].channelIds
+    }
+
+    return []
+}
+
+exports.findChannelIdsFromGuildIdAndUserId = async (guildId, userId) => {
+    let res = await Lineup.aggregate([
+        {
+            $match: {
+                'team.guildId': guildId,
                 roles: {
                     $elemMatch: { 'user.id': userId }
                 }

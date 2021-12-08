@@ -115,9 +115,9 @@ exports.joinQueue = async (interaction, lineup) => {
     return lineupQueue
 }
 
-exports.leaveQueue = async (interaction, lineupQueue) => {
+exports.leaveQueue = async (client, lineupQueue) => {
     Promise.all(lineupQueue.notificationMessages.map(async notificationMessage => {
-        const channel = await interaction.client.channels.fetch(notificationMessage.channelId)
+        const channel = await client.channels.fetch(notificationMessage.channelId)
         handle(channel.messages.delete(notificationMessage.messageId))
     }))
         .catch(console.error)

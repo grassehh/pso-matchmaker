@@ -265,12 +265,10 @@ exports.createLineupEmbedForNextMatch = async (interaction, lineup, opponentLine
         if (discordUser) {
             let channelIds = await teamService.findAllLineupChannelIdsByUserId(role.user.id)
             if (channelIds.length > 0) {
+				await matchmakingService.removeUserFromAllLineupQueues(role.user.id)
                 await teamService.removeUserFromLineupsByChannelIds(role.user.id, channelIds)
                 await Promise.all(channelIds.map(async channelId => {
-                    let [channel] = await handle(interaction.client.channels.fetch(channelId))
-                    if (channel) {
-                        handle(channel.send(`⚠ Player ${discordUser} has gone to play another match. He has been removed from the lineup.`))
-                    }
+                    await teamService.notifyChannelForUserLeaving(interaction.client, channelId, `⚠ Player ${discordUser} has gone to play another match.`)
                 }))
             }
             let playerDmEmbed = new MessageEmbed()
