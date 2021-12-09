@@ -93,14 +93,14 @@ module.exports = {
 
                     const mercRoleSelectMenu = new MessageSelectMenu()
                         .setCustomId(`addMerc_select`)
-                        .setPlaceholder('Which position do you want to sign the player on ?')
+                        .setPlaceholder('Select a position')
 
                     const availableRoles = lineup.roles.filter(role => !role.user)
                     for (let role of availableRoles) {
                         mercRoleSelectMenu.addOptions([{ label: role.name, value: role.name }])
                     }
 
-                    await interaction.reply({ content: 'Select a position', components: [new MessageActionRow().addComponents(mercRoleSelectMenu)], ephemeral: true })
+                    await interaction.reply({ content: 'Which position do you want to sign the player on ?', components: [new MessageActionRow().addComponents(mercRoleSelectMenu)], ephemeral: true })
                     return
                 }
 
@@ -109,14 +109,14 @@ module.exports = {
 
                     const clearRoleSelectMenu = new MessageSelectMenu()
                         .setCustomId(`clearRole_select`)
-                        .setPlaceholder('Select the position you want to clear')
+                        .setPlaceholder('Select a position')
 
                     const takenRoles = lineup.roles.filter(role => role.user)
                     for (let role of takenRoles) {
                         clearRoleSelectMenu.addOptions([{ label: role.name, value: role.name }])
                     }
 
-                    await interaction.reply({ content: 'Select a position', components: [new MessageActionRow().addComponents(clearRoleSelectMenu)], ephemeral: true })
+                    await interaction.reply({ content: 'Select the position you want to clear', components: [new MessageActionRow().addComponents(clearRoleSelectMenu)], ephemeral: true })
                     return
                 }
 
@@ -137,13 +137,14 @@ module.exports = {
                     if (!matchmakingService.isLineupAllowedToJoinQueue(lineup) && lineupQueue) {
                         let challenge = await matchmakingService.findChallengeByGuildId(interaction.guildId)
                         if (!challenge) {
-                            await matchmakingService.leaveQueue(interaction.client, lineupQueue)
+                            await matchmakingService.leaveQueue(interaction.client, lineupQueue)                            
+                            lineupQueue = null
                             messageContent += `. Your team has been removed from the **${lineup.size}v${lineup.size}** queue !`
                         }
                     }
 
                     await interaction.message.edit({ components: [] })
-                    await interaction.channel.send({ content: messageContent, components: interactionUtils.createLineupComponents(lineup) })
+                    await interaction.channel.send({ content: messageContent, components: interactionUtils.createLineupComponents(lineup, lineupQueue) })
                     return
                 }
 
@@ -203,6 +204,11 @@ module.exports = {
                         return
                     }
 
+                    if (!matchmakingService.isUserAllowedToInteractWithMathmaking(interaction.user.id, lineup)) {
+                        await interaction.reply(`⛔ You must be in the lineup in order to challenge a team`)    
+                        return
+                    }
+                    
                     if (!matchmakingService.isLineupAllowedToJoinQueue(lineup)) {
                         await interaction.reply({ content: '⛔ All outfield positions must be filled before challenging a team', ephemeral: true })
                         return
@@ -276,6 +282,11 @@ module.exports = {
                         await interaction.reply({ content: "❌ This challenge no longer exists", ephemeral: true })
                         return
                     }
+                    const lineup = await teamService.retrieveLineup(interaction.channelId)
+                    if (!matchmakingService.isUserAllowedToInteractWithMathmaking(interaction.user.id, lineup)) {
+                        await interaction.reply(`⛔ You must be in the lineup in order to accept a challenge`)    
+                        return
+                    }
 
                     if (challenge.initiatingUser.id === interaction.user.id) {
                         await interaction.reply({ content: "⛔ You cannot accept your own challenge request", ephemeral: true })
@@ -346,6 +357,12 @@ module.exports = {
                         await interaction.reply({ content: "⛔ You cannot refuse your own challenge request", ephemeral: true })
                         return
                     }
+                    
+                    const lineup = await teamService.retrieveLineup(interaction.channelId)
+                    if (!matchmakingService.isUserAllowedToInteractWithMathmaking(interaction.user.id, lineup)) {
+                        await interaction.reply(`⛔ You must be in the lineup in order to refuse a challenge`)    
+                        return
+                    }
 
                     await matchmakingService.deleteChallengeById(challengeId)
                     await matchmakingService.freeLineupQueuesByIds([challenge.challengedTeam.id, challenge.initiatingTeam.id])
@@ -364,6 +381,11 @@ module.exports = {
                     let challenge = await matchmakingService.findChallengeById(challengeId)
                     if (!challenge) {
                         await interaction.reply({ content: "❌ This challenge no longer exists", ephemeral: true })
+                        return
+                    }
+                    let lineup = await teamService.retrieveLineup(interaction.channelId)
+                    if (!matchmakingService.isUserAllowedToInteractWithMathmaking(interaction.user.id, lineup)) {
+                        await interaction.reply(`⛔ You must be in the lineup in order to cancel a challenge request`)    
                         return
                     }
 

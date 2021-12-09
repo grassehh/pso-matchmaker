@@ -130,3 +130,7 @@ exports.isLineupAllowedToJoinQueue = (lineup) => {
     let missingRoleName = lineup.roles.find(role => role.user == null)?.name
     return numberOfMissingPlayers == 0 || (numberOfMissingPlayers == 1 && missingRoleName.includes('GK'))
 }
+
+exports.isUserAllowedToInteractWithMathmaking = (userId, lineup) => {
+    return lineup.roles.some(role => role.user?.id === userId)
+}
