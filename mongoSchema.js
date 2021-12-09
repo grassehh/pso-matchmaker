@@ -28,6 +28,10 @@ const playerRoleSchema = new mongoose.Schema({
     user: {
         type: Object,
         required: false
+    },
+    lineupNumber: {
+        type: Number,
+        required: true
     }
 })
 
@@ -54,9 +58,18 @@ const lineupSchema = new mongoose.Schema({
         required: false,
         default: false
     },
-    team: { 
+    team: {
         type: teamSchema,
         required: true
+    },
+    isMix: {
+        type: Boolean,
+        required: true,
+        default: false
+    }, visibility: {
+        type: String,
+        enum: ['PUBLIC', 'TEAM'],
+        default: 'PUBLIC'
     }
 })
 exports.Lineup = mongoose.model('Lineup', lineupSchema, 'lineups')
@@ -74,11 +87,11 @@ const lineupQueueSchema = new mongoose.Schema({
     notificationMessages: {
         type: [{
             channelId: {
-                type: String, 
+                type: String,
                 required: true
             },
             messageId: {
-                type: String, 
+                type: String,
                 required: true
             }
         }],
