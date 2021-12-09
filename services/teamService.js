@@ -29,7 +29,7 @@ const DEFAULT_PLAYER_ROLES = new Map([
     [2, [GK, CF]],
     [3, [GK, LM, RM]],
     [4, [GK, CF, LB, RB]],
-    [5, [GK, CF, LB, RB, CB]],
+    [5, [GK, CF, LB, CB, RB]],
     [6, [GK, LW, RW, CM, LB, RB]],
     [7, [GK, LW, RW, CM, LB, CB, RB]],
     [8, [GK, LW, CF, RW, CM, LB, CB, RB]],
