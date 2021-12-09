@@ -192,7 +192,7 @@ module.exports = {
                     }
                     const lineup = await teamService.retrieveLineup(interaction.channelId)
                     if (!matchmakingService.isUserAllowedToInteractWithMathmaking(interaction.user.id, lineup)) {
-                        await interaction.reply(`⛔ You must be in the lineup in order to accept a challenge`)
+                        await interaction.reply({ content: `⛔ You must be in the lineup in order to accept a challenge`, ephemeral: true })
                         return
                     }
 
@@ -268,7 +268,7 @@ module.exports = {
 
                     const lineup = await teamService.retrieveLineup(interaction.channelId)
                     if (!matchmakingService.isUserAllowedToInteractWithMathmaking(interaction.user.id, lineup)) {
-                        await interaction.reply(`⛔ You must be in the lineup in order to refuse a challenge`)
+                        await interaction.reply({ content: `⛔ You must be in the lineup in order to refuse a challenge`, ephemeral: true })
                         return
                     }
 
@@ -293,7 +293,7 @@ module.exports = {
                     }
                     let lineup = await teamService.retrieveLineup(interaction.channelId)
                     if (!matchmakingService.isUserAllowedToInteractWithMathmaking(interaction.user.id, lineup)) {
-                        await interaction.reply(`⛔ You must be in the lineup in order to cancel a challenge request`)
+                        await interaction.reply({ content: `⛔ You must be in the lineup in order to cancel a challenge request`, ephemeral: true })
                         return
                     }
 
@@ -426,6 +426,10 @@ module.exports = {
                         if (m.mentions.users.size > 0) {
                             const [user] = await handle(interaction.client.users.fetch(m.mentions.users.at(0).id))
                             if (user) {
+                                if (user.bot) {
+                                    await interaction.followUp({ content: 'Nice try 😉', ephemeral: true })
+                                    return
+                                }
                                 if (lineup.roles.some(role => role.user?.id === user.id)) {
                                     await interaction.followUp({ content: `Player ${m.content} is already signed !`, ephemeral: true })
                                     return
