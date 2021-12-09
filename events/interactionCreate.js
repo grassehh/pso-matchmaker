@@ -137,7 +137,7 @@ module.exports = {
                     if (!matchmakingService.isLineupAllowedToJoinQueue(lineup) && lineupQueue) {
                         let challenge = await matchmakingService.findChallengeByGuildId(interaction.guildId)
                         if (!challenge) {
-                            await matchmakingService.leaveQueue(interaction.client, lineupQueue)                            
+                            await matchmakingService.leaveQueue(interaction.client, lineupQueue)
                             lineupQueue = null
                             messageContent += `. Your team has been removed from the **${lineup.size}v${lineup.size}** queue !`
                         }
@@ -179,99 +179,7 @@ module.exports = {
 
                 if (interaction.customId.startsWith('challenge_')) {
                     let lineupQueueIdToChallenge = interaction.customId.substring(10);
-
-                    let lineupQueueToChallenge = await matchmakingService.findLineupQueueById(lineupQueueIdToChallenge)
-                    if (!lineupQueueToChallenge) {
-                        await interaction.reply({ content: "❌ This team is no longer challenging", ephemeral: true })
-                        return
-                    }
-
-                    let challenge = await matchmakingService.findChallengeByChannelId(interaction.channelId)
-                    if (challenge) {
-                        await interactionUtils.replyAlreadyChallenging(interaction, challenge)
-                        return
-                    }
-
-                    challenge = await matchmakingService.findChallengeByLineupQueueId(lineupQueueIdToChallenge)
-                    if (challenge) {
-                        await interaction.reply({ content: "❌ This team is negociating a challenge", ephemeral: true })
-                        return
-                    }
-
-                    let lineup = await teamService.retrieveLineup(interaction.channelId)
-                    if (!lineup) {
-                        await interactionUtils.replyLineupNotSetup(interaction)
-                        return
-                    }
-
-                    if (!matchmakingService.isUserAllowedToInteractWithMathmaking(interaction.user.id, lineup)) {
-                        await interaction.reply(`⛔ You must be in the lineup in order to challenge a team`)    
-                        return
-                    }
-                    
-                    if (!matchmakingService.isLineupAllowedToJoinQueue(lineup)) {
-                        await interaction.reply({ content: '⛔ All outfield positions must be filled before challenging a team', ephemeral: true })
-                        return
-                    }
-
-                    if (lineupQueueToChallenge.lineup.size !== lineup.size) {
-                        await interaction.reply({ content: `❌ Your team is configured for ${lineup.size}v${lineup.size} while the team you are trying to challenge is configured for ${lineupQueueToChallenge.lineup.size}v${lineupQueueToChallenge.lineup.size}. Both teams must have the same size to challenge.`, ephemeral: true })
-                        return
-                    }
-
-                    let lineupQueue = await matchmakingService.findLineupQueueByChannelId(interaction.channelId)
-                    if (!lineupQueue) {
-                        lineupQueue = new LineupQueue({ lineup })
-                    }
-                    challenge = new Challenge({
-                        initiatingUser: {
-                            id: interaction.user.id,
-                            name: interaction.user.username,
-                            mention: interaction.user.toString()
-                        },
-                        initiatingTeam: lineupQueue,
-                        challengedTeam: lineupQueueToChallenge
-                    })
-
-                    let challengedTeamUsers = lineupQueueToChallenge.lineup.roles.map(role => role.user).filter(user => user)
-                    let initiatingTeamUsers = lineupQueue.lineup.roles.map(role => role.user).filter(user => user)
-                    let duplicatedUsers = challengedTeamUsers.filter((user, index, self) =>
-                        user.id !== MERC_USER_ID &&
-                        index === initiatingTeamUsers.findIndex((t) => (
-                            t.id === user.id
-                        ))
-                    )
-                    if (duplicatedUsers.length > 0) {
-                        let description = 'The following players are signed in both teams. Please arrange with them before challenging: '
-                        for (let duplicatedUser of duplicatedUsers) {
-                            let discordUser = await interaction.client.users.fetch(duplicatedUser.id)
-                            description += discordUser.toString() + ', '
-                        }
-                        description = description.substring(0, description.length - 2)
-
-                        const duplicatedUsersEmbed = new MessageEmbed()
-                            .setColor('#0099ff')
-                            .setTitle(`⛔ Some players are signed in both teams !`)
-                            .setDescription(description)
-                            .setTimestamp()
-                            .setFooter(`Author: ${interaction.user.username}`)
-
-                        await interaction.channel.send({ embeds: [duplicatedUsersEmbed] })
-                        await interaction.deferUpdate()
-                        return
-                    }
-
-                    let channel = await interaction.client.channels.fetch(challenge.challengedTeam.lineup.channelId)
-                    let challengedMessage = await channel.send(interactionUtils.createDecideChallengeReply(interaction, challenge))
-                    challenge.challengedMessageId = challengedMessage.id
-
-                    await matchmakingService.reserveLineupQueuesByIds([lineupQueueIdToChallenge, lineupQueue.id])
-                    let initiatingMessage = await interaction.channel.send(interactionUtils.createCancelChallengeReply(interaction, challenge))
-                    challenge.initiatingMessageId = initiatingMessage.id
-
-                    challenge.save()
-
-                    await interaction.deferUpdate()
+                    await interactionUtils.challenge(interaction, lineupQueueIdToChallenge)
                     return
                 }
 
@@ -284,7 +192,7 @@ module.exports = {
                     }
                     const lineup = await teamService.retrieveLineup(interaction.channelId)
                     if (!matchmakingService.isUserAllowedToInteractWithMathmaking(interaction.user.id, lineup)) {
-                        await interaction.reply(`⛔ You must be in the lineup in order to accept a challenge`)    
+                        await interaction.reply(`⛔ You must be in the lineup in order to accept a challenge`)
                         return
                     }
 
@@ -357,10 +265,10 @@ module.exports = {
                         await interaction.reply({ content: "⛔ You cannot refuse your own challenge request", ephemeral: true })
                         return
                     }
-                    
+
                     const lineup = await teamService.retrieveLineup(interaction.channelId)
                     if (!matchmakingService.isUserAllowedToInteractWithMathmaking(interaction.user.id, lineup)) {
-                        await interaction.reply(`⛔ You must be in the lineup in order to refuse a challenge`)    
+                        await interaction.reply(`⛔ You must be in the lineup in order to refuse a challenge`)
                         return
                     }
 
@@ -385,7 +293,7 @@ module.exports = {
                     }
                     let lineup = await teamService.retrieveLineup(interaction.channelId)
                     if (!matchmakingService.isUserAllowedToInteractWithMathmaking(interaction.user.id, lineup)) {
-                        await interaction.reply(`⛔ You must be in the lineup in order to cancel a challenge request`)    
+                        await interaction.reply(`⛔ You must be in the lineup in order to cancel a challenge request`)
                         return
                     }
 
@@ -601,6 +509,11 @@ module.exports = {
 
                     await interaction.channel.send({ content: messageContent, components: interactionUtils.createLineupComponents(lineup, lineupQueue) })
                     await interaction.update({ components: [], ephemeral: true })
+                    return
+                }
+
+                if (interaction.customId === 'challenge_select') {
+                    await interactionUtils.challenge(interaction, interaction.values[0])
                     return
                 }
             }
