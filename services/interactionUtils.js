@@ -2,8 +2,9 @@ const { MessageActionRow, MessageButton, MessageEmbed, MessageSelectMenu } = req
 const teamService = require("../services/teamService");
 const statsService = require("../services/statsService");
 const matchmakingService = require("../services/matchmakingService");
-const { Stats } = require("../mongoSchema");
+const { Stats, LineupQueue, Challenge } = require("../mongoSchema");
 const { handle } = require("../utils");
+const { MERC_USER_ID } = require("../constants");
 
 exports.replyAlreadyQueued = async (interaction, lineupSize) => {
     await interaction.reply({
@@ -371,4 +372,99 @@ exports.createLeaderBoardLineupSizeComponent = (globalStats) => {
                 }
             ])
     )
+}
+
+exports.challenge = async (interaction, lineupQueueIdToChallenge) => {
+    let lineupQueueToChallenge = await matchmakingService.findLineupQueueById(lineupQueueIdToChallenge)
+    if (!lineupQueueToChallenge) {
+        await interaction.reply({ content: "❌ This team is no longer challenging", ephemeral: true })
+        return
+    }
+
+    let challenge = await matchmakingService.findChallengeByChannelId(interaction.channelId)
+    if (challenge) {
+        await this.replyAlreadyChallenging(interaction, challenge)
+        return
+    }
+
+    challenge = await matchmakingService.findChallengeByLineupQueueId(lineupQueueIdToChallenge)
+    if (challenge) {
+        await interaction.reply({ content: "❌ This team is negociating a challenge", ephemeral: true })
+        return
+    }
+
+    let lineup = await teamService.retrieveLineup(interaction.channelId)
+    if (!lineup) {
+        await this.replyLineupNotSetup(interaction)
+        return
+    }
+
+    if (!matchmakingService.isUserAllowedToInteractWithMathmaking(interaction.user.id, lineup)) {
+        await interaction.reply(`⛔ You must be in the lineup in order to challenge a team`)
+        return
+    }
+
+    if (!matchmakingService.isLineupAllowedToJoinQueue(lineup)) {
+        await interaction.reply({ content: '⛔ All outfield positions must be filled before challenging a team', ephemeral: true })
+        return
+    }
+
+    if (lineupQueueToChallenge.lineup.size !== lineup.size) {
+        await interaction.reply({ content: `❌ Your team is configured for ${lineup.size}v${lineup.size} while the team you are trying to challenge is configured for ${lineupQueueToChallenge.lineup.size}v${lineupQueueToChallenge.lineup.size}. Both teams must have the same size to challenge.`, ephemeral: true })
+        return
+    }
+
+    let lineupQueue = await matchmakingService.findLineupQueueByChannelId(interaction.channelId)
+    if (!lineupQueue) {
+        lineupQueue = new LineupQueue({ lineup })
+    }
+    challenge = new Challenge({
+        initiatingUser: {
+            id: interaction.user.id,
+            name: interaction.user.username,
+            mention: interaction.user.toString()
+        },
+        initiatingTeam: lineupQueue,
+        challengedTeam: lineupQueueToChallenge
+    })
+
+    let challengedTeamUsers = lineupQueueToChallenge.lineup.roles.map(role => role.user).filter(user => user)
+    let initiatingTeamUsers = lineupQueue.lineup.roles.map(role => role.user).filter(user => user)
+    let duplicatedUsers = challengedTeamUsers.filter((user, index, self) =>
+        user.id !== MERC_USER_ID &&
+        index === initiatingTeamUsers.findIndex((t) => (
+            t.id === user.id
+        ))
+    )
+    if (duplicatedUsers.length > 0) {
+        let description = 'The following players are signed in both teams. Please arrange with them before challenging: '
+        for (let duplicatedUser of duplicatedUsers) {
+            let discordUser = await interaction.client.users.fetch(duplicatedUser.id)
+            description += discordUser.toString() + ', '
+        }
+        description = description.substring(0, description.length - 2)
+
+        const duplicatedUsersEmbed = new MessageEmbed()
+            .setColor('#0099ff')
+            .setTitle(`⛔ Some players are signed in both teams !`)
+            .setDescription(description)
+            .setTimestamp()
+            .setFooter(`Author: ${interaction.user.username}`)
+
+        await interaction.channel.send({ embeds: [duplicatedUsersEmbed] })
+        await interaction.deferUpdate()
+        return
+    }
+
+    let channel = await interaction.client.channels.fetch(challenge.challengedTeam.lineup.channelId)
+    let challengedMessage = await channel.send(this.createDecideChallengeReply(interaction, challenge))
+    challenge.challengedMessageId = challengedMessage.id
+
+    await matchmakingService.reserveLineupQueuesByIds([lineupQueueIdToChallenge, lineupQueue.id])
+    let initiatingMessage = await interaction.channel.send(this.createCancelChallengeReply(interaction, challenge))
+    challenge.initiatingMessageId = initiatingMessage.id
+
+    challenge.save()
+
+    await interaction.deferUpdate()
 }
