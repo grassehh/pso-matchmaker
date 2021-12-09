@@ -19,13 +19,15 @@ module.exports = {
             await interactionUtils.replyTeamNotRegistered(interaction)
             return
         }
-
         let lineup = await teamService.retrieveLineup(interaction.channelId)
         if (!lineup) {
             await interactionUtils.replyLineupNotSetup(interaction)
             return
+        }        
+        if (lineup.isMix) {
+            await interaction.reply({ content: `⛔ Mix lineups are always visible in the matchmaking queue`, ephemeral: true })
+            return
         }
-
         let currentQueuedLineup = await matchmakingService.findLineupQueueByChannelId(interaction.channelId)
         if (currentQueuedLineup) {
             await interactionUtils.replyAlreadyQueued(interaction, currentQueuedLineup.lineup.size)

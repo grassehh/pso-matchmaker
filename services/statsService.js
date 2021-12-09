@@ -1,4 +1,4 @@
-const { PSO_EU_MINIMUM_LINEUP_SIZE_LEVELING } = require("../constants")
+const { PSO_EU_MINIMUM_LINEUP_SIZE_LEVELING, MERC_USER_ID } = require("../constants")
 const { Stats } = require("../mongoSchema")
 const { handle } = require("../utils")
 
@@ -39,43 +39,6 @@ async function findElligibleStatsForLevelling(userIds) {
             }
         }
     ])
-}
-
-exports.upgradePlayersLevel = async (interaction, userIds) => {
-    const allElligibleStats = await findElligibleStatsForLevelling(userIds)
-
-    return Promise.all(allElligibleStats.map(async elligibleStats => {
-        const [psoEuGuild] = await handle(interaction.client.guilds.fetch(process.env.PSO_EU_DISCORD_GUILD_ID))
-        if (!psoEuGuild) {
-            return
-        }
-        const levelingRoleIds = getLevelingRoleIdsFromStats(elligibleStats)
-        const [member] = await handle(psoEuGuild.members.fetch(elligibleStats._id))
-        if (member) {
-            handle(member.roles.add(levelingRoleIds))
-        }
-    }))
-}
-
-exports.incrementGamesPlayed = async (guildId, lineupSize, users) => {
-    let bulks = users.map((user) => ({
-        updateOne: {
-            filter: {
-                guildId,
-                lineupSize,
-                'userId': user.id
-            },
-            update: {
-                $inc: { numberOfGames: 1 },
-                $setOnInsert: {
-                    guildId,
-                    userId: user.id
-                },
-            },
-            upsert: true
-        }
-    }))
-    await Stats.bulkWrite(bulks)
 }
 
 exports.countNumberOfPlayers = async (guildId, lineupSizes = []) => {
@@ -149,4 +112,46 @@ exports.findStats = async (userId, guildId, page, size, lineupSizes = []) => {
         ])
     }
     return await Stats.aggregate(pipeline)
+}
+
+exports.updateStats = async (interaction, guildId, lineupSize, users) => {
+    notMercUsers = users.filter(user => user?.id !== MERC_USER_ID)
+    if (notMercUsers.length === 0) {
+        return
+    }
+
+    let bulks = notMercUsers.map((user) => ({
+        updateOne: {
+            filter: {
+                guildId,
+                lineupSize,
+                'userId': user.id
+            },
+            update: {
+                $inc: { numberOfGames: 1 },
+                $setOnInsert: {
+                    guildId,
+                    userId: user.id
+                },
+            },
+            upsert: true
+        }
+    }))
+    await Stats.bulkWrite(bulks)
+
+    if (lineupSize >= PSO_EU_MINIMUM_LINEUP_SIZE_LEVELING) {
+        const allElligibleStats = await findElligibleStatsForLevelling(notMercUsers.map(user => user.id))
+
+        await Promise.all(allElligibleStats.map(async elligibleStats => {
+            const [psoEuGuild] = await handle(interaction.client.guilds.fetch(process.env.PSO_EU_DISCORD_GUILD_ID))
+            if (!psoEuGuild) {
+                return
+            }
+            const levelingRoleIds = getLevelingRoleIdsFromStats(elligibleStats)
+            const [member] = await handle(psoEuGuild.members.fetch(elligibleStats._id))
+            if (member) {
+                handle(member.roles.add(levelingRoleIds))
+            }
+        }))
+    }
 }

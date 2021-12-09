@@ -19,6 +19,10 @@ module.exports = {
             await interactionUtils.replyLineupNotSetup(interaction)
             return
         }
+        if (lineup.isMix) {
+            await interaction.reply({ content: `⛔ You cannot remove a mix from the matchmaking queue`, ephemeral: true })
+            return
+        }
         let challenge = await matchmakingService.findChallengeByChannelId(interaction.channelId)
         if (challenge) {
             await interactionUtils.replyAlreadyChallenging(interaction, challenge)
