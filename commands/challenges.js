@@ -1,5 +1,5 @@
 const { SlashCommandBuilder } = require('@discordjs/builders');
-const { MessageActionRow, MessageEmbed, MessageButton } = require('discord.js');
+const { MessageActionRow, MessageEmbed, MessageButton, MessageSelectMenu } = require('discord.js');
 const interactionUtils = require("../services/interactionUtils");
 const matchmakingService = require("../services/matchmakingService");
 const teamService = require("../services/teamService");
@@ -42,38 +42,43 @@ module.exports = {
                         .setDescription(`No Team is currently seaching for a ${lineup.size}v${lineup.size} match 😪`)
                 ]
             })
-        } else {
-            let teamsActionRow = new MessageActionRow()
-            let embeds = []
-            const lineupsEmbed = new MessageEmbed()
-                .setColor('#0099ff')
-                .setTitle(`Teams for ${lineup.size}v${lineup.size}`)
-                .setTimestamp()
-                .setFooter(`Author: ${interaction.user.username}`)
+            return
+        }
 
-            let i = 1
+        const lineupsEmbed = new MessageEmbed()
+            .setColor('#0099ff')
+            .setTitle(`Teams for ${lineup.size}v${lineup.size}`)
+            .setTimestamp()
+            .setFooter(`Author: ${interaction.user.username}`)
+        for (let lineupQueue of lineupQueues) {
+            let lineupFieldValue = lineupQueue.lineup.roles.filter(role => role.user != null).length + ' players signed'
+            if (!teamService.hasGkSigned(lineupQueue.lineup)) {
+                lineupFieldValue += ' **(no gk)**'
+            }
+            lineupsEmbed.addField(teamService.formatTeamName(lineupQueue.lineup, false), lineupFieldValue)
+        }
+
+        let teamsActionRow = new MessageActionRow()
+
+        if (lineupQueues.length < 6) {
             for (let lineupQueue of lineupQueues) {
-                let lineupFieldValue = lineupQueue.lineup.roles.filter(role => role.user != null).length + ' players signed'
-                if (!teamService.hasGkSigned(lineupQueue.lineup)) {
-                    lineupFieldValue += ' **(no gk)**'
-                }
-                lineupsEmbed.addField(teamService.formatTeamName(lineupQueue.lineup, false), lineupFieldValue, i % 4 !== 0)
                 teamsActionRow.addComponents(
                     new MessageButton()
                         .setCustomId(`challenge_${lineupQueue.id}`)
                         .setLabel(teamService.formatTeamName(lineupQueue.lineup, true))
                         .setStyle('PRIMARY')
                 )
-                i++
             }
-
-            embeds.push(lineupsEmbed)
-
-            if (teamsActionRow.components.length === 0) {
-                await interaction.reply({ embeds })
-            } else {
-                await interaction.reply({ embeds, components: [teamsActionRow] })
+        } else {
+            const challengesSelectMenu = new MessageSelectMenu()
+                .setCustomId(`challenge_select`)
+                .setPlaceholder('Select a Team to challenge')
+            for (let lineupQueue of lineupQueues) {
+                challengesSelectMenu.addOptions([{ label: teamService.formatTeamName(lineupQueue.lineup, true), value: lineupQueue.id }])
             }
+            teamsActionRow.addComponents(challengesSelectMenu)
         }
-    },
-};
+
+        await interaction.reply({ embeds: [lineupsEmbed], components: [teamsActionRow] })
+    }
+}
