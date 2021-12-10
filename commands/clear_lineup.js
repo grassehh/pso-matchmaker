@@ -19,20 +19,22 @@ module.exports = {
             await interactionUtils.replyTeamNotRegistered(interaction)
             return
         }
-        
+
         let lineup = await teamService.retrieveLineup(interaction.channelId)
         if (!lineup) {
             await interactionUtils.replyLineupNotSetup(interaction)
             return
         }
 
-        let currentQueuedLineup = await matchmakingService.findLineupQueueByChannelId(interaction.channelId)
-        if (currentQueuedLineup) {
-            await interactionUtils.replyAlreadyQueued(interaction, currentQueuedLineup.lineup.size)
+        let lineupQueue = await matchmakingService.findLineupQueueByChannelId(interaction.channelId)
+        if (!lineup.isMix && lineupQueue) {
+            await interactionUtils.replyAlreadyQueued(interaction, lineupQueue.lineup.size)
             return
         }
 
         lineup = await teamService.clearLineup(interaction.channelId)
-        await interaction.reply({ content: '✅ Lineup has been cleared !', components: interactionUtils.createLineupComponents(lineup) })
+        let reply = await interactionUtils.createReplyForLineup(interaction, lineup, lineupQueue)
+        reply.content = `✅ Lineup has been cleared !`
+        await interaction.reply(reply);
     },
 };

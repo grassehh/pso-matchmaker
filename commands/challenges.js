@@ -21,6 +21,11 @@ module.exports = {
             return
         }
 
+        if (lineup.isMix) {
+            await interaction.reply({ content: '⛔ Mix lineups cannot see the list of challenges', ephemeal: true })
+            return
+        }
+
         let challenge = await matchmakingService.findChallengeByChannelId(interaction.channelId)
         if (challenge) {
             let reply
@@ -33,7 +38,7 @@ module.exports = {
             return
         }
 
-        let lineupQueues = await matchmakingService.findAvailableLineupQueues(team.region, lineup.channelId, lineup.size)
+        let lineupQueues = await matchmakingService.findAvailableLineupQueues(team.region, lineup.channelId, lineup.size, lineup.visibility)
         if (lineupQueues.length === 0) {
             await interaction.reply({
                 embeds: [
@@ -51,7 +56,7 @@ module.exports = {
             .setTimestamp()
             .setFooter(`Author: ${interaction.user.username}`)
         for (let lineupQueue of lineupQueues) {
-            let lineupFieldValue = lineupQueue.lineup.roles.filter(role => role.user != null).length + ' players signed'
+            let lineupFieldValue = lineupQueue.lineup.roles.filter(role => role.lineupNumber === 1).filter(role => role.user != null).length + ' players signed'
             if (!teamService.hasGkSigned(lineupQueue.lineup)) {
                 lineupFieldValue += ' **(no gk)**'
             }

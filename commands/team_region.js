@@ -34,6 +34,6 @@ module.exports = {
         }
 
         await teamService.updateTeamRegionByGuildId(team.guildId, newRegion)
-        await interaction.reply(`✅ Your new team region is **${team.region}**`)
+        await interaction.reply(`✅ Your new team region is **${newRegion}**`)
     },
 };

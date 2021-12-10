@@ -34,13 +34,23 @@ module.exports = {
 
          *(calling the /setup_lineup command multiple time will override the existing lineup setup)*
          `)
-         .addField('Command Permissions', `
+            .addField('Mix Lineup management', `
+      A **Mix Lineup** is a lineup where 2 mix teams can sign into the same channel. A mix can also be challenged by a **Team**. When this happens, only the first mix team will face them.
+      To **create** a **Mix Lineup**, use the */setup_mix* command, and give it a size.
+
+      **Mix Lineup** don't have an "auto_search" option because they are always in the queue by default (if their visibility is set to 'public')
+
+      *(calling the /setup_mix command multiple time will override the existing lineup setup)*
+      `)
+            .addField('Command Permissions', `
             The following commands require higher permissions to be used: 
             - **/delete_lineup**
             - **/delete_team**
             - **/register_team**
             - **/setup_lineup**
+            - **/setup_mix**
             - **/team_name**
+            - **/team_region**
 
             By Default, the Discord server administrator has access to all of these commands. If you wish to give someone else's permission for these commands, create a role named **'PSO MM ADMIN'** and give them.
          `)
