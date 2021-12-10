@@ -77,8 +77,8 @@ module.exports = {
                         return
                     }
 
-                    const autoSearchResult = await matchmakingService.checkIfAutoSearch(interaction, lineup)
-                    if (autoSearchResult.joinQueue) {
+                    const autoSearchResult = await matchmakingService.checkIfAutoSearch(interaction.client, interaction.user, lineup)
+                    if (autoSearchResult.joinedQueue) {
                         messageContent += `. Your lineup is full, it is now searching for a **${lineup.size}v${lineup.size}** team !`
                     }
                     if (autoSearchResult.leftQueue) {
@@ -139,8 +139,8 @@ module.exports = {
 
                     let messageContent = `Player ${interaction.user} left the **${roleLeft.name}** position`
 
-                    const autoSearchResult = await matchmakingService.checkIfAutoSearch(interaction, lineup)
-                    if (autoSearchResult.joinQueue) {
+                    const autoSearchResult = await matchmakingService.checkIfAutoSearch(interaction.client, interaction.user, lineup)
+                    if (autoSearchResult.joinedQueue) {
                         messageContent += `. Your lineup is full, it is now searching for a **${lineup.size}v${lineup.size}** team !`
                     }
                     if (autoSearchResult.leftQueue) {
@@ -165,7 +165,7 @@ module.exports = {
                         await interactionUtils.replyLineupNotSetup(interaction)
                         return
                     }
-                    lineupQueue = await matchmakingService.joinQueue(interaction, lineup)
+                    lineupQueue = await matchmakingService.joinQueue(interaction.client, interaction.user, lineup)
                     await interaction.message.edit({ components: [] })
                     await interaction.channel.send({ content: `🔎 Your team is now searching for a ${lineupQueue.lineup.size}v${lineupQueue.lineup.size} challenge`, components: interactionUtils.createLineupComponents(lineup, lineupQueue) })
                     return
@@ -413,8 +413,8 @@ module.exports = {
 
                         let messageContent = `Player ${interaction.user} manually signed **${addedPlayerName}** as **${selectedMercRole}**`
 
-                        const autoSearchResult = await matchmakingService.checkIfAutoSearch(interaction, lineup)
-                        if (autoSearchResult.joinQueue) {
+                        const autoSearchResult = await matchmakingService.checkIfAutoSearch(interaction.client, interaction.user, lineup)
+                        if (autoSearchResult.joinedQueue) {
                             messageContent += `. Your lineup is full, it is now searching for a **${lineup.size}v${lineup.size}** team !`
                         }
                         if (autoSearchResult.leftQueue) {
@@ -459,7 +459,7 @@ module.exports = {
 
                     let messageContent = `Player ${interaction.user} cleared the **${selectedRoleToClear}** position`
 
-                    const autoSearchResult = await matchmakingService.checkIfAutoSearch(interaction, lineup)
+                    const autoSearchResult = await matchmakingService.checkIfAutoSearch(interaction.client, interaction.user, lineup)
                     let reply = await interactionUtils.createReplyForLineup(interaction, lineup, autoSearchResult.updatedLineupQueue)
                     reply.content = messageContent
                     await interaction.channel.send(reply)

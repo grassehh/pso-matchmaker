@@ -3,6 +3,7 @@ const constants = require("../constants")
 const { handle } = require("../utils")
 const matchmakingService = require('../services/matchmakingService');
 const interactionUtils = require('../services/interactionUtils');
+const match = require("nodemon/lib/monitor/match");
 
 const ROLE_GOAL_KEEPER = 0
 const ROLE_ATTACKER = 1
@@ -180,21 +181,17 @@ exports.clearRoleFromLineup = async (channelId, roleName, selectedLineup = 1) =>
     )
 }
 
-exports.notifyChannelForUserLeaving = async (client, channelId, message) => {
+exports.notifyChannelForUserLeaving = async (client, user, channelId, messageContent) => {
     const [channel] = await handle(client.channels.fetch(channelId))
     if (channel) {
         const lineup = await this.retrieveLineup(channelId)
-        const components = interactionUtils.createLineupComponents(lineup)
-        const lineupQueue = await matchmakingService.findLineupQueueByChannelId(channelId)
-        if (lineupQueue && !matchmakingService.isLineupAllowedToJoinQueue(lineupQueue.lineup)) {
-            let challenge = await matchmakingService.findChallengeByLineupQueueId(lineupQueue._id)
-            if (!challenge) {
-                await matchmakingService.leaveQueue(client, lineupQueue)
-                message += `. Your team has been removed from the **${lineupQueue.lineup.size}v${lineupQueue.lineup.size}** queue !`
-            }
+
+        const autoSearchResult = await matchmakingService.checkIfAutoSearch(client, user, lineup)
+        if (autoSearchResult.leftQueue) {
+            messageContent += `. Your team has been removed from the **${lineup.size}v${lineup.size}** queue !`
         }
 
-        await channel.send({ content: message, components })
+        await channel.send({ content: messageContent })
     }
 }
 
