@@ -6,13 +6,13 @@ exports.DEFAULT_LEADERBOARD_PAGE_SIZE = 10
 
 function getLevelingRoleIdsFromStats(userStats) {
     let roles = []
-    if (userStats.numberOfGames > 50) {
+    if (userStats.numberOfGames >= 50) {
         roles.push(process.env.PSO_EU_DISCORD_CONFIRMED_ROLE_ID)
     }
-    if (userStats.numberOfGames > 250) {
+    if (userStats.numberOfGames >= 250) {
         roles.push(process.env.PSO_EU_DISCORD_ADVANCED_ROLE_ID)
     }
-    if (userStats.numberOfGames > 800) {
+    if (userStats.numberOfGames >= 800) {
         roles.push(process.env.PSO_EU_DISCORD_VETERAN_ROLE_ID)
     }
     return roles
@@ -143,8 +143,9 @@ exports.updateStats = async (interaction, guildId, lineupSize, users) => {
         const allElligibleStats = await findElligibleStatsForLevelling(notMercUsers.map(user => user.id))
 
         await Promise.all(allElligibleStats.map(async elligibleStats => {
-            const [psoEuGuild] = await handle(interaction.client.guilds.fetch(process.env.PSO_EU_DISCORD_GUILD_ID))
-            if (!psoEuGuild) {
+            const [psoEuGuild, error] = await handle(interaction.client.guilds.fetch(process.env.PSO_EU_DISCORD_GUILD_ID))
+            if (error) {
+                console.log('Could not fetch PSO EU guild:', error)
                 return
             }
             const levelingRoleIds = getLevelingRoleIdsFromStats(elligibleStats)
