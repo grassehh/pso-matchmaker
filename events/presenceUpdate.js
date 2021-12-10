@@ -14,7 +14,7 @@ module.exports = {
 				if (result.modifiedCount > 0) {
 					await matchmakingService.removeUserFromAllLineupQueues(userId)
 					await Promise.all(channelIds.map(async channelId => {
-						await teamService.notifyChannelForUserLeaving(newPresence.client, channelId, `⚠ Player ${newPresence.user} went offline and has been removed from the lineup`)
+						await teamService.notifyChannelForUserLeaving(newPresence.client, newPresence.user, channelId, `⚠ Player ${newPresence.user} went offline and has been removed from the lineup`)
 					}))
 				}
 			}

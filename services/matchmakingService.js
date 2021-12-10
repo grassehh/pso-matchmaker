@@ -118,7 +118,7 @@ exports.clearLineups = async (channelIds) => {
     await Lineup.updateMany({ 'channelId': { $in: channelIds } }, { "$set": { "roles.$[].user": null } })
 }
 
-exports.joinQueue = async (interaction, lineup) => {
+exports.joinQueue = async (client, user, lineup) => {
     const lineupQueue = new LineupQueue({ lineup })
     const channelIds = await teamService.findAllChannelIdToNotify(lineup.team.region, lineup.channelId, lineup.size)
 
@@ -127,7 +127,7 @@ exports.joinQueue = async (interaction, lineup) => {
             .setColor('#0099ff')
             .setTitle(`A Team has joined the queue for ${lineup.size}v${lineup.size}`)
             .setTimestamp()
-            .setFooter(`Author: ${interaction.user.username}`)
+            .setFooter(`Author: ${user.username}`)
         let lineupFieldValue = lineup.roles.filter(role => role.user != null).length + ' players signed'
         if (!teamService.hasGkSigned(lineupQueue.lineup)) {
             lineupFieldValue += ' **(no gk)**'
@@ -141,7 +141,7 @@ exports.joinQueue = async (interaction, lineup) => {
                 .setEmoji('⚽')
                 .setStyle('PRIMARY')
         )
-        const channel = await interaction.client.channels.fetch(channelId)
+        const channel = await client.channels.fetch(channelId)
         const [message] = await handle(channel.send({ embeds: [teamEmbed], components: [challengeTeamRow] }))
         return message ? { channelId: message.channelId, messageId: message.id } : null
     }))
@@ -163,20 +163,20 @@ exports.leaveQueue = async (client, lineupQueue) => {
         .finally(() => this.deleteLineupQueueByChannelId(lineupQueue.lineup.channelId))
 }
 
-exports.checkIfAutoSearch = async (interaction, lineup) => {
-    let lineupQueue = await this.findLineupQueueByChannelId(interaction.channelId)
+exports.checkIfAutoSearch = async (client, user, lineup) => {
+    let lineupQueue = await this.findLineupQueueByChannelId(lineup.channelId)
     let autoSearchResult = { joinedQueue: false, leftQueue: false, updatedLineupQueue: lineupQueue }
 
     if (!lineup.isMix) {
         if (lineup.autoSearch === true && isLineupAllowedToJoinQueue(lineup)) {
             if (!lineupQueue) {
-                autoSearchResult.updatedLineupQueue = await this.joinQueue(interaction, lineup)
+                autoSearchResult.updatedLineupQueue = await this.joinQueue(client, user, lineup)
                 autoSearchResult.joinedQueue = true
             }
         } else if (!isLineupAllowedToJoinQueue(lineup) && lineupQueue) {
-            let challenge = await this.findChallengeByGuildId(interaction.guildId)
+            let challenge = await this.findChallengeByGuildId(lineup.team.guildId)
             if (!challenge) {
-                await this.leaveQueue(interaction.client, lineupQueue)
+                await this.leaveQueue(client, lineupQueue)
                 autoSearchResult.updatedLineupQueue = null
                 autoSearchResult.leftQueue = true
             }
