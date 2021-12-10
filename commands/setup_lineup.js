@@ -39,9 +39,9 @@ module.exports = {
             return
         }
 
-        let currentQueuedLineup = await matchmakingService.findLineupQueueByChannelId(interaction.channelId)
-        if (currentQueuedLineup) {
-            await interactionUtils.replyAlreadyQueued(interaction, currentQueuedLineup.lineup.size)
+        let lineupQueue = await matchmakingService.findLineupQueueByChannelId(interaction.channelId)
+        if (lineupQueue) {
+            await interactionUtils.replyAlreadyQueued(interaction, lineupQueue.lineup.size)
             return
         }
 
@@ -54,10 +54,13 @@ module.exports = {
             return
         }
 
-        let lineupSize = interaction.options.getInteger("size")
-        let autoSearch = interaction.options.getBoolean("auto_search")
-        let lineup = teamService.createLineup(interaction.channelId, lineupSize, lineupName, autoSearch, team)
+        const lineupSize = interaction.options.getInteger("size")
+        const autoSearch = interaction.options.getBoolean("auto_search")
+        let lineup = teamService.createLineup(interaction.channelId, lineupSize, lineupName, autoSearch, team, false, teamService.LINEUP_VISIBILITY_PUBLIC)
         await teamService.upsertLineup(lineup)
-        await interaction.reply({ content: `✅ New lineup has now a size of ${lineupSize}. Auto-search is ${autoSearch ? '**enabled**' : '*disabled*'}`, components: interactionUtils.createLineupComponents(lineup) });
+
+        let reply = await interactionUtils.createReplyForLineup(interaction, lineup, lineupQueue)
+        reply.content = `✅ New lineup configured`
+        await interaction.reply(reply);
     }
 };

@@ -26,22 +26,25 @@ const RB = { name: 'RB', type: ROLE_DEFENDER }
 
 const DEFAULT_PLAYER_ROLES = new Map([
     [1, [CF]],
-    [2, [GK, CF]],
-    [3, [GK, LM, RM]],
-    [4, [GK, CF, LB, RB]],
-    [5, [GK, CF, LB, CB, RB]],
-    [6, [GK, LW, RW, CM, LB, RB]],
-    [7, [GK, LW, RW, CM, LB, CB, RB]],
-    [8, [GK, LW, CF, RW, CM, LB, CB, RB]],
-    [9, [GK, LW, CF, RW, LCM, RCM, LB, CB, RB]],
-    [10, [GK, LW, CF, RW, LCM, RCM, LB, LCB, RCB, RB]],
-    [11, [GK, LW, CF, RW, LM, CM, RM, LB, LCB, RCB, RB]]
+    [2, [CF, GK]],
+    [3, [LM, RM, GK]],
+    [4, [CF, LB, RB, GK]],
+    [5, [CF, LB, CB, RB, GK]],
+    [6, [LW, RW, CM, LB, RB, GK]],
+    [7, [LW, RW, CM, LB, CB, RB, GK]],
+    [8, [LW, CF, RW, CM, LB, CB, RB, GK]],
+    [9, [LW, CF, RW, LCM, RCM, LB, CB, RB, GK]],
+    [10, [LW, CF, RW, LCM, RCM, LB, LCB, RCB, RB, GK]],
+    [11, [LW, CF, RW, LM, CM, RM, LB, LCB, RCB, RB, GK]]
 ])
 
 exports.ROLE_ATTACKER = ROLE_ATTACKER
 exports.ROLE_DEFENDER = ROLE_DEFENDER
 exports.ROLE_MIDFIELDER = ROLE_MIDFIELDER
 exports.ROLE_GOAL_KEEPER = ROLE_GOAL_KEEPER
+
+exports.LINEUP_VISIBILITY_TEAM = 'TEAM'
+exports.LINEUP_VISIBILITY_PUBLIC = 'PUBLIC'
 
 function removeSpecialCharacters(name) {
     return name.replace(/(:[^:]*:)|(<.*>)/ig, '')
@@ -60,6 +63,9 @@ exports.formatTeamName = (lineup, filterName) => {
     let name = lineup.team.name
     if (lineup.name) {
         name += ` *(${lineup.name})*`
+    }
+    if (lineup.isMix) {
+        name += ' (*mix*)'
     }
 
     return filterName ? removeSpecialCharacters(name) : name
@@ -92,7 +98,20 @@ exports.upsertLineup = async (lineup) => {
 }
 
 exports.clearLineup = async (channelId) => {
-    return await Lineup.findOneAndUpdate({ channelId }, { "$set": { "roles.$[].user": null } }, { new: true })
+    return await Lineup.findOneAndUpdate(
+        {
+            channelId
+        },
+        {
+            "$set": {
+                "roles.$[i].user": null
+            }
+        },
+        {
+            arrayFilters: [{ "i.lineupNumber": 1 }],
+            new: true
+        }
+    )
 }
 
 exports.clearLineups = async (channelIds) => {
@@ -124,15 +143,41 @@ exports.removeUserFromLineupsByChannelIds = async (userId, channelIds) => {
 }
 
 exports.removeUserFromLineup = async (channelId, userId) => {
-    return await Lineup.findOneAndUpdate({ channelId, 'roles.user.id': userId }, { "$set": { "roles.$.user": null } }, { new: true })
+    return await Lineup.findOneAndUpdate({ channelId, 'roles.user.id': userId, }, { "$set": { "roles.$.user": null } }, { new: true })
 }
 
-exports.addUserToLineup = async (channelId, roleName, user) => {
-    return await Lineup.findOneAndUpdate({ channelId, 'roles.name': roleName }, { "$set": { "roles.$.user": user } }, { new: true })
+exports.addUserToLineup = async (channelId, roleName, user, selectedLineup = 1) => {
+    return await Lineup.findOneAndUpdate(
+        {
+            channelId
+        },
+        {
+            "$set": {
+                "roles.$[i].user": user
+            }
+        },
+        {
+            arrayFilters: [{ "i.lineupNumber": selectedLineup, "i.name": roleName }],
+            new: true
+        }
+    )
 }
 
-exports.clearRoleFromLineup = async (channelId, roleName) => {
-    return await Lineup.findOneAndUpdate({ channelId, 'roles.name': roleName }, { "$set": { "roles.$.user": null } }, { new: true })
+exports.clearRoleFromLineup = async (channelId, roleName, selectedLineup = 1) => {
+    return await Lineup.findOneAndUpdate(
+        {
+            channelId
+        },
+        {
+            "$set": {
+                "roles.$[i].user": null
+            }
+        },
+        {
+            arrayFilters: [{ "i.lineupNumber": selectedLineup, "i.name": roleName }],
+            new: true
+        }
+    )
 }
 
 exports.notifyChannelForUserLeaving = async (client, channelId, message) => {
@@ -211,6 +256,7 @@ exports.findAllChannelIdToNotify = async (region, channelId, lineupSize) => {
         {
             $match: {
                 'team.region': region,
+                isMix: false,
                 channelId: { $ne: channelId },
                 size: lineupSize
             }
@@ -232,13 +278,22 @@ exports.findAllChannelIdToNotify = async (region, channelId, lineupSize) => {
     return []
 }
 
-exports.createLineup = (channelId, size, name, autoSearch, team) => {
-    return {
+exports.createLineup = (channelId, size, name, autoSearch, team, isMix = false, visibility) => {
+    let roles = DEFAULT_PLAYER_ROLES.get(size).map(obj => ({ ...obj, lineupNumber: 1 }))
+    if (isMix) {
+        roles = roles.concat(DEFAULT_PLAYER_ROLES.get(size).map(obj => ({ ...obj, lineupNumber: 2 })))
+    }
+    let lineup = new Lineup({
         channelId,
         size,
-        roles: DEFAULT_PLAYER_ROLES.get(size),
+        roles,
         name,
         autoSearch,
-        team
-    }
+        team,
+        isMix,
+        visibility
+    }).toObject()
+    delete lineup._id
+
+    return lineup
 }

@@ -49,127 +49,53 @@ exports.createCancelChallengeReply = (interaction, challenge) => {
                 .setLabel(`Cancel Request`)
                 .setStyle('DANGER')
         )
-    return { content: `💬 ${interaction.user} has sent a challenge request to the team '${teamService.formatTeamName(challenge.challengedTeam.lineup)}'. You can either wait for their answer, or cancel your request.`, components: [cancelChallengeRow] }
+
+    let message
+    if (challenge.challengedTeam.lineup.isMix) {
+        message = `💬 ${interaction.user} is challenging the mix '${teamService.formatTeamName(challenge.challengedTeam.lineup)}'. The match will start automatically once the mix lineup is full.`
+    } else {
+        message = `💬 ${interaction.user} has sent a challenge request to the team '${teamService.formatTeamName(challenge.challengedTeam.lineup)}'. You can either wait for their answer, or cancel your request.`
+    }
+    return { content: message, components: [cancelChallengeRow] }
 }
 
 exports.createDecideChallengeReply = (interaction, challenge) => {
-    const challengeEmbed = new MessageEmbed()
-        .setColor('#0099ff')
-        .setTitle(`Team '${teamService.formatTeamName(challenge.initiatingTeam.lineup)}' is challenging you for a ${challenge.initiatingTeam.lineup.size}v${challenge.initiatingTeam.lineup.size} match !`)
-        .setDescription(`Contact ${challenge.initiatingUser.mention} if you want to arrange further.`)
-        .setTimestamp()
-        .setFooter(`Author: ${interaction.user.username}`)
-    let challengeActionRow = new MessageActionRow()
-        .addComponents(
-            new MessageButton()
-                .setCustomId(`accept_challenge_${challenge.id}`)
-                .setLabel(`Accept`)
-                .setStyle('SUCCESS'),
-            new MessageButton()
-                .setCustomId(`refuse_challenge_${challenge.id}`)
-                .setLabel(`Refuse`)
-                .setStyle('DANGER')
-        )
-    return { embeds: [challengeEmbed], components: [challengeActionRow] }
+
+    if (challenge.challengedTeam.lineup.isMix) {
+        return createReplyForMixLineup(interaction, challenge.challengedTeam.lineup, challenge.initiatingTeam.lineup)
+    } else {
+        const challengeEmbed = new MessageEmbed()
+            .setColor('#0099ff')
+            .setTitle(`Team '${teamService.formatTeamName(challenge.initiatingTeam.lineup)}' is challenging you for a ${challenge.initiatingTeam.lineup.size}v${challenge.initiatingTeam.lineup.size} match !`)
+            .setDescription(`Contact ${challenge.initiatingUser.mention} if you want to arrange further.`)
+            .setTimestamp()
+            .setFooter(`Author: ${interaction.user.username}`)
+        let challengeActionRow = new MessageActionRow()
+            .addComponents(
+                new MessageButton()
+                    .setCustomId(`accept_challenge_${challenge.id}`)
+                    .setLabel(`Accept`)
+                    .setStyle('SUCCESS'),
+                new MessageButton()
+                    .setCustomId(`refuse_challenge_${challenge.id}`)
+                    .setLabel(`Refuse`)
+                    .setStyle('DANGER')
+            )
+        return { embeds: [challengeEmbed], components: [challengeActionRow] }
+    }
 }
 
-exports.createLineupComponents = (lineup, lineupQueue) => {
-
-    let components = []
-
-    const gkActionRow = new MessageActionRow()
-    const midfieldersActionRow = new MessageActionRow()
-    const attackersActionRow = new MessageActionRow()
-    const defendersActionRow = new MessageActionRow()
-
-    for (role of lineup.roles) {
-        let actionRow
-        switch (role.type) {
-            case teamService.ROLE_GOAL_KEEPER: {
-                actionRow = gkActionRow
-                break
-            }
-            case teamService.ROLE_ATTACKER: {
-                actionRow = attackersActionRow
-                break
-            }
-            case teamService.ROLE_MIDFIELDER: {
-                actionRow = midfieldersActionRow
-                break
-            }
-            case teamService.ROLE_DEFENDER: {
-                actionRow = defendersActionRow
-                break
-            }
+exports.createReplyForLineup = async (interaction, lineup, lineupQueue) => {
+    if (lineup.isMix) {
+        const challenge = await matchmakingService.findChallengeByChannelId(interaction.channelId)
+        let challengingLineup
+        if (challenge) {
+            challengingLineup = await teamService.retrieveLineup(challenge.initiatingTeam.lineup.channelId)
         }
-
-        let playerName = role.user ? role.user.name.substring(0, 60) : null
-        actionRow.addComponents(
-            new MessageButton()
-                .setCustomId(`role_${role.name}`)
-                .setLabel(role.user == null ? role.name : `${role.name}: ${playerName}`)
-                .setStyle('PRIMARY')
-                .setDisabled(role.user != null)
-        )
+        return createReplyForMixLineup(interaction, lineup, challengingLineup)
     }
 
-    if (attackersActionRow.components.length > 0) {
-        components.push(attackersActionRow)
-    }
-    if (midfieldersActionRow.components.length > 0) {
-        components.push(midfieldersActionRow)
-    }
-    if (defendersActionRow.components.length > 0) {
-        components.push(defendersActionRow)
-    }
-    if (gkActionRow.components.length > 0) {
-        components.push(gkActionRow)
-    }
-
-    const lineupActionsRow = new MessageActionRow()
-    if (lineupQueue) {
-        lineupActionsRow.addComponents(
-            new MessageButton()
-                .setCustomId(`stopSearch`)
-                .setLabel(`Stop search`)
-                .setStyle('DANGER')
-        )
-    } else {
-        lineupActionsRow.addComponents(
-            new MessageButton()
-                .setCustomId(`startSearch`)
-                .setLabel('Search')
-                .setDisabled(!matchmakingService.isLineupAllowedToJoinQueue(lineup))
-                .setStyle('SUCCESS')
-        )
-    }
-
-    lineupActionsRow.addComponents(
-        new MessageButton()
-            .setCustomId(`leaveLineup`)
-            .setLabel(`Leave`)
-            .setStyle('DANGER')
-    )
-
-    const numberOfSignedPlayers = lineup.roles.filter(role => role.user != null).length
-    const numberOfMissingPlayers = lineup.size - numberOfSignedPlayers
-    lineupActionsRow.addComponents(
-        new MessageButton()
-            .setCustomId(`clearRole`)
-            .setLabel("Clear a position")
-            .setDisabled(numberOfSignedPlayers === 0)
-            .setStyle('SECONDARY')
-    )
-    lineupActionsRow.addComponents(
-        new MessageButton()
-            .setCustomId(`addMerc`)
-            .setLabel('Sign another player')
-            .setDisabled(numberOfMissingPlayers === 0)
-            .setStyle('SECONDARY')
-    )
-    components.push(lineupActionsRow)
-
-    return components
+    return createReplyForTeamLineup(lineup, lineupQueue)
 }
 
 exports.replyNotAllowed = async (interaction) => {
@@ -270,19 +196,33 @@ exports.createLeaderBoardPaginationComponent = (searchOptions = {}, numberOfPage
     return paginationActionsRow
 }
 
-exports.createLineupEmbedForNextMatch = async (interaction, lineup, opponentLineup, lobbyName, lobbyPassword) => {
+exports.createLineupEmbedsForNextMatch = async (interaction, lineup, opponentLineup, lobbyName, lobbyPassword) => {
+    const lineupEmbedsForNextMatch = []
+    const firstLineupTeamName = opponentLineup ? teamService.formatTeamName(opponentLineup) : teamService.formatTeamName(lineup) + ' (#2)'
+    const firstLineupEmbed = await createLineupEmbed(interaction, lineup.roles.filter(role => role.lineupNumber === 1), firstLineupTeamName, lobbyName, lobbyPassword)
+    lineupEmbedsForNextMatch.push(firstLineupEmbed)
+
+    if (!opponentLineup && lineup.isMix) {
+        const secondLineupTeamName = teamService.formatTeamName(lineup) + ' (#1)'
+        const secondLineupEmbed = await createLineupEmbed(interaction, lineup.roles.filter(role => role.lineupNumber === 2), secondLineupTeamName, lobbyName, lobbyPassword)
+        lineupEmbedsForNextMatch.push(secondLineupEmbed)
+    }
+
+    return lineupEmbedsForNextMatch
+}
+
+async function createLineupEmbed(interaction, roles, opponentTeamName, lobbyName, lobbyPassword) {
     let lineupEmbed = new MessageEmbed()
-        .setColor('#0099ff')
-        .setTitle(`Match lineup against the Team '${teamService.formatTeamName(opponentLineup)}'`)
+        .setColor('#6aa84f')
+        .setTitle(`Match lineup against '${opponentTeamName}'`)
         .setTimestamp()
         .setFooter(`Author: ${interaction.user.username}`)
-
-    let promises = lineup.roles.map(async (role) => {
+    let promisesForFirstLineup = roles.map(async (role) => {
         if (!role.user) {
-            return { role, playerName: '*empty*' }
+            return { role, playerName: '\u200b' }
         }
 
-        let playerName = `**${role.user.name}**`
+        let playerName = `${role.user.name}`
         let [discordUser] = await handle(interaction.client.users.fetch(role.user.id))
         if (discordUser) {
             let channelIds = await teamService.findAllLineupChannelIdsByUserId(role.user.id)
@@ -296,7 +236,7 @@ exports.createLineupEmbedForNextMatch = async (interaction, lineup, opponentLine
             let playerDmEmbed = new MessageEmbed()
                 .setColor('#6aa84f')
                 .setTitle(`⚽ PSO Match ready ⚽`)
-                .setDescription(`Your are playing **${role.name}** against the team **${teamService.formatTeamName(opponentLineup)}**`)
+                .setDescription(`Your are playing **${role.name}** against **${opponentTeamName}**`)
                 .addField('Lobby name', `**${lobbyName}**`, true)
                 .addField('Lobby password', `**${lobbyPassword}**`, true)
                 .setTimestamp()
@@ -307,13 +247,12 @@ exports.createLineupEmbedForNextMatch = async (interaction, lineup, opponentLine
         return { role, playerName }
     })
 
-    const rolesWithPlayer = await Promise.all(promises)
-
-    let i = 1
-    for (let roleWithPlayer of rolesWithPlayer) {
-        lineupEmbed.addField(roleWithPlayer.role.name, roleWithPlayer.playerName.toString(), i % 4 !== 0)
-        i++
-    }
+    const rolesWithPlayer = await Promise.all(promisesForFirstLineup)
+    let description = ''
+    rolesWithPlayer.map(roleWithPlayer => {
+        description += `**${roleWithPlayer.role.name}:** ${roleWithPlayer.playerName}\n`
+    })
+    lineupEmbed.setDescription(description)
 
     return lineupEmbed
 }
@@ -399,8 +338,8 @@ exports.challenge = async (interaction, lineupQueueIdToChallenge) => {
         return
     }
 
-    if (!matchmakingService.isUserAllowedToInteractWithMathmaking(interaction.user.id, lineup)) {
-        await interaction.reply(`⛔ You must be in the lineup in order to challenge a team`)
+    if (!matchmakingService.isUserAllowedToInteractWithMatchmaking(interaction.user.id, lineup)) {
+        await interaction.reply({ content: `⛔ You must be in the lineup in order to challenge a team`, ephemeral: true })
         return
     }
 
@@ -428,7 +367,7 @@ exports.challenge = async (interaction, lineupQueueIdToChallenge) => {
         challengedTeam: lineupQueueToChallenge
     })
 
-    let challengedTeamUsers = lineupQueueToChallenge.lineup.roles.map(role => role.user).filter(user => user)
+    let challengedTeamUsers = lineupQueueToChallenge.lineup.roles.filter(role => role.lineupNumber === 1).map(role => role.user).filter(user => user)
     let initiatingTeamUsers = lineupQueue.lineup.roles.map(role => role.user).filter(user => user)
     let duplicatedUsers = challengedTeamUsers.filter((user, index, self) =>
         user.id !== MERC_USER_ID &&
@@ -464,7 +403,188 @@ exports.challenge = async (interaction, lineupQueueIdToChallenge) => {
     let initiatingMessage = await interaction.channel.send(this.createCancelChallengeReply(interaction, challenge))
     challenge.initiatingMessageId = initiatingMessage.id
 
-    challenge.save()
+    await challenge.save()
 
     await interaction.deferUpdate()
+
+    if (await matchmakingService.isMixAndReadyToStart(lineupQueueToChallenge.lineup)) {
+        const challenge = await matchmakingService.findChallengeByChannelId(interaction.channelId)
+        await matchmakingService.readyMatch(interaction, challenge, lineup)
+        return
+    }
+}
+
+exports.createLineupComponents = createLineupComponents
+
+function createLineupComponents(lineup, lineupQueue, selectedLineupNumber = 1) {
+    components = createRolesComponent(lineup, selectedLineupNumber)
+
+    const lineupActionsRow = new MessageActionRow()
+    if (!lineup.isMix) {
+        if (lineupQueue) {
+            lineupActionsRow.addComponents(
+                new MessageButton()
+                    .setCustomId(`stopSearch`)
+                    .setLabel(`Stop search`)
+                    .setStyle('DANGER')
+            )
+        } else {
+            lineupActionsRow.addComponents(
+                new MessageButton()
+                    .setCustomId(`startSearch`)
+                    .setLabel('Search')
+                    .setDisabled(!matchmakingService.isLineupAllowedToJoinQueue(lineup))
+                    .setStyle('SUCCESS')
+            )
+        }
+
+        lineupActionsRow.addComponents(
+            new MessageButton()
+                .setCustomId(`leaveLineup`)
+                .setLabel(`Leave`)
+                .setStyle('DANGER')
+        )
+    }
+
+    const numberOfSignedPlayers = lineup.roles.filter(role => role.lineupNumber === selectedLineupNumber).filter(role => role.user != null).length
+    const numberOfMissingPlayers = lineup.size - numberOfSignedPlayers
+    lineupActionsRow.addComponents(
+        new MessageButton()
+            .setCustomId(`clearRole_${selectedLineupNumber}`)
+            .setLabel("Clear a position")
+            .setDisabled(numberOfSignedPlayers === 0)
+            .setStyle('SECONDARY')
+    )
+    lineupActionsRow.addComponents(
+        new MessageButton()
+            .setCustomId(`addMerc_${selectedLineupNumber}`)
+            .setLabel('Sign another player')
+            .setDisabled(numberOfMissingPlayers === 0)
+            .setStyle('SECONDARY')
+    )
+    components.push(lineupActionsRow)
+
+    return components
+}
+
+function createRolesComponent(lineup, selectedLineupNumber = 1) {
+    let components = []
+
+    const gkActionRow = new MessageActionRow()
+    const midfieldersActionRow = new MessageActionRow()
+    const attackersActionRow = new MessageActionRow()
+    const defendersActionRow = new MessageActionRow()
+
+    const roles = lineup.roles.filter(role => role.lineupNumber === selectedLineupNumber)
+    for (let role of roles) {
+        let actionRow
+        switch (role.type) {
+            case teamService.ROLE_GOAL_KEEPER: {
+                actionRow = gkActionRow
+                break
+            }
+            case teamService.ROLE_ATTACKER: {
+                actionRow = attackersActionRow
+                break
+            }
+            case teamService.ROLE_MIDFIELDER: {
+                actionRow = midfieldersActionRow
+                break
+            }
+            case teamService.ROLE_DEFENDER: {
+                actionRow = defendersActionRow
+                break
+            }
+        }
+
+        let playerName = role.user ? role.user.name.substring(0, 60) : null
+        actionRow.addComponents(
+            new MessageButton()
+                .setCustomId(`role_${role.name}${selectedLineupNumber ? `_${selectedLineupNumber}` : ''}`)
+                .setLabel(role.user == null ? role.name : `${role.name}: ${playerName}`)
+                .setStyle('PRIMARY')
+                .setDisabled(role.user != null)
+        )
+    }
+
+    if (attackersActionRow.components.length > 0) {
+        components.push(attackersActionRow)
+    }
+    if (midfieldersActionRow.components.length > 0) {
+        components.push(midfieldersActionRow)
+    }
+    if (defendersActionRow.components.length > 0) {
+        components.push(defendersActionRow)
+    }
+    if (gkActionRow.components.length > 0) {
+        components.push(gkActionRow)
+    }
+
+    return components
+}
+
+function createReplyForTeamLineup(lineup, lineupQueue) {
+    return { components: createLineupComponents(lineup, lineupQueue) }
+}
+
+function createReplyForMixLineup(interaction, lineup, challengingLineup) {
+    let firstLineupEmbed = new MessageEmbed()
+        .setColor('#0099ff')
+        .setTitle(`Team #1`)
+        .setTimestamp()
+        .setFooter(`Author: ${interaction.user.username}`)
+    fillLineupEmbedWithRoles(firstLineupEmbed, lineup.roles.filter(role => role.lineupNumber === 1))
+
+    let secondLineupEmbed
+    if (challengingLineup) {
+        secondLineupEmbed = new MessageEmbed()
+            .setColor('#0099ff')
+            .setTitle(`VS`)
+            .setTimestamp()
+            .setFooter(`Author: ${interaction.user.username}`)
+        let fieldValue = challengingLineup.roles.filter(role => role.user != null).length + ' players signed'
+        if (!teamService.hasGkSigned(challengingLineup)) {
+            fieldValue += ' **(no gk)**'
+        }
+        secondLineupEmbed.addField(teamService.formatTeamName(challengingLineup, false), fieldValue)
+    } else {
+        secondLineupEmbed = new MessageEmbed()
+            .setColor('#0099ff')
+            .setTitle(`Team #2`)
+            .setTimestamp()
+            .setFooter(`Author: ${interaction.user.username}`)
+        fillLineupEmbedWithRoles(secondLineupEmbed, lineup.roles.filter(role => role.lineupNumber === 2))
+    }
+
+    const selectTeamComponentOptions = [{ label: 'Team #1', value: '1' }]
+    if (!challengingLineup) {
+        selectTeamComponentOptions.push({ label: 'Team #2', value: '2' })
+    }
+    const selectTeamComponent = new MessageActionRow().addComponents(
+        new MessageSelectMenu()
+            .setCustomId(`mix_lineup_select`)
+            .setPlaceholder('Select lineup')
+            .addOptions(selectTeamComponentOptions))
+
+    const lineupActionsComponent = new MessageActionRow().addComponents(
+        new MessageButton()
+            .setCustomId(`leaveLineup`)
+            .setLabel(`Leave`)
+            .setStyle('DANGER'))
+
+    return { embeds: [firstLineupEmbed, secondLineupEmbed], components: [selectTeamComponent, lineupActionsComponent] }
+}
+
+function fillLineupEmbedWithRoles(lineupEmbed, roles) {
+    let description = ''
+    roles.map(role => {
+        let playerName
+        if (role.user) {
+            playerName = `${role.user.name}`
+        } else {
+            playerName = '\u200b'
+        }
+        description += `**${role.name}:** ${playerName}\n`
+    })
+    lineupEmbed.setDescription(description)
 }

@@ -21,27 +21,37 @@ module.exports = {
             return
         }
 
-        const lineupStatusEmbed = new MessageEmbed()
-            .setColor('#0099ff')
-            .setTimestamp()
-            .setFooter(`Author: ${interaction.user.username}`)
-            .addField('Lineup size', `${lineup.size}v${lineup.size}`, true)
-            .addField('Lineup name', lineup.name ? lineup.name : '*none*', true)
-            .addField('Auto-search', `${lineup.autoSearch ? '**enabled**' : '*disabled*'}`, true)
+        const lineupQueue = await matchmakingService.findLineupQueueByChannelId(interaction.channelId)
+        let reply = await interactionUtils.createReplyForLineup(interaction, lineup, lineupQueue)
 
-        let challenge = await matchmakingService.findChallengeByChannelId(interaction.channelId)
-        if (challenge) {
-            lineupStatusEmbed.setTitle(`💬 Your lineup is negotiating a challenge ...`)
-        } else {
-            let lineupQueue = await matchmakingService.findLineupQueueByChannelId(lineup.channelId)
-            if (lineupQueue) {
-                lineupStatusEmbed.setTitle("🔎 Your lineup is searching for a Team ...")
+        if (!lineup.isMix) {
+            const challenge = await matchmakingService.findChallengeByChannelId(interaction.channelId)
+            let lineupStatusEmbed = new MessageEmbed()
+                .setColor('#0099ff')
+                .setTimestamp()
+                .setFooter(`Author: ${interaction.user.username}`)
+                .addField('Lineup size', `${lineup.size}v${lineup.size}`, true)
+                .addField('Lineup name', lineup.name ? lineup.name : '*none*', true)
+                .addField('Auto-search', `${lineup.autoSearch ? '**enabled**' : '*disabled*'}`, true)
+
+            if (challenge) {
+                if (challenge.challengedTeam.lineup.isMix) {
+                    lineupStatusEmbed.setTitle(`💬 Your lineup is challenging the mix ${teamService.formatTeamName(challenge.challengedTeam.lineup)}`)
+                } else {
+                    lineupStatusEmbed.setTitle(`💬 Your lineup has sent a challenge request to ${teamService.formatTeamName(challenge.challengedTeam.lineup)}`)
+                }
             } else {
-                lineupStatusEmbed.setTitle("Your lineup is not searching for a Team")
+
+                if (lineupQueue) {
+                    lineupStatusEmbed.setTitle("🔎 Your lineup is searching for a Team ...")
+                } else {
+                    lineupStatusEmbed.setTitle("Your lineup is not searching for a Team")
+                }
             }
+            reply.embeds = [lineupStatusEmbed]
+
         }
 
-        const lineupQueue = await matchmakingService.findLineupQueueByChannelId(interaction.channelId)
-        await interaction.reply({ embeds: [lineupStatusEmbed], components: interactionUtils.createLineupComponents(lineup, lineupQueue) })
-    },
+        await interaction.reply(reply)
+    }
 };

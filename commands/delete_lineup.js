@@ -21,12 +21,13 @@ module.exports = {
             return
         }
 
-        let currentQueuedLineup = await matchmakingService.findLineupQueueByChannelId(interaction.channelId)
-        if (currentQueuedLineup) {
-            await interactionUtils.replyAlreadyQueued(interaction, currentQueuedLineup.lineup.size)
+        let challenge = await matchmakingService.findChallengeByChannelId(interaction.channelId)
+        if (challenge) {
+            await interactionUtils.replyAlreadyChallenging(interaction, challenge)
             return
         }
 
+        await matchmakingService.deleteLineupQueueByChannelId(interaction.channelId)
         await teamService.deleteLineup(interaction.channelId)
         await interaction.reply('✅ Lineup deleted from this channel');
     },
