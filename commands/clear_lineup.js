@@ -32,7 +32,7 @@ module.exports = {
             return
         }
 
-        lineup = await teamService.clearLineup(interaction.channelId)
+        lineup = await teamService.clearLineup(interaction.channelId, [1, 2])
         await matchmakingService.clearLineupQueue(interaction.channelId, [1, 2])
         let reply = await interactionUtils.createReplyForLineup(interaction, lineup, lineupQueue)
         reply.content = `✅ Lineup has been cleared !`

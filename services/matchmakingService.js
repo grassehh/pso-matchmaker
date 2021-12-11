@@ -4,6 +4,7 @@ const teamService = require("../services/teamService");
 const statsService = require("../services/statsService");
 const interactionUtils = require("../services/interactionUtils");
 const { handle } = require("../utils");
+const { MERC_USER_ID } = require("../constants");
 
 exports.findLineupQueueByChannelId = async (channelId) => {
     return await LineupQueue.findOne({ 'lineup.channelId': channelId })
@@ -23,6 +24,10 @@ exports.freeLineupQueuesByIds = async (ids) => {
 
 exports.freeLineupQueuesById = async (id) => {
     await LineupQueue.updateOne({ '_id': id }, { reserved: false })
+}
+
+exports.freeLineupQueuesByChannelIds = async (channelIds) => {
+    await LineupQueue.updateMany({ 'lineup.channelId': { $in: channelIds } }, { reserved: false })
 }
 
 exports.deleteLineupQueuesByGuildId = async (guildId) => {
@@ -47,10 +52,6 @@ exports.findAvailableLineupQueues = async (region, channelId, lineupSize, visibi
 
 exports.findChallengeById = async (id) => {
     return await Challenge.findById(id)
-}
-
-exports.findChallengeByLineupQueueId = async (lineupQueueId) => {
-    return await Challenge.findOne({ $or: [{ 'initiatingTeam._id': lineupQueueId }, { 'challengedTeam._id': lineupQueueId }] })
 }
 
 exports.findChallengeByGuildId = async (guildId) => {
@@ -214,7 +215,6 @@ exports.isMixAndReadyToStart = async (lineup) => {
 }
 
 exports.readyMatch = async (interaction, challenge, mixLineup) => {
-
     let firstResponsibleUser = await interaction.client.users.fetch(challenge ? challenge.initiatingUser.id : interaction.user)
     let lobbyCreationEmbedFieldValue = `${firstResponsibleUser} is responsible of creating the lobby`
     if (challenge) {
@@ -251,14 +251,20 @@ exports.readyMatch = async (interaction, challenge, mixLineup) => {
             resolve()
         }))
         promises.push(new Promise(async (resolve, reject) => {
-            const newChallengedTeamLineup = await teamService.clearLineup(challengedTeamLineup.channelId)
             let lineupForNextMatchEmbeds = await interactionUtils.createLineupEmbedsForNextMatch(interaction, challengedTeamLineup, initiatingTeamLineup, lobbyName, lobbyPassword)
+            let rolesInFirstLineup = challengedTeamLineup.roles.filter(role => role.lineupNumber === 1)
+            let rolesInSecondLineup = challengedTeamLineup.roles.filter(role => role.lineupNumber === 2)            
+            rolesInFirstLineup.forEach(role => { role.user = null; role.lineupNumber = 2 })
+            rolesInSecondLineup.forEach(role => role.lineupNumber = 1)
+            const newChallengedTeamLineup = await teamService.updateLineupRoles(challengedTeamLineup.channelId, rolesInFirstLineup.concat(rolesInSecondLineup))
+
             const reply = await interactionUtils.createReplyForLineup(interaction, newChallengedTeamLineup)
             if (challengedTeamLineup.isMix) {
                 reply.embeds = [lobbyCreationEmbed].concat(lineupForNextMatchEmbeds).concat(reply.embeds)
                 let challengedTeamChannel = await interaction.client.channels.fetch(challenge.challengedTeam.lineup.channelId)
                 await challengedTeamChannel.send(reply)
-                await this.clearLineupQueue(challenge.challengedTeam.lineup.channelId)
+                await this.clearLineupQueue(challenge.challengedTeam.lineup.channelId, [1, 2])
+                await teamService.updateLineupRoles(challenge.challengedTeam.lineup.channelId, rolesInSecondLineup)
                 await this.freeLineupQueuesByIds([challenge.challengedTeam.id, challenge.initiatingTeam.id])
             } else {
                 reply.embeds = [lobbyCreationEmbed].concat(lineupForNextMatchEmbeds)
@@ -266,6 +272,7 @@ exports.readyMatch = async (interaction, challenge, mixLineup) => {
                 await interaction.message.edit({ components: [] })
                 await this.leaveQueue(interaction.client, challenge.challengedTeam)
             }
+
             await statsService.updateStats(interaction, challenge.challengedTeam.lineup.team.guildId, challenge.challengedTeam.lineup.size, challengedTeamUsers)
             resolve()
         }))

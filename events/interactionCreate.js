@@ -260,11 +260,13 @@ module.exports = {
                     await matchmakingService.freeLineupQueuesByIds([challenge.challengedTeam.id, challenge.initiatingTeam.id])
 
                     let challengedTeamChannel = await interaction.client.channels.fetch(challenge.challengedTeam.lineup.channelId)
-                    await challengedTeamChannel.messages.edit(challenge.challengedMessageId, { components: [] })
-                    await challengedTeamChannel.send(`❌ The team '${teamService.formatTeamName(challenge.initiatingTeam.lineup)}' has cancelled the challenge request`)
+                    if (!challenge.challengedTeam.lineup.isMix) {
+                        await challengedTeamChannel.messages.edit(challenge.challengedMessageId, { components: [] })
+                    }
+                    await challengedTeamChannel.send(`❌ **${teamService.formatTeamName(challenge.initiatingTeam.lineup)}** has cancelled the challenge request`)
 
                     await interaction.message.edit({ components: [] })
-                    await interaction.channel.send(`❌ ${interaction.user} have cancelled your challenge request for the team '${teamService.formatTeamName(challenge.challengedTeam.lineup)}'`)
+                    await interaction.channel.send(`❌ ${interaction.user} has cancelled your challenge request against **${teamService.formatTeamName(challenge.challengedTeam.lineup)}**`)
                     return
                 }
 
