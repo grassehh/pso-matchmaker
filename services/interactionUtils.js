@@ -326,7 +326,7 @@ exports.challenge = async (interaction, lineupQueueIdToChallenge) => {
         return
     }
 
-    challenge = await matchmakingService.findChallengeByLineupQueueId(lineupQueueIdToChallenge)
+    challenge = await matchmakingService.findChallengeByChannelId(lineupQueueToChallenge.lineup.channelId)
     if (challenge) {
         await interaction.reply({ content: "❌ This team is negociating a challenge", ephemeral: true })
         return
@@ -353,6 +353,15 @@ exports.challenge = async (interaction, lineupQueueIdToChallenge) => {
         return
     }
 
+    if (lineupQueueToChallenge.lineup.isMix) {
+        const allMixUsers = lineupQueueToChallenge.lineup.roles.map(role => role.user).filter(user => user)
+        const numberOfMissingPlayers = lineupQueueToChallenge.lineup.size*2 - allMixUsers.length
+        if (numberOfMissingPlayers <= 2) {
+            await interaction.reply({ content: 'This mix has too many players signed in both teams, you cannot challenge it right now', ephemeral: true })
+            return
+        }
+    }
+
     let lineupQueue = await matchmakingService.findLineupQueueByChannelId(interaction.channelId)
     if (!lineupQueue) {
         lineupQueue = new LineupQueue({ lineup })
@@ -371,7 +380,7 @@ exports.challenge = async (interaction, lineupQueueIdToChallenge) => {
     let initiatingTeamUsers = lineupQueue.lineup.roles.map(role => role.user).filter(user => user)
     let duplicatedUsers = challengedTeamUsers.filter((user, index, self) =>
         user.id !== MERC_USER_ID &&
-        index === initiatingTeamUsers.findIndex((t) => (
+        initiatingTeamUsers.some((t) => (
             t.id === user.id
         ))
     )

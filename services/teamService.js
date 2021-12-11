@@ -98,7 +98,7 @@ exports.upsertLineup = async (lineup) => {
     await Lineup.updateOne({ 'channelId': lineup.channelId }, lineup, { upsert: true })
 }
 
-exports.clearLineup = async (channelId) => {
+exports.clearLineup = async (channelId, lineupsToClear = [1]) => {
     return await Lineup.findOneAndUpdate(
         {
             channelId
@@ -109,7 +109,7 @@ exports.clearLineup = async (channelId) => {
             }
         },
         {
-            arrayFilters: [{ "i.lineupNumber": 1 }],
+            arrayFilters: [{ "i.lineupNumber": { $in: lineupsToClear } }],
             new: true
         }
     )
@@ -117,6 +117,10 @@ exports.clearLineup = async (channelId) => {
 
 exports.clearLineups = async (channelIds) => {
     await Lineup.updateMany({ 'channelId': { $in: channelIds } }, { "$set": { "roles.$[].user": null } })
+}
+
+exports.updateLineupRoles = async (channelId, roles) => {
+    return await Lineup.findOneAndUpdate({ channelId }, { roles }, { new: true })
 }
 
 exports.deleteTeam = async (guildId) => {
