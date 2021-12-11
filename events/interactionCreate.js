@@ -136,6 +136,7 @@ module.exports = {
                     }
 
                     lineup = await teamService.removeUserFromLineup(interaction.channelId, interaction.user.id)
+                    await matchmakingService.removeUserFromLineupQueue(interaction.channelId, interaction.user.id)
 
                     let messageContent = `Player ${interaction.user} left the **${roleLeft.name}** position`
 

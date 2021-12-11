@@ -143,15 +143,11 @@ exports.updateStats = async (interaction, guildId, lineupSize, users) => {
         const allElligibleStats = await findElligibleStatsForLevelling(notMercUsers.map(user => user.id))
 
         await Promise.all(allElligibleStats.map(async elligibleStats => {
-            const [psoEuGuild, error] = await handle(interaction.client.guilds.fetch(process.env.PSO_EU_DISCORD_GUILD_ID))
-            if (error) {
-                console.log('Could not fetch PSO EU guild:', error)
-                return
-            }
+            const [psoEuGuild] = await handle(interaction.client.guilds.fetch(process.env.PSO_EU_DISCORD_GUILD_ID))
             const levelingRoleIds = getLevelingRoleIdsFromStats(elligibleStats)
             const [member] = await handle(psoEuGuild.members.fetch(elligibleStats._id))
             if (member) {
-                handle(member.roles.add(levelingRoleIds))
+                await handle(member.roles.add(levelingRoleIds))
             }
         }))
     }
