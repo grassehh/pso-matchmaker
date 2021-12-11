@@ -22,7 +22,7 @@ module.exports = {
         }
 
         if (lineup.isMix) {
-            await interaction.reply({ content: '⛔ Mix lineups cannot see the list of challenges', ephemeal: true })
+            await interaction.reply({ content: '⛔ Mix lineups cannot see the list of challenges', ephemeral: true })
             return
         }
 
