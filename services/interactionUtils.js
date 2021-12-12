@@ -361,6 +361,10 @@ exports.challenge = async (interaction, lineupQueueIdToChallenge) => {
             return
         }
     }
+    
+    if (await matchmakingService.checkForDuplicatedPlayers(interaction, lineup, lineupQueueToChallenge.lineup)) {
+        return
+    }
 
     let lineupQueue = await matchmakingService.findLineupQueueByChannelId(interaction.channelId)
     if (!lineupQueue) {
@@ -375,34 +379,6 @@ exports.challenge = async (interaction, lineupQueueIdToChallenge) => {
         initiatingTeam: lineupQueue,
         challengedTeam: lineupQueueToChallenge
     })
-
-    let challengedTeamUsers = lineupQueueToChallenge.lineup.roles.filter(role => role.lineupNumber === 1).map(role => role.user).filter(user => user)
-    let initiatingTeamUsers = lineupQueue.lineup.roles.map(role => role.user).filter(user => user)
-    let duplicatedUsers = challengedTeamUsers.filter((user, index, self) =>
-        user.id !== MERC_USER_ID &&
-        initiatingTeamUsers.some((t) => (
-            t.id === user.id
-        ))
-    )
-    if (duplicatedUsers.length > 0) {
-        let description = 'The following players are signed in both teams. Please arrange with them before challenging: '
-        for (let duplicatedUser of duplicatedUsers) {
-            let discordUser = await interaction.client.users.fetch(duplicatedUser.id)
-            description += discordUser.toString() + ', '
-        }
-        description = description.substring(0, description.length - 2)
-
-        const duplicatedUsersEmbed = new MessageEmbed()
-            .setColor('#0099ff')
-            .setTitle(`⛔ Some players are signed in both teams !`)
-            .setDescription(description)
-            .setTimestamp()
-            .setFooter(`Author: ${interaction.user.username}`)
-
-        await interaction.channel.send({ embeds: [duplicatedUsersEmbed] })
-        await interaction.deferUpdate()
-        return
-    }
 
     let channel = await interaction.client.channels.fetch(challenge.challengedTeam.lineup.channelId)
     let challengedMessage = await channel.send(this.createDecideChallengeReply(interaction, challenge))

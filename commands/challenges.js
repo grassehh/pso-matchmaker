@@ -38,7 +38,7 @@ module.exports = {
             return
         }
 
-        let lineupQueues = await matchmakingService.findAvailableLineupQueues(team.region, lineup.channelId, lineup.size, lineup.visibility)
+        let lineupQueues = await matchmakingService.findAvailableLineupQueues(team.region, lineup.channelId, lineup.size, team.guildId)
         if (lineupQueues.length === 0) {
             await interaction.reply({
                 embeds: [
