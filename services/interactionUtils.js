@@ -4,7 +4,6 @@ const statsService = require("../services/statsService");
 const matchmakingService = require("../services/matchmakingService");
 const { Stats, LineupQueue, Challenge } = require("../mongoSchema");
 const { handle } = require("../utils");
-const { MERC_USER_ID } = require("../constants");
 
 exports.replyAlreadyQueued = async (interaction, lineupSize) => {
     await interaction.reply({
@@ -51,7 +50,7 @@ exports.createCancelChallengeReply = (interaction, challenge) => {
         )
 
     let message
-    if (challenge.challengedTeam.lineup.isMix) {
+    if (challenge.challengedTeam.lineup.isMix()) {
         message = `💬 ${interaction.user} is challenging the mix '${teamService.formatTeamName(challenge.challengedTeam.lineup)}'. The match will start automatically once the mix lineup is full.`
     } else {
         message = `💬 ${interaction.user} has sent a challenge request to the team '${teamService.formatTeamName(challenge.challengedTeam.lineup)}'. You can either wait for their answer, or cancel your request.`
@@ -61,7 +60,7 @@ exports.createCancelChallengeReply = (interaction, challenge) => {
 
 exports.createDecideChallengeReply = (interaction, challenge) => {
 
-    if (challenge.challengedTeam.lineup.isMix) {
+    if (challenge.challengedTeam.lineup.isMix()) {
         return createReplyForMixLineup(interaction, challenge.challengedTeam.lineup, challenge.initiatingTeam.lineup)
     } else {
         const challengeEmbed = new MessageEmbed()
@@ -86,7 +85,7 @@ exports.createDecideChallengeReply = (interaction, challenge) => {
 }
 
 exports.createReplyForLineup = async (interaction, lineup, lineupQueue) => {
-    if (lineup.isMix) {
+    if (lineup.isMix() || lineup.isPicking) {
         const challenge = await matchmakingService.findChallengeByChannelId(interaction.channelId)
         let challengingLineup
         if (challenge) {
@@ -95,7 +94,33 @@ exports.createReplyForLineup = async (interaction, lineup, lineupQueue) => {
         return createReplyForMixLineup(interaction, lineup, challengingLineup)
     }
 
+    if (lineup.isCaptains()) {
+        return createReplyForCaptainsLineup(interaction, lineup)
+    }
+
     return createReplyForTeamLineup(lineup, lineupQueue)
+}
+
+exports.createCaptainsPickComponent = (roles) => {
+    const captainActionsComponents = []
+    const allUsers = roles.map(role => role.user).filter(user => user)
+    let i = 0
+    for (let user of allUsers) {
+        if (i % 5 === 0) {
+            captainActionsComponents.push(new MessageActionRow())
+        }
+
+        let playerName = user.name.substring(0, 60)
+        captainActionsComponents[captainActionsComponents.length - 1].addComponents(
+            new MessageButton()
+                .setCustomId(`pick_${user.id}_${i}`)
+                .setLabel(playerName)
+                .setStyle('PRIMARY')
+        )
+        i++
+    }
+
+    return captainActionsComponents
 }
 
 exports.replyNotAllowed = async (interaction) => {
@@ -202,7 +227,7 @@ exports.createLineupEmbedsForNextMatch = async (interaction, lineup, opponentLin
     const firstLineupEmbed = await createLineupEmbed(interaction, lineup.roles.filter(role => role.lineupNumber === 1), firstLineupTeamName, lobbyName, lobbyPassword)
     lineupEmbedsForNextMatch.push(firstLineupEmbed)
 
-    if (!opponentLineup && lineup.isMix) {
+    if (!opponentLineup && lineup.isMixOrCaptains()) {
         const secondLineupTeamName = teamService.formatTeamName(lineup) + ' (#1)'
         const secondLineupEmbed = await createLineupEmbed(interaction, lineup.roles.filter(role => role.lineupNumber === 2), secondLineupTeamName, lobbyName, lobbyPassword)
         lineupEmbedsForNextMatch.push(secondLineupEmbed)
@@ -353,15 +378,15 @@ exports.challenge = async (interaction, lineupQueueIdToChallenge) => {
         return
     }
 
-    if (lineupQueueToChallenge.lineup.isMix) {
+    if (lineupQueueToChallenge.lineup.isMix()) {
         const allMixUsers = lineupQueueToChallenge.lineup.roles.map(role => role.user).filter(user => user)
-        const numberOfMissingPlayers = lineupQueueToChallenge.lineup.size*2 - allMixUsers.length
+        const numberOfMissingPlayers = lineupQueueToChallenge.lineup.size * 2 - allMixUsers.length
         if (numberOfMissingPlayers <= 2) {
             await interaction.reply({ content: 'This mix has too many players signed in both teams, you cannot challenge it right now', ephemeral: true })
             return
         }
     }
-    
+
     if (await matchmakingService.checkForDuplicatedPlayers(interaction, lineup, lineupQueueToChallenge.lineup)) {
         return
     }
@@ -392,7 +417,7 @@ exports.challenge = async (interaction, lineupQueueIdToChallenge) => {
 
     await interaction.deferUpdate()
 
-    if (await matchmakingService.isMixAndReadyToStart(lineupQueueToChallenge.lineup)) {
+    if (await matchmakingService.isMixOrCaptainsReadyToStart(lineupQueueToChallenge.lineup)) {
         const challenge = await matchmakingService.findChallengeByChannelId(interaction.channelId)
         await matchmakingService.readyMatch(interaction, challenge, lineup)
         return
@@ -405,7 +430,7 @@ function createLineupComponents(lineup, lineupQueue, selectedLineupNumber = 1) {
     components = createRolesComponent(lineup, selectedLineupNumber)
 
     const lineupActionsRow = new MessageActionRow()
-    if (!lineup.isMix) {
+    if (!lineup.isMix()) {
         if (lineupQueue) {
             lineupActionsRow.addComponents(
                 new MessageButton()
@@ -558,6 +583,35 @@ function createReplyForMixLineup(interaction, lineup, challengingLineup) {
             .setStyle('DANGER'))
 
     return { embeds: [firstLineupEmbed, secondLineupEmbed], components: [selectTeamComponent, lineupActionsComponent] }
+}
+
+function createReplyForCaptainsLineup(interaction, lineup) {
+    let lineupEmbed = new MessageEmbed()
+        .setColor('#0099ff')
+        .setTitle(`Player queue`)
+        .setTimestamp()
+        .setFooter(`Author: ${interaction.user.username}`)
+    fillLineupEmbedWithRoles(lineupEmbed, lineup.roles)
+
+    const numberOfOutfieldUsers = lineup.roles.filter(role => !role.name.includes('GK') && role.user).length
+    const numberOfGkUsers = lineup.roles.filter(role => role.name.includes('GK') && role.user).length
+    const lineupActionsComponent = new MessageActionRow().addComponents(
+        new MessageButton()
+            .setCustomId(`leaveQueue`)
+            .setLabel(`Leave`)
+            .setStyle('DANGER'),
+        new MessageButton()
+            .setCustomId(`join_outfield`)
+            .setLabel(`Join`)
+            .setStyle('PRIMARY')
+            .setDisabled(numberOfOutfieldUsers === lineup.size*2 - 2),
+        new MessageButton()
+            .setCustomId(`join_gk`)
+            .setLabel(`Join as GK`)
+            .setStyle('SECONDARY')
+            .setDisabled(numberOfGkUsers === 2))
+
+    return { embeds: [lineupEmbed], components: [lineupActionsComponent] }
 }
 
 function fillLineupEmbedWithRoles(lineupEmbed, roles) {

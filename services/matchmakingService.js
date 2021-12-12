@@ -1,10 +1,11 @@
 const { MessageEmbed, MessageActionRow, MessageButton } = require("discord.js");
-const { LineupQueue, Challenge } = require("../mongoSchema")
+const { LineupQueue, Challenge, Stats } = require("../mongoSchema")
 const teamService = require("../services/teamService");
 const statsService = require("../services/statsService");
 const interactionUtils = require("../services/interactionUtils");
 const { handle } = require("../utils");
 const { MERC_USER_ID } = require("../constants");
+const { isAllowedToExecuteCommand } = require("./authorizationService");
 
 exports.findLineupQueueByChannelId = async (channelId) => {
     return await LineupQueue.findOne({ 'lineup.channelId': channelId })
@@ -180,7 +181,7 @@ exports.checkIfAutoSearch = async (client, user, lineup) => {
     let lineupQueue = await this.findLineupQueueByChannelId(lineup.channelId)
     let autoSearchResult = { joinedQueue: false, leftQueue: false, updatedLineupQueue: lineupQueue }
 
-    if (!lineup.isMix) {
+    if (!lineup.isMix()) {
         if (lineup.autoSearch === true && isLineupAllowedToJoinQueue(lineup)) {
             if (!lineupQueue) {
                 autoSearchResult.updatedLineupQueue = await this.joinQueue(client, user, lineup)
@@ -205,10 +206,15 @@ exports.isUserAllowedToInteractWithMatchmaking = (userId, lineup) => {
     return lineup.roles.some(role => role.user?.id === userId)
 }
 
-exports.isMixAndReadyToStart = async (lineup) => {
+exports.isMixOrCaptainsReadyToStart = async (lineup) => {
+
+    if (lineup.isCaptains()) {
+        return isLineupAllowedToJoinQueue(lineup)
+    }
+
     const challenge = await this.findChallengeByChannelId(lineup.channelId)
 
-    if (challenge && challenge.challengedTeam.lineup.isMix) {
+    if (challenge && challenge.challengedTeam.lineup.isMix()) {
         const initiatingTeamLineup = await teamService.retrieveLineup(challenge.initiatingTeam.lineup.channelId)
         const mixTeamLineup = await teamService.retrieveLineup(challenge.challengedTeam.lineup.channelId)
 
@@ -219,7 +225,7 @@ exports.isMixAndReadyToStart = async (lineup) => {
         return allMissingRoles.length == 0 || (allMissingRoles.length == 1 && allMissingRoles[0].name.includes('GK'))
     }
 
-    if (!challenge && lineup.isMix) {
+    if (!challenge && lineup.isMix()) {
         return isLineupAllowedToJoinQueue(lineup)
     }
 
@@ -301,7 +307,7 @@ exports.readyMatch = async (interaction, challenge, mixLineup) => {
             resolve()
         }))
         promises.push(new Promise(async (resolve, reject) => {
-            if (challengedTeamLineup.isMix) {
+            if (challengedTeamLineup.isMix()) {
                 await teamService.clearLineup(challengedTeamLineup.channelId, [1, 2])
                 await this.clearLineupQueue(challenge.challengedTeam.lineup.channelId, [1, 2])
                 let lineupForNextMatchEmbeds = await interactionUtils.createLineupEmbedsForNextMatch(interaction, challengedTeamLineup, initiatingTeamLineup, lobbyName, lobbyPassword)
@@ -335,10 +341,10 @@ exports.readyMatch = async (interaction, challenge, mixLineup) => {
         await statsService.updateStats(interaction, challenge.challengedTeam.lineup.team.guildId, challenge.challengedTeam.lineup.size, challengedTeamUsers)
     }
     else { //This is a mix vs mix match
-        await teamService.clearLineups([mixLineup.channelId])
+        await teamService.clearLineup(mixLineup.channelId, [1, 2])
         const allUsers = mixLineup.roles.map(role => role.user).filter(user => user)
         let mixNextMatchEmbeds = await interactionUtils.createLineupEmbedsForNextMatch(interaction, mixLineup, null, lobbyName, lobbyPassword)
-        let newMixLineup = teamService.createLineup(interaction.channelId, mixLineup.size, mixLineup.name, mixLineup.autoSearch, mixLineup.team, mixLineup.isMix, mixLineup.visibility)
+        let newMixLineup = teamService.createLineup(interaction.channelId, mixLineup.size, mixLineup.name, mixLineup.autoSearch, mixLineup.team, mixLineup.type, mixLineup.visibility)
         const reply = await interactionUtils.createReplyForLineup(interaction, newMixLineup)
         reply.embeds = [lobbyCreationEmbed].concat(mixNextMatchEmbeds).concat(reply.embeds)
         await interaction.channel.send(reply)
@@ -347,9 +353,37 @@ exports.readyMatch = async (interaction, challenge, mixLineup) => {
     }
 }
 
+exports.findTwoMostRelevantCaptainsIds = async (userIds) => {
+    let pipeline = []
+    pipeline.push(
+        {
+            $match: { 'userId': { $in: userIds } }
+        }
+    )
+
+    pipeline = pipeline.concat([
+        {
+            $group: {
+                _id: '$userId',
+                numberOfGames: {
+                    $sum: '$numberOfGames',
+                }
+            }
+        },
+        {
+            $sort: { 'numberOfGames': -1 },
+        },
+        {
+            $limit: 2
+        }
+    ])
+
+    return await Stats.aggregate(pipeline)
+}
+
 function isLineupAllowedToJoinQueue(lineup) {
     let numberOfPlayersSigned = lineup.roles.filter(role => role.user != null).length
-    let lineupSize = lineup.isMix ? lineup.size * 2 : lineup.size
+    let lineupSize = lineup.isMixOrCaptains() ? lineup.size * 2 : lineup.size
     let numberOfMissingPlayers = lineupSize - numberOfPlayersSigned
     let missingRoleName = lineup.roles.find(role => role.user == null)?.name
     return numberOfMissingPlayers == 0 || (numberOfMissingPlayers == 1 && missingRoleName.includes('GK'))

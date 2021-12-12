@@ -24,7 +24,7 @@ module.exports = {
             await interactionUtils.replyLineupNotSetup(interaction)
             return
         }        
-        if (lineup.isMix) {
+        if (lineup.isMixOrCaptains()) {
             await interaction.reply({ content: `⛔ Mix lineups are always visible in the matchmaking queue`, ephemeral: true })
             return
         }

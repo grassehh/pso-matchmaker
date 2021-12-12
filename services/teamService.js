@@ -2,8 +2,6 @@ const { Team, Lineup } = require("../mongoSchema")
 const constants = require("../constants")
 const { handle } = require("../utils")
 const matchmakingService = require('../services/matchmakingService');
-const interactionUtils = require('../services/interactionUtils');
-const match = require("nodemon/lib/monitor/match");
 
 const ROLE_GOAL_KEEPER = 0
 const ROLE_ATTACKER = 1
@@ -47,6 +45,10 @@ exports.ROLE_GOAL_KEEPER = ROLE_GOAL_KEEPER
 exports.LINEUP_VISIBILITY_TEAM = 'TEAM'
 exports.LINEUP_VISIBILITY_PUBLIC = 'PUBLIC'
 
+exports.LINEUP_TYPE_TEAM = 'TEAM'
+exports.LINEUP_TYPE_MIX = 'MIX'
+exports.LINEUP_TYPE_CAPTAINS = 'CAPTAINS'
+
 function removeSpecialCharacters(name) {
     return name.replace(/(:[^:]*:)|(<.*>)/ig, '')
 }
@@ -65,7 +67,7 @@ exports.formatTeamName = (lineup, filterName) => {
     if (lineup.name) {
         name += ` *(${lineup.name})*`
     }
-    if (lineup.isMix) {
+    if (lineup.isMix()) {
         name += ' (*mix*)'
     }
 
@@ -95,7 +97,9 @@ exports.retrieveLineup = async (channelId) => {
 }
 
 exports.upsertLineup = async (lineup) => {
-    await Lineup.updateOne({ 'channelId': lineup.channelId }, lineup, { upsert: true })
+    let newLineup = lineup.toObject()
+    delete newLineup._id
+    await Lineup.updateOne({ 'channelId': lineup.channelId }, newLineup, { upsert: true })
 }
 
 exports.clearLineup = async (channelId, lineupsToClear = [1]) => {
@@ -115,12 +119,16 @@ exports.clearLineup = async (channelId, lineupsToClear = [1]) => {
     )
 }
 
-exports.clearLineups = async (channelIds) => {
-    await Lineup.updateMany({ 'channelId': { $in: channelIds } }, { "$set": { "roles.$[].user": null } })
-}
-
 exports.updateLineupRoles = async (channelId, roles) => {
     return await Lineup.findOneAndUpdate({ channelId }, { roles }, { new: true })
+}
+
+exports.startPicking = async (channelId) => {
+    return await Lineup.findOneAndUpdate({ channelId }, { isPicking: true }, { new: true })
+}
+
+exports.stopPicking = async (channelId) => {
+    return await Lineup.findOneAndUpdate({ channelId }, { isPicking: false }, { new: true })
 }
 
 exports.deleteTeam = async (guildId) => {
@@ -257,7 +265,7 @@ exports.findAllChannelIdToNotify = async (region, channelId, lineupSize) => {
         {
             $match: {
                 'team.region': region,
-                isMix: false,
+                type: { $nin: [this.LINEUP_TYPE_MIX, this.LINEUP_TYPE_CAPTAINS] },
                 channelId: { $ne: channelId },
                 size: lineupSize
             }
@@ -279,10 +287,23 @@ exports.findAllChannelIdToNotify = async (region, channelId, lineupSize) => {
     return []
 }
 
-exports.createLineup = (channelId, size, name, autoSearch, team, isMix = false, visibility) => {
+exports.createLineup = (channelId, size, name, autoSearch, team, type, visibility) => {
     let roles = DEFAULT_PLAYER_ROLES.get(size).map(obj => ({ ...obj, lineupNumber: 1 }))
-    if (isMix) {
+    if (type === this.LINEUP_TYPE_MIX) {
         roles = roles.concat(DEFAULT_PLAYER_ROLES.get(size).map(obj => ({ ...obj, lineupNumber: 2 })))
+    } else if (type === this.LINEUP_TYPE_CAPTAINS) {
+        roles = []
+        let i = 1
+        while (i < size) {
+            roles.push({ name: i, lineupNumber: 1 })
+            i++
+        }
+        while (i < (size * 2)-1) {
+            roles.push({ name: i, lineupNumber: 2 })
+            i++
+        }
+        roles.push({ ...GK, lineupNumber: 1 })
+        roles.push({ ...GK, lineupNumber: 2 })
     }
     let lineup = new Lineup({
         channelId,
@@ -291,10 +312,9 @@ exports.createLineup = (channelId, size, name, autoSearch, team, isMix = false, 
         name,
         autoSearch,
         team,
-        isMix,
+        type,
         visibility
-    }).toObject()
-    delete lineup._id
+    })
 
     return lineup
 }

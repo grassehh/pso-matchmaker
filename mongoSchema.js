@@ -1,4 +1,4 @@
-const mongoose = require('mongoose')
+const mongoose = require('mongoose');
 
 const teamSchema = new mongoose.Schema({
     guildId: {
@@ -16,25 +16,6 @@ const teamSchema = new mongoose.Schema({
 })
 exports.Team = mongoose.model('Team', teamSchema, 'teams')
 
-const playerRoleSchema = new mongoose.Schema({
-    name: {
-        type: String,
-        required: true
-    },
-    type: {
-        type: Number,
-        required: true
-    },
-    user: {
-        type: Object,
-        required: false
-    },
-    lineupNumber: {
-        type: Number,
-        required: true
-    }
-})
-
 const lineupSchema = new mongoose.Schema({
     channelId: {
         type: String,
@@ -45,7 +26,26 @@ const lineupSchema = new mongoose.Schema({
         required: true
     },
     roles: {
-        type: [playerRoleSchema],
+        type: [
+            {
+                name: {
+                    type: String,
+                    required: true
+                },
+                type: {
+                    type: Number,
+                    required: true
+                },
+                user: {
+                    type: Object,
+                    required: false
+                },
+                lineupNumber: {
+                    type: Number,
+                    required: true
+                }
+            }
+        ],
         required: true
     },
     name: {
@@ -62,16 +62,30 @@ const lineupSchema = new mongoose.Schema({
         type: teamSchema,
         required: true
     },
-    isMix: {
-        type: Boolean,
-        required: true,
-        default: false
-    }, visibility: {
+    type: {
+        type: String,
+        enum: ['TEAM', 'MIX', 'CAPTAINS']
+    },
+    visibility: {
         type: String,
         enum: ['PUBLIC', 'TEAM'],
         default: 'PUBLIC'
+    },
+    isPicking: {
+        type: Boolean,
+        required: true,
+        default: false
     }
 })
+lineupSchema.methods.isMix = function () {
+    return this.type === 'MIX'
+}
+lineupSchema.methods.isCaptains = function () {
+    return this.type === 'CAPTAINS'
+}
+lineupSchema.methods.isMixOrCaptains = function () {
+    return this.isMix() || this.isCaptains()
+}
 exports.Lineup = mongoose.model('Lineup', lineupSchema, 'lineups')
 
 const lineupQueueSchema = new mongoose.Schema({

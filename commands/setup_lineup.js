@@ -56,7 +56,7 @@ module.exports = {
 
         const lineupSize = interaction.options.getInteger("size")
         const autoSearch = interaction.options.getBoolean("auto_search")
-        let lineup = teamService.createLineup(interaction.channelId, lineupSize, lineupName, autoSearch, team, false, teamService.LINEUP_VISIBILITY_PUBLIC)
+        let lineup = teamService.createLineup(interaction.channelId, lineupSize, lineupName, autoSearch, team, teamService.LINEUP_TYPE_TEAM, teamService.LINEUP_VISIBILITY_PUBLIC)
         await teamService.upsertLineup(lineup)
 
         let reply = await interactionUtils.createReplyForLineup(interaction, lineup, lineupQueue)
