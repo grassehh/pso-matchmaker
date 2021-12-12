@@ -27,7 +27,7 @@ module.exports = {
         }
 
         let lineupQueue = await matchmakingService.findLineupQueueByChannelId(interaction.channelId)
-        if (!lineup.isMix && lineupQueue) {
+        if (!lineup.isMixOrCaptains() && lineupQueue) {
             await interactionUtils.replyAlreadyQueued(interaction, lineupQueue.lineup.size)
             return
         }

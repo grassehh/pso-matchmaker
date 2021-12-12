@@ -21,7 +21,7 @@ module.exports = {
             return
         }
 
-        if (lineup.isMix) {
+        if (lineup.isMixOrCaptains()) {
             await interaction.reply({ content: '⛔ Mix lineups cannot see the list of challenges', ephemeral: true })
             return
         }

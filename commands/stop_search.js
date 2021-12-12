@@ -19,7 +19,7 @@ module.exports = {
             await interactionUtils.replyLineupNotSetup(interaction)
             return
         }
-        if (lineup.isMix) {
+        if (lineup.isMixOrCaptains()) {
             await interaction.reply({ content: `⛔ You cannot remove a mix from the matchmaking queue`, ephemeral: true })
             return
         }

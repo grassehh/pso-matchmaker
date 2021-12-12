@@ -21,10 +21,15 @@ module.exports = {
             return
         }
 
+        if (lineup.isPicking) {
+            interaction.reply({ content: 'There is a team draft in progress', ephemeral: true })
+            return
+        }
+
         const lineupQueue = await matchmakingService.findLineupQueueByChannelId(interaction.channelId)
         let reply = await interactionUtils.createReplyForLineup(interaction, lineup, lineupQueue)
 
-        if (!lineup.isMix) {
+        if (!lineup.isMixOrCaptains()) {
             const challenge = await matchmakingService.findChallengeByChannelId(interaction.channelId)
             let lineupStatusEmbed = new MessageEmbed()
                 .setColor('#0099ff')
@@ -35,7 +40,7 @@ module.exports = {
                 .addField('Auto-search', `${lineup.autoSearch ? '**enabled**' : '*disabled*'}`, true)
 
             if (challenge) {
-                if (challenge.challengedTeam.lineup.isMix) {
+                if (challenge.challengedTeam.lineup.isMix()) {
                     lineupStatusEmbed.setTitle(`💬 Your lineup is challenging the mix ${teamService.formatTeamName(challenge.challengedTeam.lineup)}`)
                 } else {
                     lineupStatusEmbed.setTitle(`💬 Your lineup has sent a challenge request to ${teamService.formatTeamName(challenge.challengedTeam.lineup)}`)

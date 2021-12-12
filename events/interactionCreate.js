@@ -3,10 +3,8 @@ const matchmakingService = require("../services/matchmakingService");
 const teamService = require("../services/teamService");
 const statsService = require("../services/statsService");
 const authorizationService = require("../services/authorizationService");
-const { MessageEmbed, MessageActionRow, MessageSelectMenu } = require("discord.js");
-const { PSO_EU_MINIMUM_LINEUP_SIZE_LEVELING } = require("../constants");
+const { MessageActionRow, MessageSelectMenu } = require("discord.js");
 const { handle } = require("../utils");
-const match = require("nodemon/lib/monitor/match");
 
 module.exports = {
     name: 'interactionCreate',
@@ -47,7 +45,7 @@ module.exports = {
 
                     const split = interaction.customId.split('_')
                     const selectedRoleName = split[1]
-                    const lineupNumber = lineup.isMix ? parseInt(split[2]) : 1
+                    const lineupNumber = lineup.isMix() ? parseInt(split[2]) : 1
                     const roles = lineup.roles.filter(role => role.lineupNumber === lineupNumber)
                     let selectedRole = roles.find(role => role.name == selectedRoleName)
                     let roleLeft = roles.find(role => role.user?.id === interaction.user.id)
@@ -71,7 +69,7 @@ module.exports = {
                         messageContent = `Player ${interaction.user} swapped **${roleLeft.name}** with **${selectedRoleName}**`
                     }
 
-                    if (await matchmakingService.isMixAndReadyToStart(lineup)) {
+                    if (await matchmakingService.isMixOrCaptainsReadyToStart(lineup)) {
                         const challenge = await matchmakingService.findChallengeByChannelId(interaction.channelId)
                         const secondLineup = challenge ? await teamService.retrieveLineup(challenge.initiatingTeam.lineup.channelId === interaction.channelId ? challenge.challengedTeam.lineup.channelId : challenge.initiatingTeam.lineup.channelId) : null
                         if (await matchmakingService.checkForDuplicatedPlayers(interaction, lineup, secondLineup)) {
@@ -94,6 +92,149 @@ module.exports = {
                     let reply = await interactionUtils.createReplyForLineup(interaction, lineup, autoSearchResult.updatedLineupQueue)
                     reply.content = messageContent
                     await interaction.channel.send(reply)
+                    return
+                }
+
+                if (interaction.customId.startsWith('join_')) {
+                    let lineup = await teamService.removeUserFromLineup(interaction.channelId, interaction.user.id)
+                    if (!lineup) {
+                        lineup = await teamService.retrieveLineup(interaction.channelId)
+                    }
+
+                    let roleToSign
+                    if (interaction.customId.split('_')[1] === 'gk') {
+                        roleToSign = lineup.roles.filter(role => role.name.includes('GK')).find(role => !role.user)
+                    } else {
+                        roleToSign = lineup.roles.filter(role => !role.name.includes('GK')).find(role => !role.user)
+                    }
+
+                    const userToAdd = {
+                        id: interaction.user.id,
+                        name: interaction.user.username
+                    }
+
+                    lineup = await teamService.addUserToLineup(interaction.channelId, roleToSign.name, userToAdd, roleToSign.lineupNumber)
+
+                    let messageContent = `Player ${interaction.user} has joined the queue !`
+
+
+                    if (await matchmakingService.isMixOrCaptainsReadyToStart(lineup)) {
+                        lineup = await teamService.startPicking(lineup.channelId)
+
+                        const allUserIds = lineup.roles.filter(role => role.user).map(role => role.user.id)
+                        let captainsIds = (await matchmakingService.findTwoMostRelevantCaptainsIds(allUserIds)).map(result => result._id)
+                        if (captainsIds.length < 2) {
+                            captainsIds = [allUserIds.splice(Math.floor(Math.random() * allUserIds.length), 1)[0], allUserIds.splice(Math.floor(Math.random() * allUserIds.length), 1)[0]]
+                        }
+                        const firstCaptain = await interaction.client.users.fetch(captainsIds[0])
+                        const secondCaptain = await interaction.client.users.fetch(captainsIds[1])
+                        let currentCaptain = firstCaptain
+
+                        messageContent += ` The picking has now started. The captains are ${firstCaptain} and ${secondCaptain}. First captain to pick is ${firstCaptain}.`
+
+                        let remainingRoles = lineup.roles.map(role => ({ ...role.toObject() }))
+                        lineup.roles.forEach(role => role.user = null)
+                        let firstTeamRoles = lineup.roles.filter(role => role.lineupNumber === 1).map(role => ({ ...role.toObject() }))
+                        let secondTeamRoles = lineup.roles.filter(role => role.lineupNumber === 1).map(role => ({ ...role.toObject() }))
+                        secondTeamRoles.forEach(role => role.lineupNumber = 2)
+
+                        const firstCaptainRole = remainingRoles.splice(remainingRoles.findIndex(role => role.user.id === firstCaptain.id), 1)[0]
+                        if (firstCaptainRole.name.includes('GK')) {
+                            firstTeamRoles.find(role => role.name.includes('GK')).user = firstCaptainRole.user
+                        } else {
+                            firstTeamRoles.find(role => !role.user).user = firstCaptainRole.user
+                        }
+                        const secondCaptainRole = remainingRoles.splice(remainingRoles.findIndex(role => role.user.id === secondCaptain.id), 1)[0]
+                        if (secondCaptainRole.name.includes('GK')) {
+                            secondTeamRoles.find(role => role.name.includes('GK')).user = secondCaptainRole.user
+                        } else {
+                            secondTeamRoles.find(role => !role.user).user = secondCaptainRole.user
+                        }
+
+                        lineup.roles = firstTeamRoles.concat(secondTeamRoles)
+                        const numberOfPlayersToPick = remainingRoles.filter(role => role.user).length
+
+                        let reply = await interactionUtils.createReplyForLineup(interaction, lineup)
+                        reply.content = messageContent
+                        reply.components = interactionUtils.createCaptainsPickComponent(remainingRoles)
+                        await interaction.update({ components: [] })
+                        await interaction.channel.send(reply)
+
+                        const filter = (interaction) => interaction.customId.startsWith('pick_');
+                        const collector = interaction.channel.createMessageComponentCollector({ filter, time: 120000 });
+                        collector.on('collect', async (i) => {
+                            if (i.user.id !== currentCaptain.id) {
+                                return
+                            }
+                            const pickedUserId = i.customId.split('_')[1]
+                            const pickedRole = remainingRoles.splice(remainingRoles.findIndex(role => role.user.id === pickedUserId), 1)[0]
+                            let teamRoles = currentCaptain.id === firstCaptain.id ? firstTeamRoles : secondTeamRoles
+                            if (pickedRole.name.includes('GK')) {
+                                teamRoles.find(role => role.name.includes('GK')).user = pickedRole.user
+                            } else {
+                                teamRoles.find(role => !role.user).user = pickedRole.user
+                            }
+
+                            lineup.roles = firstTeamRoles.concat(secondTeamRoles)
+
+                            const remainingUsersToPick = remainingRoles.filter(role => role.user)
+                            if (remainingUsersToPick.length <= 1) {
+                                if (remainingUsersToPick.length === 1) {
+                                    const lastRole = remainingUsersToPick[0]
+                                    if (lastRole.name.includes('GK')) {
+                                        teamRoles.find(role => role.name.includes('GK')).user = lastRole.user
+                                    } else {
+                                        teamRoles.find(role => !role.user).user = lastRole.user
+                                    }
+                                    lineup.roles = firstTeamRoles.concat(secondTeamRoles)
+                                }
+                                await teamService.stopPicking(lineup.channelId)
+                                await matchmakingService.readyMatch(interaction, null, lineup)
+                                let reply = await interactionUtils.createReplyForLineup(interaction, lineup)
+                                reply.content = `${i.user} has picked ${pickedRole.user.name}. Every players have been picked. Match is ready.`
+                                await i.update({ components: [] })
+                                await interaction.reply(reply)
+                                return
+                            }
+
+                            let reply = await interactionUtils.createReplyForLineup(interaction, lineup)
+                            currentCaptain = currentCaptain.id === firstCaptain.id ? secondCaptain : firstCaptain
+                            reply.content = `${i.user} has picked ${pickedRole.user.name}. ${currentCaptain} turn to pick. `
+                            reply.components = interactionUtils.createCaptainsPickComponent(remainingRoles)
+                            await i.update({ components: [] })
+                            await interaction.followUp(reply)
+                        })
+                        collector.on('end', async (collected) => {
+                            await teamService.stopPicking(lineup.channelId)
+                            if (collected.size < numberOfPlayersToPick) {
+                                lineup = await teamService.clearLineup(interaction.channelId, [1, 2])
+                                let reply = await interactionUtils.createReplyForLineup(interaction, lineup)
+                                reply.content = "Sorry, you have been too long to pick all players ... The queue has been reset"
+                                await interaction.followUp(reply)
+                                return
+                            }
+                        })
+                        return
+                    }
+
+                    let reply = await interactionUtils.createReplyForLineup(interaction, lineup)
+                    reply.content = messageContent
+                    await interaction.update({ components: [] })
+                    await interaction.channel.send(reply)
+
+                    return
+                }
+
+                if (interaction.customId === 'leaveQueue') {
+                    const lineup = await teamService.removeUserFromLineup(interaction.channelId, interaction.user.id)
+                    if (!lineup) {
+                        await interaction.reply({ content: `❌ You are not in the lineup`, ephemeral: true })
+                        return
+                    }
+                    await interaction.update({ components: [] })
+                    let reply = await interactionUtils.createReplyForLineup(interaction, lineup)
+                    reply.content = `Player ${interaction.user} has left the queue !`
+                    interaction.channel.send(reply)
                     return
                 }
 
@@ -269,7 +410,7 @@ module.exports = {
                     await matchmakingService.freeLineupQueuesByIds([challenge.challengedTeam.id, challenge.initiatingTeam.id])
 
                     let challengedTeamChannel = await interaction.client.channels.fetch(challenge.challengedTeam.lineup.channelId)
-                    if (!challenge.challengedTeam.lineup.isMix) {
+                    if (!challenge.challengedTeam.lineup.isMix()) {
                         await challengedTeamChannel.messages.edit(challenge.challengedMessageId, { components: [] })
                     }
                     await challengedTeamChannel.send(`❌ **${teamService.formatTeamName(challenge.initiatingTeam.lineup)}** has cancelled the challenge request`)
@@ -433,7 +574,7 @@ module.exports = {
                             messageContent += `. Your team has been removed from the **${lineup.size}v${lineup.size}** queue !`
                         }
 
-                        if (await matchmakingService.isMixAndReadyToStart(lineup)) {
+                        if (await matchmakingService.isMixOrCaptainsReadyToStart(lineup)) {
                             await interaction.channel.send(messageContent)
                             const challenge = await matchmakingService.findChallengeByChannelId(interaction.channelId)
                             const secondLineup = challenge ? await teamService.retrieveLineup(challenge.initiatingTeam.lineup.channelId === interaction.channelId ? challenge.challengedTeam.lineup.channelId : challenge.initiatingTeam.lineup.channelId) : null
