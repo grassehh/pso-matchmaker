@@ -73,6 +73,11 @@ module.exports = {
 
                     if (await matchmakingService.isMixAndReadyToStart(lineup)) {
                         const challenge = await matchmakingService.findChallengeByChannelId(interaction.channelId)
+                        const secondLineup = challenge ? await teamService.retrieveLineup(challenge.initiatingTeam.lineup.channelId === interaction.channelId ? challenge.challengedTeam.lineup.channelId : challenge.initiatingTeam.lineup.channelId) : null
+                        if (await matchmakingService.checkForDuplicatedPlayers(interaction, lineup, secondLineup)) {
+                            return
+                        }
+
                         await matchmakingService.readyMatch(interaction, challenge, lineup)
                         return
                     }
@@ -208,6 +213,10 @@ module.exports = {
                         return
                     }
 
+                    const secondLineup = await teamService.retrieveLineup(challenge.initiatingTeam.lineup.channelId === interaction.channelId ? challenge.challengedTeam.lineup.channelId : challenge.initiatingTeam.lineup.channelId)
+                    if (await matchmakingService.checkForDuplicatedPlayers(interaction, lineup, secondLineup)) {
+                        return
+                    }
                     await interaction.deferReply()
                     await matchmakingService.readyMatch(interaction, challenge)
                 }
@@ -427,6 +436,10 @@ module.exports = {
                         if (await matchmakingService.isMixAndReadyToStart(lineup)) {
                             await interaction.channel.send(messageContent)
                             const challenge = await matchmakingService.findChallengeByChannelId(interaction.channelId)
+                            const secondLineup = challenge ? await teamService.retrieveLineup(challenge.initiatingTeam.lineup.channelId === interaction.channelId ? challenge.challengedTeam.lineup.channelId : challenge.initiatingTeam.lineup.channelId) : null
+                            if (await matchmakingService.checkForDuplicatedPlayers(interaction, lineup, secondLineup)) {
+                                return
+                            }
                             await matchmakingService.readyMatch(interaction, challenge, lineup)
                             return
                         }
