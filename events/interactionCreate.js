@@ -97,7 +97,7 @@ module.exports = {
 
                 if (interaction.customId.startsWith('join_')) {
                     let lineup = await teamService.removeUserFromLineup(interaction.channelId, interaction.user.id)
-                    if (!lineup) {
+                    if (!lineup) {                        
                         lineup = await teamService.retrieveLineup(interaction.channelId)
                     }
 
@@ -130,13 +130,15 @@ module.exports = {
                         const secondCaptain = await interaction.client.users.fetch(captainsIds[1])
                         let currentCaptain = firstCaptain
 
-                        messageContent += ` The picking has now started. The captains are ${firstCaptain} and ${secondCaptain}. First captain to pick is ${firstCaptain}.`
+                        messageContent += ` The picking has now started. The captains are ${firstCaptain} and ${secondCaptain}.\n**${firstCaptain} turn to pick**.`
 
-                        let remainingRoles = lineup.roles.map(role => ({ ...role.toObject() }))
+                        let remainingRoles = lineup.roles.filter(role => role.user).map(role => ({ ...role.toObject() }))
                         lineup.roles.forEach(role => role.user = null)
                         let firstTeamRoles = lineup.roles.filter(role => role.lineupNumber === 1).map(role => ({ ...role.toObject() }))
                         let secondTeamRoles = lineup.roles.filter(role => role.lineupNumber === 1).map(role => ({ ...role.toObject() }))
                         secondTeamRoles.forEach(role => role.lineupNumber = 2)
+
+                        const numberOfGksSigned = remainingRoles.filter(role => role.name.includes('GK') && role.user).length
 
                         const firstCaptainRole = remainingRoles.splice(remainingRoles.findIndex(role => role.user.id === firstCaptain.id), 1)[0]
                         if (firstCaptainRole.name.includes('GK')) {
@@ -149,6 +151,10 @@ module.exports = {
                             secondTeamRoles.find(role => role.name.includes('GK')).user = secondCaptainRole.user
                         } else {
                             secondTeamRoles.find(role => !role.user).user = secondCaptainRole.user
+                        }
+
+                        if (numberOfGksSigned === 1 && !firstCaptainRole.name.includes('GK') && !secondCaptainRole.name.includes('GK')) {
+                            firstTeamRoles.find(role => role.name.includes('GK')).user = remainingRoles.splice(remainingRoles.findIndex(role => role.name.includes('GK')), 2)[0].user
                         }
 
                         lineup.roles = firstTeamRoles.concat(secondTeamRoles)
@@ -177,10 +183,10 @@ module.exports = {
 
                             lineup.roles = firstTeamRoles.concat(secondTeamRoles)
 
-                            const remainingUsersToPick = remainingRoles.filter(role => role.user)
-                            if (remainingUsersToPick.length <= 1) {
-                                if (remainingUsersToPick.length === 1) {
-                                    const lastRole = remainingUsersToPick[0]
+                            if (remainingRoles.length <= 1) {
+                                if (remainingRoles.length === 1) {
+                                    teamRoles = currentCaptain.id === firstCaptain.id ? secondTeamRoles : firstTeamRoles
+                                    const lastRole = remainingRoles[0]
                                     if (lastRole.name.includes('GK')) {
                                         teamRoles.find(role => role.name.includes('GK')).user = lastRole.user
                                     } else {
@@ -199,7 +205,7 @@ module.exports = {
 
                             let reply = await interactionUtils.createReplyForLineup(interaction, lineup)
                             currentCaptain = currentCaptain.id === firstCaptain.id ? secondCaptain : firstCaptain
-                            reply.content = `${i.user} has picked ${pickedRole.user.name}. ${currentCaptain} turn to pick. `
+                            reply.content = `${i.user} has picked ${pickedRole.user.name}.\n**${currentCaptain} turn to pick.**`
                             reply.components = interactionUtils.createCaptainsPickComponent(remainingRoles)
                             await i.update({ components: [] })
                             await interaction.followUp(reply)
