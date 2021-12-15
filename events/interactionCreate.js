@@ -97,7 +97,7 @@ module.exports = {
 
                 if (interaction.customId.startsWith('join_')) {
                     let lineup = await teamService.removeUserFromLineup(interaction.channelId, interaction.user.id)
-                    if (!lineup) {                        
+                    if (!lineup) {
                         lineup = await teamService.retrieveLineup(interaction.channelId)
                     }
 
@@ -167,9 +167,10 @@ module.exports = {
                         await interaction.channel.send(reply)
 
                         const filter = (interaction) => interaction.customId.startsWith('pick_');
-                        const collector = interaction.channel.createMessageComponentCollector({ filter, time: 120000 });
+                        const collector = interaction.channel.createMessageComponentCollector({ filter, time: 280000 });
                         collector.on('collect', async (i) => {
                             if (i.user.id !== currentCaptain.id) {
+                                await i.reply({ content: "You are not the captain or it's not your turn to pick !", ephemeral: true })
                                 return
                             }
                             const pickedUserId = i.customId.split('_')[1]
@@ -198,8 +199,8 @@ module.exports = {
                                 await matchmakingService.readyMatch(interaction, null, lineup)
                                 let reply = await interactionUtils.createReplyForLineup(interaction, lineup)
                                 reply.content = `${i.user} has picked ${pickedRole.user.name}. Every players have been picked. Match is ready.`
-                                await i.update({ components: [] })
-                                await interaction.reply(reply)
+                                await handle(i.update({ components: [] }))
+                                await interaction.followUp(reply)
                                 return
                             }
 
