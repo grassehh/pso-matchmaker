@@ -155,7 +155,10 @@ exports.joinQueue = async (client, user, lineup) => {
                 .setEmoji('⚽')
                 .setStyle('PRIMARY')
         )
-        const channel = await client.channels.fetch(channelId)
+        const [channel] = await handle(client.channels.fetch(channelId))
+        if (!channel) {
+            return null
+        }
         const [message] = await handle(channel.send({ embeds: [teamEmbed], components: [challengeTeamRow] }))
         return message ? { channelId: message.channelId, messageId: message.id } : null
     }))
@@ -181,7 +184,7 @@ exports.checkIfAutoSearch = async (client, user, lineup) => {
     let lineupQueue = await this.findLineupQueueByChannelId(lineup.channelId)
     let autoSearchResult = { joinedQueue: false, leftQueue: false, updatedLineupQueue: lineupQueue }
 
-    if (!lineup.isMix()) {
+    if (!lineup.isMixOrCaptains()) {
         if (lineup.autoSearch === true && isLineupAllowedToJoinQueue(lineup)) {
             if (!lineupQueue) {
                 autoSearchResult.updatedLineupQueue = await this.joinQueue(client, user, lineup)
