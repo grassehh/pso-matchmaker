@@ -158,7 +158,6 @@ module.exports = {
                         }
 
                         lineup.roles = firstTeamRoles.concat(secondTeamRoles)
-                        const numberOfPlayersToPick = remainingRoles.filter(role => role.user).length
 
                         let reply = await interactionUtils.createReplyForLineup(interaction, lineup)
                         reply.content = messageContent
@@ -178,6 +177,12 @@ module.exports = {
                             let teamRoles = currentCaptain.id === firstCaptain.id ? firstTeamRoles : secondTeamRoles
                             if (pickedRole.name.includes('GK')) {
                                 teamRoles.find(role => role.name.includes('GK')).user = pickedRole.user
+                                const otherTeamRoles = currentCaptain.id === firstCaptain.id ? secondTeamRoles : firstTeamRoles
+                                const lastGkIndex = remainingRoles.findIndex(role => role.name.includes('GK'))
+                                if (lastGkIndex >= 0) {
+                                    const remainingGkRole = remainingRoles.splice(lastGkIndex, 1)[0]
+                                    otherTeamRoles.find(role => role.name.includes('GK')).user = remainingGkRole.user   
+                                }                                 
                             } else {
                                 teamRoles.find(role => !role.user).user = pickedRole.user
                             }
@@ -187,7 +192,7 @@ module.exports = {
                             if (remainingRoles.length <= 1) {
                                 if (remainingRoles.length === 1) {
                                     teamRoles = currentCaptain.id === firstCaptain.id ? secondTeamRoles : firstTeamRoles
-                                    const lastRole = remainingRoles[0]
+                                    const lastRole = remainingRoles.splice(0, 1)[0]
                                     if (lastRole.name.includes('GK')) {
                                         teamRoles.find(role => role.name.includes('GK')).user = lastRole.user
                                     } else {
@@ -196,11 +201,10 @@ module.exports = {
                                     lineup.roles = firstTeamRoles.concat(secondTeamRoles)
                                 }
                                 await teamService.stopPicking(lineup.channelId)
-                                await matchmakingService.readyMatch(interaction, null, lineup)
-                                let reply = await interactionUtils.createReplyForLineup(interaction, lineup)
-                                reply.content = `${i.user} has picked ${pickedRole.user.name}. Every players have been picked. Match is ready.`
                                 await handle(i.update({ components: [] }))
-                                await interaction.followUp(reply)
+                                await interaction.followUp({content: `${i.user} has picked ${pickedRole.user.name}. Every players have been picked. Match is ready.`})
+                                await matchmakingService.readyMatch(interaction, null, lineup)
+                                collector.stop()
                                 return
                             }
 
@@ -213,7 +217,8 @@ module.exports = {
                         })
                         collector.on('end', async (collected) => {
                             await teamService.stopPicking(lineup.channelId)
-                            if (collected.size < numberOfPlayersToPick) {
+                            console.log("end")
+                            if (remainingRoles.length > 0) {
                                 lineup = await teamService.clearLineup(interaction.channelId, [1, 2])
                                 let reply = await interactionUtils.createReplyForLineup(interaction, lineup)
                                 reply.content = "Sorry, you have been too long to pick all players ... The queue has been reset"
