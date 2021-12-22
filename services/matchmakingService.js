@@ -283,7 +283,7 @@ exports.readyMatch = async (interaction, challenge, mixLineup) => {
     }
     let lobbyCreationEmbed = new MessageEmbed()
         .setColor('#6aa84f')
-        .setTitle(`⚽ Challenge accepted ⚽`)
+        .setTitle(`${challenge ? '⚽ Challenge Accepted ⚽' : '⚽ Match Ready ⚽'}`)
         .setTimestamp()
         .addField('Every signed player received the lobby information in private message', lobbyCreationEmbedFieldValue)
 

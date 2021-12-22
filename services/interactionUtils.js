@@ -103,17 +103,20 @@ exports.createReplyForLineup = async (interaction, lineup, lineupQueue) => {
 
 exports.createCaptainsPickComponent = (roles) => {
     const captainActionsComponents = []
-    const allUsers = roles.map(role => role.user).filter(user => user)
+    const filteredRoles = roles.filter(role => role.user)
     let i = 0
-    for (let user of allUsers) {
+    for (let role of filteredRoles) {
         if (i % 5 === 0) {
             captainActionsComponents.push(new MessageActionRow())
         }
 
-        let playerName = user.name.substring(0, 60)
+        let playerName = role.user.name.substring(0, 60)
+        if (role.name.includes('GK')) {
+            playerName += ' (GK)'
+        }
         captainActionsComponents[captainActionsComponents.length - 1].addComponents(
             new MessageButton()
-                .setCustomId(`pick_${user.id}_${i}`)
+                .setCustomId(`pick_${role.user.id}_${i}`)
                 .setLabel(playerName)
                 .setStyle('PRIMARY')
         )
