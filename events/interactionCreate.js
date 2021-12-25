@@ -96,9 +96,15 @@ module.exports = {
                 }
 
                 if (interaction.customId.startsWith('join_')) {
-                    let lineup = await teamService.removeUserFromLineup(interaction.channelId, interaction.user.id)
-                    if (!lineup) {
-                        lineup = await teamService.retrieveLineup(interaction.channelId)
+                    let lineup = await teamService.retrieveLineup(interaction.channelId)
+                    if (lineup.isPicking) {
+                        await interaction.reply({ content: '⛔ Captains are currently picking the teams', ephemeral: true })
+                        return
+                    }
+
+                    const newLineup = await teamService.removeUserFromLineup(interaction.channelId, interaction.user.id)
+                    if (newLineup) {
+                        lineup = newLineup
                     }
 
                     let roleToSign
@@ -153,7 +159,13 @@ module.exports = {
                             secondTeamRoles.find(role => !role.user).user = secondCaptainRole.user
                         }
 
-                        if (numberOfGksSigned === 1 && !firstCaptainRole.name.includes('GK') && !secondCaptainRole.name.includes('GK')) {
+                        if (numberOfGksSigned === 2) {
+                            if (firstCaptainRole.name.includes('GK') && !secondCaptainRole.name.includes('GK')) {
+                                secondTeamRoles.find(role => role.name.includes('GK')).user = remainingRoles.splice(remainingRoles.findIndex(role => role.name.includes('GK')), 1)[0].user
+                            } else if (secondCaptainRole.name.includes('GK') && !firstCaptainRole.name.includes('GK')) {
+                                firstTeamRoles.find(role => role.name.includes('GK')).user = remainingRoles.splice(remainingRoles.findIndex(role => role.name.includes('GK')), 1)[0].user
+                            }
+                        } else if (numberOfGksSigned === 1 && !firstCaptainRole.name.includes('GK') && !secondCaptainRole.name.includes('GK')) {
                             firstTeamRoles.find(role => role.name.includes('GK')).user = remainingRoles.splice(remainingRoles.findIndex(role => role.name.includes('GK')), 2)[0].user
                         }
 
@@ -181,28 +193,28 @@ module.exports = {
                                 const lastGkIndex = remainingRoles.findIndex(role => role.name.includes('GK'))
                                 if (lastGkIndex >= 0) {
                                     const remainingGkRole = remainingRoles.splice(lastGkIndex, 1)[0]
-                                    otherTeamRoles.find(role => role.name.includes('GK')).user = remainingGkRole.user   
-                                }                                 
+                                    otherTeamRoles.find(role => role.name.includes('GK')).user = remainingGkRole.user
+                                }
                             } else {
                                 teamRoles.find(role => !role.user).user = pickedRole.user
                             }
 
                             lineup.roles = firstTeamRoles.concat(secondTeamRoles)
 
-                            if (remainingRoles.length <= 1) {
-                                if (remainingRoles.length === 1) {
-                                    teamRoles = currentCaptain.id === firstCaptain.id ? secondTeamRoles : firstTeamRoles
-                                    const lastRole = remainingRoles.splice(0, 1)[0]
-                                    if (lastRole.name.includes('GK')) {
-                                        teamRoles.find(role => role.name.includes('GK')).user = lastRole.user
+                            if (remainingRoles.length <= 1 || teamRoles.filter(role => role.user).length === teamRoles.length) {
+                                teamRoles = currentCaptain.id === firstCaptain.id ? secondTeamRoles : firstTeamRoles
+                                for (let remainingRole of remainingRoles) {
+                                    if (remainingRole.name.includes('GK')) {
+                                        teamRoles.find(role => role.name.includes('GK')).user = remainingRole.user
                                     } else {
-                                        teamRoles.find(role => !role.user).user = lastRole.user
+                                        teamRoles.find(role => !role.user).user = remainingRole.user
                                     }
                                     lineup.roles = firstTeamRoles.concat(secondTeamRoles)
                                 }
+                                remainingRoles = []
                                 await teamService.stopPicking(lineup.channelId)
                                 await handle(i.update({ components: [] }))
-                                await interaction.followUp({content: `${i.user} has picked ${pickedRole.user.name}. Every players have been picked. Match is ready.`})
+                                await interaction.followUp({ content: `${i.user} has picked ${pickedRole.user.name}. Every players have been picked. Match is ready.` })
                                 await matchmakingService.readyMatch(interaction, null, lineup)
                                 collector.stop()
                                 return
@@ -240,6 +252,10 @@ module.exports = {
                     const lineup = await teamService.removeUserFromLineup(interaction.channelId, interaction.user.id)
                     if (!lineup) {
                         await interaction.reply({ content: `❌ You are not in the lineup`, ephemeral: true })
+                        return
+                    }
+                    if (lineup.isPicking) {
+                        await interaction.reply({ content: '⛔ Captains are currently picking the teams', ephemeral: true })
                         return
                     }
                     await interaction.update({ components: [] })

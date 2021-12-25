@@ -22,7 +22,7 @@ module.exports = {
         }
 
         if (lineup.isPicking) {
-            interaction.reply({ content: 'There is a team draft in progress', ephemeral: true })
+            await interaction.reply({ content: '⛔ There is a team draft in progress', ephemeral: true })
             return
         }
 
