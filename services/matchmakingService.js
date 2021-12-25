@@ -5,7 +5,6 @@ const statsService = require("../services/statsService");
 const interactionUtils = require("../services/interactionUtils");
 const { handle } = require("../utils");
 const { MERC_USER_ID } = require("../constants");
-const { isAllowedToExecuteCommand } = require("./authorizationService");
 
 exports.findLineupQueueByChannelId = async (channelId) => {
     return await LineupQueue.findOne({ 'lineup.channelId': channelId })
@@ -23,24 +22,12 @@ exports.freeLineupQueuesByIds = async (ids) => {
     await LineupQueue.updateMany({ '_id': { $in: ids } }, { reserved: false })
 }
 
-exports.freeLineupQueuesById = async (id) => {
-    await LineupQueue.updateOne({ '_id': id }, { reserved: false })
-}
-
-exports.freeLineupQueuesByChannelIds = async (channelIds) => {
-    await LineupQueue.updateMany({ 'lineup.channelId': { $in: channelIds } }, { reserved: false })
-}
-
 exports.deleteLineupQueuesByGuildId = async (guildId) => {
     await LineupQueue.deleteMany({ 'team.guildId': guildId })
 }
 
 exports.deleteLineupQueuesByChannelId = async (channelId) => {
     await LineupQueue.deleteMany({ 'lineup.channelId': channelId })
-}
-
-exports.deleteLineupQueueByChannelId = async (channelId) => {
-    await LineupQueue.deleteOne({ 'lineup.channelId': channelId })
 }
 
 exports.findAvailableLineupQueues = async (region, channelId, lineupSize, guildId) => {
@@ -177,7 +164,7 @@ exports.leaveQueue = async (client, lineupQueue) => {
         handle(channel.messages.delete(notificationMessage.messageId))
     }))
         .catch(console.error)
-        .finally(() => this.deleteLineupQueueByChannelId(lineupQueue.lineup.channelId))
+        .finally(() => this.deleteLineupQueuesByChannelId(lineupQueue.lineup.channelId))
 }
 
 exports.checkIfAutoSearch = async (client, user, lineup) => {
@@ -299,6 +286,7 @@ exports.readyMatch = async (interaction, challenge, mixLineup) => {
 
         let promises = []
         promises.push(new Promise(async (resolve, reject) => {
+            await this.leaveQueue(interaction.client, challenge.initiatingTeam)
             const newInitiatingTeamLineup = await teamService.clearLineup(initiatingTeamLineup.channelId)
             let lineupForNextMatchEmbeds = await interactionUtils.createLineupEmbedsForNextMatch(interaction, initiatingTeamLineup, challenge.challengedTeam.lineup, lobbyName, lobbyPassword)
             const reply = await interactionUtils.createReplyForLineup(interaction, newInitiatingTeamLineup)
@@ -306,11 +294,11 @@ exports.readyMatch = async (interaction, challenge, mixLineup) => {
             let initiatingTeamChannel = await interaction.client.channels.fetch(challenge.initiatingTeam.lineup.channelId)
             await initiatingTeamChannel.send(reply)
             await initiatingTeamChannel.messages.edit(challenge.initiatingMessageId, { components: [] })
-            await this.leaveQueue(interaction.client, challenge.initiatingTeam)
             resolve()
         }))
         promises.push(new Promise(async (resolve, reject) => {
             if (challengedTeamLineup.isMix()) {
+                await this.freeLineupQueuesByIds([challenge.challengedTeam.id, challenge.initiatingTeam.id])
                 await teamService.clearLineup(challengedTeamLineup.channelId, [1, 2])
                 await this.clearLineupQueue(challenge.challengedTeam.lineup.channelId, [1, 2])
                 let lineupForNextMatchEmbeds = await interactionUtils.createLineupEmbedsForNextMatch(interaction, challengedTeamLineup, initiatingTeamLineup, lobbyName, lobbyPassword)
@@ -325,15 +313,14 @@ exports.readyMatch = async (interaction, challenge, mixLineup) => {
                 reply.embeds = [lobbyCreationEmbed].concat(lineupForNextMatchEmbeds).concat(reply.embeds)
                 let challengedTeamChannel = await interaction.client.channels.fetch(challenge.challengedTeam.lineup.channelId)
                 await challengedTeamChannel.send(reply)
-                await this.freeLineupQueuesByIds([challenge.challengedTeam.id, challenge.initiatingTeam.id])
             } else {
+                await this.leaveQueue(interaction.client, challenge.challengedTeam)
                 const newChallengedTeamLineup = await teamService.clearLineup(challengedTeamLineup.channelId)
                 let lineupForNextMatchEmbeds = await interactionUtils.createLineupEmbedsForNextMatch(interaction, challengedTeamLineup, initiatingTeamLineup, lobbyName, lobbyPassword)
                 const reply = await interactionUtils.createReplyForLineup(interaction, newChallengedTeamLineup)
                 reply.embeds = [lobbyCreationEmbed].concat(lineupForNextMatchEmbeds)
                 await interaction.editReply(reply)
                 await interaction.message.edit({ components: [] })
-                await this.leaveQueue(interaction.client, challenge.challengedTeam)
             }
 
             resolve()
