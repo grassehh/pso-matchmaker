@@ -32,6 +32,11 @@ module.exports = {
             return
         }
 
+        if (lineup.isPicking) {
+            await interaction.reply({ content: '⛔ Captains are currently picking the teams', ephemeral: true })
+            return
+        }
+
         lineup = await teamService.clearLineup(interaction.channelId, [1, 2])
         await matchmakingService.clearLineupQueue(interaction.channelId, [1, 2])
         let reply = await interactionUtils.createReplyForLineup(interaction, lineup, lineupQueue)
