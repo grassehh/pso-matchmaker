@@ -421,7 +421,6 @@ exports.challenge = async (interaction, lineupQueueIdToChallenge) => {
     await interaction.deferUpdate()
 
     if (await matchmakingService.isMixOrCaptainsReadyToStart(lineupQueueToChallenge.lineup)) {
-        const challenge = await matchmakingService.findChallengeByChannelId(interaction.channelId)
         await matchmakingService.readyMatch(interaction, challenge, lineup)
         return
     }

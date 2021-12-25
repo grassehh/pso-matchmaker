@@ -217,7 +217,6 @@ module.exports = {
                         })
                         collector.on('end', async (collected) => {
                             await teamService.stopPicking(lineup.channelId)
-                            console.log("end")
                             if (remainingRoles.length > 0) {
                                 lineup = await teamService.clearLineup(interaction.channelId, [1, 2])
                                 let reply = await interactionUtils.createReplyForLineup(interaction, lineup)

@@ -27,7 +27,7 @@ module.exports = {
             return
         }
 
-        await matchmakingService.deleteLineupQueueByChannelId(interaction.channelId)
+        await matchmakingService.deleteLineupQueuesByChannelId(interaction.channelId)
         await teamService.deleteLineup(interaction.channelId)
         await interaction.reply('✅ Lineup deleted from this channel');
     },
