@@ -67,7 +67,7 @@ exports.formatTeamName = (lineup, filterName) => {
     if (lineup.name) {
         name += ` *(${lineup.name})*`
     }
-    if (lineup.isMix()) {
+    if (lineup.isMixOrCaptains()) {
         name += ' (*mix*)'
     }
 

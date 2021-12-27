@@ -178,7 +178,7 @@ module.exports = {
                         await interaction.channel.send(reply)
 
                         const filter = (interaction) => interaction.customId.startsWith('pick_');
-                        const collector = interaction.channel.createMessageComponentCollector({ filter, time: 280000 });
+                        const collector = interaction.channel.createMessageComponentCollector({ filter, idle: 280000 });
                         collector.on('collect', async (i) => {
                             if (i.user.id !== currentCaptain.id) {
                                 await i.reply({ content: "You are not the captain or it's not your turn to pick !", ephemeral: true })
@@ -230,9 +230,9 @@ module.exports = {
                         collector.on('end', async (collected) => {
                             await teamService.stopPicking(lineup.channelId)
                             if (remainingRoles.length > 0) {
-                                lineup = await teamService.clearLineup(interaction.channelId, [1, 2])
+                                lineup = await teamService.removeUserFromLineup(interaction.channelId, currentCaptain.id)
                                 let reply = await interactionUtils.createReplyForLineup(interaction, lineup)
-                                reply.content = "Sorry, you have been too long to pick all players ... The queue has been reset"
+                                reply.content = `You have been too long to pick a player. Draft has been cancelled and ${currentCaptain} has been removed from the lineup`
                                 await interaction.followUp(reply)
                                 return
                             }
