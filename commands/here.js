@@ -27,6 +27,7 @@ module.exports = {
         }
 
         await teamService.updateLastNotificationTime(interaction.channelId, now)
-        await interaction.reply('@everyone')
+        await interaction.channel.send('@everyone')
+        await interaction.reply({ content: 'You notified everyone', ephemeral: true })
     }
 }

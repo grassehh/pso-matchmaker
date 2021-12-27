@@ -15,7 +15,11 @@ const client = new Client({
         Intents.FLAGS.GUILDS,
         Intents.FLAGS.GUILD_MESSAGES,
 		Intents.FLAGS.GUILD_PRESENCES
-    ]
+    ],
+	allowedMentions: {
+		parse:  ['roles', 'users', 'everyone'],
+		repliedUser: false
+	}
 })
 
 //Fetch and push commands into the client
