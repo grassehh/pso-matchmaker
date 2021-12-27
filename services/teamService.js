@@ -298,7 +298,7 @@ exports.createLineup = (channelId, size, name, autoSearch, team, type, visibilit
             roles.push({ name: i, lineupNumber: 1 })
             i++
         }
-        while (i < (size * 2)-1) {
+        while (i < (size * 2) - 1) {
             roles.push({ name: i, lineupNumber: 2 })
             i++
         }
@@ -317,4 +317,8 @@ exports.createLineup = (channelId, size, name, autoSearch, team, type, visibilit
     })
 
     return lineup
+}
+
+exports.updateLastNotificationTime = async (channelId, time) => {
+    await Lineup.updateOne({ channelId }, { 'lastNotificationTime': time })
 }
