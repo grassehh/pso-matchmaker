@@ -226,26 +226,28 @@ exports.createLeaderBoardPaginationComponent = (searchOptions = {}, numberOfPage
 
 exports.createLineupEmbedsForNextMatch = async (interaction, lineup, opponentLineup, lobbyName, lobbyPassword) => {
     const lineupEmbedsForNextMatch = []
-    const firstLineupTeamName = opponentLineup ? teamService.formatTeamName(opponentLineup) : teamService.formatTeamName(lineup) + ' (#2)'
-    const firstLineupEmbed = await createLineupEmbed(interaction, lineup.roles.filter(role => role.lineupNumber === 1), firstLineupTeamName, lobbyName, lobbyPassword)
+    const firstLineupEmbed = await createLineupEmbed(interaction, lineup, opponentLineup, lobbyName, lobbyPassword, 1)
     lineupEmbedsForNextMatch.push(firstLineupEmbed)
 
     if (!opponentLineup && lineup.isMixOrCaptains()) {
-        const secondLineupTeamName = teamService.formatTeamName(lineup) + ' (#1)'
-        const secondLineupEmbed = await createLineupEmbed(interaction, lineup.roles.filter(role => role.lineupNumber === 2), secondLineupTeamName, lobbyName, lobbyPassword)
+        const secondLineupEmbed = await createLineupEmbed(interaction, lineup, opponentLineup, lobbyName, lobbyPassword, 2)
         lineupEmbedsForNextMatch.push(secondLineupEmbed)
     }
 
     return lineupEmbedsForNextMatch
 }
 
-async function createLineupEmbed(interaction, roles, opponentTeamName, lobbyName, lobbyPassword) {
+async function createLineupEmbed(interaction, lineup, opponentLineup, lobbyName, lobbyPassword, lineupNumber = 1) {
+    const roles = lineup.roles.filter(role => role.lineupNumber === lineupNumber)
+    
+    const opponentTeamName = opponentLineup ? teamService.formatTeamName(opponentLineup) : `${teamService.formatTeamName(lineup)} #${lineupNumber}`
+
     let lineupEmbed = new MessageEmbed()
         .setColor('#6aa84f')
-        .setTitle(`Match lineup against '${opponentTeamName}'`)
+        .setTitle(opponentLineup ? `Lineup against ${opponentTeamName}` : `Team #${lineupNumber} lineup`)
         .setTimestamp()
         .setFooter(`Author: ${interaction.user.username}`)
-    let promisesForFirstLineup = roles.map(async (role) => {
+    const promises = roles.map(async (role) => {
         if (!role.user) {
             return { role, playerName: '\u200b' }
         }
@@ -264,9 +266,9 @@ async function createLineupEmbed(interaction, roles, opponentTeamName, lobbyName
             let playerDmEmbed = new MessageEmbed()
                 .setColor('#6aa84f')
                 .setTitle(`⚽ PSO Match ready ⚽`)
-                .setDescription(`Your are playing **${role.name}** against **${opponentTeamName}**`)
-                .addField('Lobby name', `**${lobbyName}**`, true)
-                .addField('Lobby password', `**${lobbyPassword}**`, true)
+                .setDescription(`Your are playing${lineup.isCaptains() && !role.name.includes('GK') ? ' ' : ` **${role.name}** `}against **${opponentTeamName}**`)
+                .addField('Lobby name', `${lobbyName}`)
+                .addField('Lobby password', `${lobbyPassword}`)
                 .setTimestamp()
             await handle(discordUser.send({ embeds: [playerDmEmbed] }))
             playerName = discordUser
@@ -275,7 +277,7 @@ async function createLineupEmbed(interaction, roles, opponentTeamName, lobbyName
         return { role, playerName }
     })
 
-    const rolesWithPlayer = await Promise.all(promisesForFirstLineup)
+    const rolesWithPlayer = await Promise.all(promises)
     let description = ''
     rolesWithPlayer.map(roleWithPlayer => {
         description += `**${roleWithPlayer.role.name}:** ${roleWithPlayer.playerName}\n`
@@ -606,7 +608,7 @@ function createReplyForCaptainsLineup(interaction, lineup) {
             .setCustomId(`join_outfield`)
             .setLabel(`Join`)
             .setStyle('PRIMARY')
-            .setDisabled(numberOfOutfieldUsers === lineup.size*2 - 2),
+            .setDisabled(numberOfOutfieldUsers === lineup.size * 2 - 2),
         new MessageButton()
             .setCustomId(`join_gk`)
             .setLabel(`Join as GK`)
