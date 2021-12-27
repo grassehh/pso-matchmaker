@@ -75,6 +75,10 @@ const lineupSchema = new mongoose.Schema({
         type: Boolean,
         required: true,
         default: false
+    },
+    lastNotificationTime: {
+        type: Date,
+        required: false
     }
 })
 lineupSchema.methods.isMix = function () {
