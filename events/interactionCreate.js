@@ -201,7 +201,7 @@ module.exports = {
 
                             lineup.roles = firstTeamRoles.concat(secondTeamRoles)
 
-                            if (remainingRoles.length <= 1 || teamRoles.filter(role => role.user).length === teamRoles.length || (teamRoles.filter(role => role.user).length === teamRoles.length-1 && teamRoles.find(role => !role.user).name.includes('GK'))) {
+                            if (remainingRoles.length <= 1 || teamRoles.filter(role => role.user).length === teamRoles.length || (teamRoles.filter(role => role.user).length === teamRoles.length - 1 && teamRoles.find(role => !role.user).name.includes('GK'))) {
                                 teamRoles = currentCaptain.id === firstCaptain.id ? secondTeamRoles : firstTeamRoles
                                 for (let remainingRole of remainingRoles) {
                                     if (remainingRole.name.includes('GK')) {
@@ -329,6 +329,11 @@ module.exports = {
                 }
 
                 if (interaction.customId === 'startSearch') {
+                    const challenge = await matchmakingService.findChallengeByChannelId(interaction.channelId)
+                    if (challenge) {
+                        await interaction.reply({ content: "❌ Your are currently challenging", ephemeral: true })
+                        return
+                    }
                     let lineupQueue = await matchmakingService.findLineupQueueByChannelId(interaction.channelId)
                     if (lineupQueue) {
                         await interactionUtils.replyAlreadyQueued(interaction, lineupQueue.lineup.size)
@@ -346,6 +351,11 @@ module.exports = {
                 }
 
                 if (interaction.customId === 'stopSearch') {
+                    const challenge = await matchmakingService.findChallengeByChannelId(interaction.channelId)
+                    if (challenge) {
+                        await interaction.reply({ content: "❌ Your are currently challenging", ephemeral: true })
+                        return
+                    }
                     let lineupQueue = await matchmakingService.findLineupQueueByChannelId(interaction.channelId)
                     if (!lineupQueue) {
                         await interactionUtils.replyNotQueued(interaction)
