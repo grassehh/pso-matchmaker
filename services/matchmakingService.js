@@ -272,12 +272,12 @@ exports.readyMatch = async (interaction, challenge, mixLineup) => {
         .setColor('#6aa84f')
         .setTitle(`${challenge ? '⚽ Challenge Accepted ⚽' : '⚽ Match Ready ⚽'}`)
         .setTimestamp()
-        .addField('Every signed player received the lobby information in private message', lobbyCreationEmbedFieldValue)
+        .addField('Each player has received the lobby information in private message', lobbyCreationEmbedFieldValue)
 
-    const lobbyName = Math.floor(Math.random() * 1000) + 1000
     const lobbyPassword = Math.random().toString(36).slice(-4)
 
     if (challenge) {
+        const lobbyName = `${teamService.formatTeamName(challenge.initiatingTeam.lineup)} vs. ${teamService.formatTeamName(challenge.challengedTeam.lineup)}`
         await this.deleteChallengeById(challenge.id)
         let initiatingTeamLineup = await teamService.retrieveLineup(challenge.initiatingTeam.lineup.channelId)
         const initiatingTeamUsers = initiatingTeamLineup.roles.map(role => role.user).filter(user => user)
@@ -290,7 +290,7 @@ exports.readyMatch = async (interaction, challenge, mixLineup) => {
             const newInitiatingTeamLineup = await teamService.clearLineup(initiatingTeamLineup.channelId)
             let lineupForNextMatchEmbeds = await interactionUtils.createLineupEmbedsForNextMatch(interaction, initiatingTeamLineup, challenge.challengedTeam.lineup, lobbyName, lobbyPassword)
             const reply = await interactionUtils.createReplyForLineup(interaction, newInitiatingTeamLineup)
-            reply.embeds = [lobbyCreationEmbed].concat(lineupForNextMatchEmbeds)
+            reply.embeds = lineupForNextMatchEmbeds.concat(lobbyCreationEmbed)
             let initiatingTeamChannel = await interaction.client.channels.fetch(challenge.initiatingTeam.lineup.channelId)
             await initiatingTeamChannel.send(reply)
             await initiatingTeamChannel.messages.edit(challenge.initiatingMessageId, { components: [] })
@@ -310,7 +310,7 @@ exports.readyMatch = async (interaction, challenge, mixLineup) => {
                 const newChallengedTeamLineup = await teamService.updateLineupRoles(challengedTeamLineup.channelId, newRoles)
                 await this.updateLineupQueueRoles(challengedTeamLineup.channelId, newRoles)
                 const reply = await interactionUtils.createReplyForLineup(interaction, newChallengedTeamLineup)
-                reply.embeds = [lobbyCreationEmbed].concat(lineupForNextMatchEmbeds).concat(reply.embeds)
+                reply.embeds = lineupForNextMatchEmbeds.concat(lobbyCreationEmbed).concat(reply.embeds)
                 let challengedTeamChannel = await interaction.client.channels.fetch(challenge.challengedTeam.lineup.channelId)
                 await challengedTeamChannel.send(reply)
             } else {
@@ -318,7 +318,7 @@ exports.readyMatch = async (interaction, challenge, mixLineup) => {
                 const newChallengedTeamLineup = await teamService.clearLineup(challengedTeamLineup.channelId)
                 let lineupForNextMatchEmbeds = await interactionUtils.createLineupEmbedsForNextMatch(interaction, challengedTeamLineup, initiatingTeamLineup, lobbyName, lobbyPassword)
                 const reply = await interactionUtils.createReplyForLineup(interaction, newChallengedTeamLineup)
-                reply.embeds = [lobbyCreationEmbed].concat(lineupForNextMatchEmbeds)
+                reply.embeds = lineupForNextMatchEmbeds.concat(lobbyCreationEmbed)
                 await interaction.editReply(reply)
                 await interaction.message.edit({ components: [] })
             }
@@ -330,13 +330,14 @@ exports.readyMatch = async (interaction, challenge, mixLineup) => {
         await statsService.updateStats(interaction, challenge.initiatingTeam.lineup.team.guildId, challenge.initiatingTeam.lineup.size, initiatingTeamUsers)
         await statsService.updateStats(interaction, challenge.challengedTeam.lineup.team.guildId, challenge.challengedTeam.lineup.size, challengedTeamUsers)
     }
-    else { //This is a mix vs mix match
+    else { //This is a mix vs mix match     
+        const lobbyName = `${teamService.formatTeamName(mixLineup, true)} #${Math.floor(Math.random() * 10000).toString().padStart(4, '0')}`
         await teamService.clearLineup(mixLineup.channelId, [1, 2])
         const allUsers = mixLineup.roles.map(role => role.user).filter(user => user)
         let mixNextMatchEmbeds = await interactionUtils.createLineupEmbedsForNextMatch(interaction, mixLineup, null, lobbyName, lobbyPassword)
         let newMixLineup = teamService.createLineup(interaction.channelId, mixLineup.size, mixLineup.name, mixLineup.autoSearch, mixLineup.team, mixLineup.type, mixLineup.visibility)
         const reply = await interactionUtils.createReplyForLineup(interaction, newMixLineup)
-        reply.embeds = [lobbyCreationEmbed].concat(mixNextMatchEmbeds).concat(reply.embeds)
+        reply.embeds = mixNextMatchEmbeds.concat(lobbyCreationEmbed).concat(reply.embeds)
         await interaction.channel.send(reply)
         await this.clearLineupQueue(mixLineup.channelId, [1, 2])
         await statsService.updateStats(interaction, interaction.guildId, newMixLineup.size, allUsers)
@@ -364,7 +365,10 @@ exports.findTwoMostRelevantCaptainsIds = async (userIds) => {
             $sort: { 'numberOfGames': -1 },
         },
         {
-            $limit: 2
+            $limit: 4
+        },
+        {
+            $sample: 4
         }
     ])
 
