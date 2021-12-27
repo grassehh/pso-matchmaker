@@ -368,7 +368,9 @@ exports.findTwoMostRelevantCaptainsIds = async (userIds) => {
             $limit: 4
         },
         {
-            $sample: 4
+            $sample: {
+                size: 4
+            }
         }
     ])
 
