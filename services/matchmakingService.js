@@ -365,11 +365,11 @@ exports.findTwoMostRelevantCaptainsIds = async (userIds) => {
             $sort: { 'numberOfGames': -1 },
         },
         {
-            $limit: 3
+            $limit: 4
         },
         {
             $sample: {
-                size: 3
+                size: 4
             }
         }
     ])
