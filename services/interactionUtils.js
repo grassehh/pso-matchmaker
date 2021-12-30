@@ -239,7 +239,7 @@ exports.createLineupEmbedsForNextMatch = async (interaction, lineup, opponentLin
 
 async function createLineupEmbed(interaction, lineup, opponentLineup, lobbyName, lobbyPassword, lineupNumber = 1) {
     const roles = lineup.roles.filter(role => role.lineupNumber === lineupNumber)
-    
+
     const opponentTeamName = opponentLineup ? teamService.formatTeamName(opponentLineup) : `${teamService.formatTeamName(lineup)} #${lineupNumber}`
 
     let lineupEmbed = new MessageEmbed()
@@ -570,23 +570,30 @@ function createReplyForMixLineup(interaction, lineup, challengingLineup) {
         fillLineupEmbedWithRoles(secondLineupEmbed, lineup.roles.filter(role => role.lineupNumber === 2))
     }
 
-    const selectTeamComponentOptions = [{ label: 'Team #1', value: '1' }]
-    if (!challengingLineup) {
-        selectTeamComponentOptions.push({ label: 'Team #2', value: '2' })
-    }
-    const selectTeamComponent = new MessageActionRow().addComponents(
-        new MessageSelectMenu()
-            .setCustomId(`mix_lineup_select`)
-            .setPlaceholder('Select lineup')
-            .addOptions(selectTeamComponentOptions))
-
     const lineupActionsComponent = new MessageActionRow().addComponents(
+        new MessageButton()
+            .setCustomId(`mix_lineup_1`)
+            .setLabel(`Team #1`)
+            .setStyle('PRIMARY')
+    )
+
+    if (!challengingLineup) {
+        lineupActionsComponent.addComponents(
+            new MessageButton()
+                .setCustomId(`mix_lineup_2`)
+                .setLabel(`Team #2`)
+                .setStyle('PRIMARY')
+        )
+    }
+
+    lineupActionsComponent.addComponents(
         new MessageButton()
             .setCustomId(`leaveLineup`)
             .setLabel(`Leave`)
-            .setStyle('DANGER'))
+            .setStyle('DANGER')
+    )
 
-    return { embeds: [firstLineupEmbed, secondLineupEmbed], components: [selectTeamComponent, lineupActionsComponent] }
+    return { embeds: [firstLineupEmbed, secondLineupEmbed], components: [lineupActionsComponent] }
 }
 
 function createReplyForCaptainsLineup(interaction, lineup) {

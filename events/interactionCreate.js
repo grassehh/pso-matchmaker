@@ -513,6 +513,14 @@ module.exports = {
                     await interaction.update({ embeds: statsEmbeds, components: interaction.message.components })
                     return
                 }
+
+                if (interaction.customId.startsWith('mix_lineup_')) {
+                    const split = interaction.customId.split('_')
+                    const selectedLineup = parseInt(split[2])
+                    let lineup = await teamService.retrieveLineup(interaction.channelId)
+                    const components = interactionUtils.createLineupComponents(lineup, null, selectedLineup)
+                    await interaction.reply({ content: `What do you want to do in the **Mix #${selectedLineup}** ?`, components, ephemeral: true })
+                }
             }
 
             if (interaction.isSelectMenu()) {
@@ -664,13 +672,6 @@ module.exports = {
                 if (interaction.customId === 'challenge_select') {
                     await interactionUtils.challenge(interaction, interaction.values[0])
                     return
-                }
-
-                if (interaction.customId === 'mix_lineup_select') {
-                    const selectedLineup = parseInt(interaction.values[0])
-                    let lineup = await teamService.retrieveLineup(interaction.channelId)
-                    const components = interactionUtils.createLineupComponents(lineup, null, selectedLineup)
-                    await interaction.reply({ content: `What do you want to do in the **Mix #${selectedLineup}** ?`, components, ephemeral: true })
                 }
             }
         }
