@@ -178,7 +178,7 @@ module.exports = {
                         await interaction.channel.send(reply)
 
                         const filter = (interaction) => interaction.customId.startsWith('pick_');
-                        const collector = interaction.channel.createMessageComponentCollector({ filter, idle: 280000 });
+                        const collector = interaction.channel.createMessageComponentCollector({ filter, idle: 138000 });
                         collector.on('collect', async (i) => {
                             if (i.user.id !== currentCaptain.id) {
                                 await i.reply({ content: "You are not the captain or it's not your turn to pick !", ephemeral: true })
@@ -331,7 +331,7 @@ module.exports = {
                 if (interaction.customId === 'startSearch') {
                     const challenge = await matchmakingService.findChallengeByChannelId(interaction.channelId)
                     if (challenge) {
-                        await interaction.reply({ content: "❌ Your are currently challenging", ephemeral: true })
+                        await interaction.reply({ content: "❌ You are currently challenging", ephemeral: true })
                         return
                     }
                     let lineupQueue = await matchmakingService.findLineupQueueByChannelId(interaction.channelId)
@@ -353,7 +353,7 @@ module.exports = {
                 if (interaction.customId === 'stopSearch') {
                     const challenge = await matchmakingService.findChallengeByChannelId(interaction.channelId)
                     if (challenge) {
-                        await interaction.reply({ content: "❌ Your are currently challenging", ephemeral: true })
+                        await interaction.reply({ content: "❌ You are currently challenging", ephemeral: true })
                         return
                     }
                     let lineupQueue = await matchmakingService.findLineupQueueByChannelId(interaction.channelId)
