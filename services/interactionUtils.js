@@ -266,7 +266,7 @@ async function createLineupEmbed(interaction, lineup, opponentLineup, lobbyName,
             let playerDmEmbed = new MessageEmbed()
                 .setColor('#6aa84f')
                 .setTitle(`⚽ PSO Match ready ⚽`)
-                .setDescription(`Your are playing${lineup.isCaptains() && !role.name.includes('GK') ? ' ' : ` **${role.name}** `}against **${opponentTeamName}**`)
+                .setDescription(`You are playing${lineup.isCaptains() && !role.name.includes('GK') ? ' ' : ` **${role.name}** `}against **${opponentTeamName}**`)
                 .addField('Lobby name', `${lobbyName}`)
                 .addField('Lobby password', `${lobbyPassword}`)
                 .setTimestamp()
