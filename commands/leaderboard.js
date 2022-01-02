@@ -23,21 +23,25 @@ module.exports = {
                 .addOptions([
                     {
                         label: '🌎 Global Stats',
-                        value: 'leaderboard_global_value'
+                        value: 'global'
+                    },
+                    {
+                        label: '⛺ Region Stats',
+                        value: `region,${team.region}`
                     },
                     {
                         label: '👕 Team Stats',
-                        value: 'leaderboard_team_value',
+                        value: 'team',
                     },
                 ])
         )
 
 
-        const numberOfPlayers = await statsService.countNumberOfPlayers()
+        const numberOfPlayers = await statsService.countNumberOfPlayers(team.region)
         const numberOfPages = Math.ceil(numberOfPlayers / statsService.DEFAULT_LEADERBOARD_PAGE_SIZE)
-        const leaderboardEmbeds = await interactionUtils.createLeaderBoardEmbeds(interaction, numberOfPages)
-        const leaderboardPaginationComponent = interactionUtils.createLeaderBoardPaginationComponent({ globalStats: true, page: 0, lineupSizes: [] }, numberOfPages)
-        const lineupSizeComponent = interactionUtils.createLeaderBoardLineupSizeComponent(true)
+        const leaderboardEmbeds = await interactionUtils.createLeaderBoardEmbeds(interaction, numberOfPages, { region: team.region })
+        const leaderboardPaginationComponent = interactionUtils.createLeaderBoardPaginationComponent({ statsType: `region,${team.region}`, page: 0, lineupSizes: [] }, numberOfPages)
+        const lineupSizeComponent = interactionUtils.createLeaderBoardLineupSizeComponent(`region,${team.region}`)
         await interaction.reply({ embeds: leaderboardEmbeds, components: [leaderboardPaginationComponent, globalLeaderboardComponent, lineupSizeComponent], ephemeral: true })
     }
 };

@@ -141,6 +141,10 @@ const challengeSchema = new mongoose.Schema({
 exports.Challenge = mongoose.model('Challenge', challengeSchema, 'challenges')
 
 const statsSchema = new mongoose.Schema({
+    region: {
+        type: String,
+        required: true
+    },
     guildId: {
         type: String,
         required: true

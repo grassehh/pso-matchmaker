@@ -33,23 +33,27 @@ module.exports = {
             }
         }
 
-        const globalStatsComponent = new MessageActionRow().addComponents(
+        const statsTypeComponent = new MessageActionRow().addComponents(
             new MessageSelectMenu()
                 .setCustomId(`stats_type_select_${user.id}`)
                 .setPlaceholder('Stats Type')
                 .addOptions([
                     {
                         label: '🌎 Global Stats',
-                        value: 'stats_global_value'
+                        value: 'global'
+                    },                    
+                    {
+                        label: '⛺ Region Stats',
+                        value: `region,${team.region}`
                     },
                     {
                         label: '👕 Team Stats',
-                        value: 'stats_team_value',
+                        value: 'team',
                     }
                 ])
         )
 
         let statsEmbeds = await interactionUtils.createStatsEmbeds(interaction, user.id)
-        await interaction.reply({ embeds: statsEmbeds, components: [globalStatsComponent], ephemeral: true })
+        await interaction.reply({ embeds: statsEmbeds, components: [statsTypeComponent], ephemeral: true })
     }
 };
