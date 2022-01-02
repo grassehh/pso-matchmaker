@@ -334,8 +334,8 @@ exports.readyMatch = async (interaction, challenge, mixLineup) => {
         }))
 
         await Promise.all(promises)
-        await statsService.updateStats(interaction, challenge.initiatingTeam.lineup.team.guildId, challenge.initiatingTeam.lineup.size, initiatingTeamUsers)
-        await statsService.updateStats(interaction, challenge.challengedTeam.lineup.team.guildId, challenge.challengedTeam.lineup.size, challengedTeamUsers)
+        await statsService.updateStats(interaction, challenge.initiatingTeam.lineup.team.region, challenge.initiatingTeam.lineup.team.guildId, challenge.initiatingTeam.lineup.size, initiatingTeamUsers)
+        await statsService.updateStats(interaction, challenge.challengedTeam.lineup.team.region, challenge.challengedTeam.lineup.team.guildId, challenge.challengedTeam.lineup.size, challengedTeamUsers)
     }
     else { //This is a mix vs mix match     
         const lobbyName = `${teamService.formatTeamName(mixLineup, true)} #${Math.floor(Math.random() * 10000).toString().padStart(4, '0')}`
@@ -347,7 +347,8 @@ exports.readyMatch = async (interaction, challenge, mixLineup) => {
         reply.embeds = mixNextMatchEmbeds.concat(lobbyCreationEmbed).concat(reply.embeds)
         await interaction.channel.send(reply)
         await this.clearLineupQueue(mixLineup.channelId, [1, 2])
-        await statsService.updateStats(interaction, interaction.guildId, newMixLineup.size, allUsers)
+        const team = await teamService.findTeamByGuildId(interaction.guildId)
+        await statsService.updateStats(interaction, team.region, team.guildId, newMixLineup.size, allUsers)
     }
 }
 

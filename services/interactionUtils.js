@@ -171,13 +171,12 @@ exports.createLeaderBoardEmbeds = async (interaction, numberOfPages, searchOptio
         let playersStats = ''
         let pos = (pageSize * page) + 1
         for (let stats of allStats) {
-            let user = await interaction.client.users.fetch(stats._id)
-            if (user) {
-                let isLeader = pos === 1 && page === 0
-                let isTop3 = pos <= 3
-                playersStats += `${isTop3 ? '**' : ''}${pos}. ${isLeader ? '🏆 ' : ''} ${user.username} (${stats.numberOfGames})${isLeader ? ' 🏆' : ''}${isTop3 ? '**' : ''}\n`
-                pos++
-            }
+            let [user] = await handle(interaction.client.users.fetch(stats._id))
+            const username = user ? user.userName : '*deleted user*'
+            let isLeader = pos === 1 && page === 0
+            let isTop3 = pos <= 3
+            playersStats += `${isTop3 ? '**' : ''}${pos}. ${isLeader ? '🏆 ' : ''} ${username} (${stats.numberOfGames})${isLeader ? ' 🏆' : ''}${isTop3 ? '**' : ''}\n`
+            pos++
         }
 
         statsEmbed.addField(`Page ${page + 1}/${numberOfPages}`, playersStats)

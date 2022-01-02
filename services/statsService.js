@@ -114,7 +114,7 @@ exports.findStats = async (userId, guildId, page, size, lineupSizes = []) => {
     return await Stats.aggregate(pipeline)
 }
 
-exports.updateStats = async (interaction, guildId, lineupSize, users) => {
+exports.updateStats = async (interaction, region, guildId, lineupSize, users) => {
     notMercUsers = users.filter(user => user?.id !== MERC_USER_ID)
     if (notMercUsers.length === 0) {
         return
@@ -123,6 +123,7 @@ exports.updateStats = async (interaction, guildId, lineupSize, users) => {
     let bulks = notMercUsers.map((user) => ({
         updateOne: {
             filter: {
+                region,
                 guildId,
                 lineupSize,
                 'userId': user.id
@@ -130,6 +131,7 @@ exports.updateStats = async (interaction, guildId, lineupSize, users) => {
             update: {
                 $inc: { numberOfGames: 1 },
                 $setOnInsert: {
+                    region,
                     guildId,
                     userId: user.id
                 },
