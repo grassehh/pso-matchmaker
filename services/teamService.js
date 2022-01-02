@@ -55,11 +55,11 @@ function removeSpecialCharacters(name) {
 
 exports.validateTeamName = (name) => {
     const filteredName = removeSpecialCharacters(name)
-    return filteredName.length > 0 && filteredName.length < constants.MAX_TEAM_NAME_LENGTH
+    return filteredName.length > 0 && filteredName.length <= constants.MAX_TEAM_NAME_LENGTH
 }
 
 exports.validateLineupName = (name) => {
-    return !name || (name.length > 0 && name.length < constants.MAX_LINEUP_NAME_LENGTH)
+    return !name || (name.length > 0 && name.length <= constants.MAX_LINEUP_NAME_LENGTH)
 }
 
 exports.formatTeamName = (lineup, filterName) => {
