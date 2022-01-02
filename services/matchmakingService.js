@@ -23,7 +23,7 @@ exports.freeLineupQueuesByIds = async (ids) => {
 }
 
 exports.deleteLineupQueuesByGuildId = async (guildId) => {
-    await LineupQueue.deleteMany({ 'team.guildId': guildId })
+    await LineupQueue.deleteMany({ 'lineup.team.guildId': guildId })
 }
 
 exports.deleteLineupQueuesByChannelId = async (channelId) => {
@@ -159,6 +159,10 @@ exports.joinQueue = async (client, user, lineup) => {
 }
 
 exports.leaveQueue = async (client, lineupQueue) => {
+    if (lineupQueue.lineup.isMixOrCaptains()) {
+        return
+    }
+
     Promise.all(lineupQueue.notificationMessages.map(async notificationMessage => {
         const channel = await client.channels.fetch(notificationMessage.channelId)
         handle(channel.messages.delete(notificationMessage.messageId))
@@ -171,19 +175,22 @@ exports.checkIfAutoSearch = async (client, user, lineup) => {
     let lineupQueue = await this.findLineupQueueByChannelId(lineup.channelId)
     let autoSearchResult = { joinedQueue: false, leftQueue: false, updatedLineupQueue: lineupQueue }
 
-    if (!lineup.isMixOrCaptains()) {
-        if (lineup.autoSearch === true && isLineupAllowedToJoinQueue(lineup)) {
-            if (!lineupQueue) {
-                autoSearchResult.updatedLineupQueue = await this.joinQueue(client, user, lineup)
-                autoSearchResult.joinedQueue = true
-            }
-        } else if (!isLineupAllowedToJoinQueue(lineup) && lineupQueue) {
-            let challenge = await this.findChallengeByGuildId(lineup.team.guildId)
-            if (!challenge) {
-                await this.leaveQueue(client, lineupQueue)
-                autoSearchResult.updatedLineupQueue = null
-                autoSearchResult.leftQueue = true
-            }
+    if (lineup.isMixOrCaptains()) {
+        return autoSearchResult
+    }
+
+    if (lineup.autoSearch === true && isLineupAllowedToJoinQueue(lineup) && !lineupQueue) {
+        autoSearchResult.updatedLineupQueue = await this.joinQueue(client, user, lineup)
+        autoSearchResult.joinedQueue = true
+        return autoSearchResult
+    }
+
+    if (!isLineupAllowedToJoinQueue(lineup) && lineupQueue) {
+        let challenge = await this.findChallengeByGuildId(lineup.team.guildId)
+        if (!challenge) {
+            await this.leaveQueue(client, lineupQueue)
+            autoSearchResult.updatedLineupQueue = null
+            autoSearchResult.leftQueue = true
         }
     }
 
