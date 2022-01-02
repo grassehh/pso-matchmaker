@@ -102,10 +102,10 @@ module.exports = {
                         return
                     }
 
-                    const newLineup = await teamService.removeUserFromLineup(interaction.channelId, interaction.user.id)
-                    if (newLineup) {
-                        lineup = newLineup
-                    }
+                    // const newLineup = await teamService.removeUserFromLineup(interaction.channelId, interaction.user.id)
+                    // if (newLineup) {
+                        // lineup = newLineup
+                    // }
 
                     let roleToSign
                     if (interaction.customId.split('_')[1] === 'gk') {
