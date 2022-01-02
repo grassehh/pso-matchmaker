@@ -11,7 +11,6 @@ const client = new Client({
     ]
 })
 
-
 async function notifyUpdate() {
     await client.login(process.env.TOKEN)
     await mongoose.connect(process.env.MONGO_URI || '', { keepAlive: true })
@@ -19,7 +18,7 @@ async function notifyUpdate() {
     let updateEmbed = new MessageEmbed()
         .setColor('#0099ff')
         .setTitle(`📢 News !`)
-        .setDescription('Stats are now tracked for every regions ! (Was only tracked for EU before).\nThis also means you can use /leaderboard and /player_stats commands and show global, region or team stats !')
+        .setDescription('New  **/leave_all** command allows you to leave every lineup you are signed in.')
         .setTimestamp()
 
     const lienups = await Lineup.find({}, { channelId: 1 })
