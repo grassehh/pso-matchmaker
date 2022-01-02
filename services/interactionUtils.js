@@ -130,9 +130,9 @@ exports.replyNotAllowed = async (interaction) => {
     await interaction.reply({ content: '❌ You are not allowed to execute this command', ephemeral: true })
 }
 
-exports.createStatsEmbeds = async (interaction, userId, guildId) => {
+exports.createStatsEmbeds = async (interaction, userId, region, guildId) => {
     let user = await interaction.client.users.resolve(userId)
-    let stats = await statsService.findStats(userId, guildId)
+    let stats = await statsService.findStats(userId, region, guildId)
     if (stats.length === 0) {
         stats = new Stats({
             numberOfGames: 0
@@ -140,9 +140,17 @@ exports.createStatsEmbeds = async (interaction, userId, guildId) => {
     } else {
         stats = stats[0]
     }
+    
+    let statsType = '🌎 Global'
+    if (region) {
+        statsType = '⛺ Region'
+    }
+    if (guildId) {
+        statsType = '👕 Team'
+    }
     const statsEmbed = new MessageEmbed()
         .setColor('#0099ff')
-        .setTitle(`${guildId ? 'Team' : 'Global'} stats`)
+        .setTitle(`${statsType} Stats`)
         .setTimestamp()
         .setDescription(user.toString())
         .setFooter(`Author: ${interaction.user.username}`)
@@ -152,27 +160,27 @@ exports.createStatsEmbeds = async (interaction, userId, guildId) => {
 }
 
 exports.createLeaderBoardEmbeds = async (interaction, numberOfPages, searchOptions = {}) => {
-    const { guildId, page = 0, pageSize = statsService.DEFAULT_LEADERBOARD_PAGE_SIZE, lineupSizes = [] } = searchOptions
-    let allStats = await statsService.findStats(null, guildId, page, pageSize, lineupSizes)
+    const { region, guildId, page = 0, pageSize = statsService.DEFAULT_LEADERBOARD_PAGE_SIZE, lineupSizes = [] } = searchOptions
+    let allStats = await statsService.findStats(null, region, guildId, page, pageSize, lineupSizes)
     let statsEmbed
     if (allStats.length === 0) {
         statsEmbed = new MessageEmbed()
             .setColor('#0099ff')
-            .setTitle(`${guildId ? 'Team' : 'Global'} ⚽ GAMES Leaderboard 🏆`)
+            .setTitle('⚽ Games Leaderboard 🏆')
             .setTimestamp()
             .setFooter(`Author: ${interaction.user.username}`)
             .addField('Ooooof', 'This looks pretty empty here. Time to get some games lads !')
     } else {
         statsEmbed = new MessageEmbed()
             .setColor('#0099ff')
-            .setTitle(`${guildId ? 'Team' : 'Global'} ⚽ GAMES Leaderboard 🏆`)
+            .setTitle('⚽ Games Leaderboard 🏆')
             .setTimestamp()
             .setFooter(`Author: ${interaction.user.username}`)
         let playersStats = ''
         let pos = (pageSize * page) + 1
         for (let stats of allStats) {
             let [user] = await handle(interaction.client.users.fetch(stats._id))
-            const username = user ? user.userName : '*deleted user*'
+            const username = user ? user.username : '*deleted user*'
             let isLeader = pos === 1 && page === 0
             let isTop3 = pos <= 3
             playersStats += `${isTop3 ? '**' : ''}${pos}. ${isLeader ? '🏆 ' : ''} ${username} (${stats.numberOfGames})${isLeader ? ' 🏆' : ''}${isTop3 ? '**' : ''}\n`
@@ -182,39 +190,49 @@ exports.createLeaderBoardEmbeds = async (interaction, numberOfPages, searchOptio
         statsEmbed.addField(`Page ${page + 1}/${numberOfPages}`, playersStats)
     }
 
+    let description    
+    let statsType = '🌎 Global'
+    if (region) {
+        statsType = '⛺ Region'
+    }
+    if (guildId) {
+        statsType = '👕 Team'
+    }
+    description = `${statsType} Stats`
+
     if (lineupSizes.length > 0) {
-        let description = "Selected sizes: "
+        description += "\nSelected sizes: "
         for (let lineupSize of lineupSizes) {
             description += `${lineupSize}v${lineupSize}, `
         }
         description = description.substring(0, description.length - 2)
-        statsEmbed.setDescription(description)
     }
+    statsEmbed.setDescription(description)
 
     return [statsEmbed]
 }
 
 exports.createLeaderBoardPaginationComponent = (searchOptions = {}, numberOfPages) => {
-    const { globalStats, page, lineupSizes } = searchOptions
+    const { statsType, page, lineupSizes } = searchOptions
     const paginationActionsRow = new MessageActionRow()
     paginationActionsRow.addComponents(
         new MessageButton()
-            .setCustomId(`leaderboard_first_page_${globalStats}_${lineupSizes}`)
+            .setCustomId(`leaderboard_first_page_${statsType}_${lineupSizes}`)
             .setLabel('<<')
             .setStyle('SECONDARY')
             .setDisabled(page === 0),
         new MessageButton()
-            .setCustomId(`leaderboard_page_${globalStats}_${lineupSizes}_${page - 1}`)
+            .setCustomId(`leaderboard_page_${statsType}_${lineupSizes}_${page - 1}`)
             .setLabel('<')
             .setStyle('SECONDARY')
             .setDisabled(page === 0),
         new MessageButton()
-            .setCustomId(`leaderboard_page_${globalStats}_${lineupSizes}_${page + 1}`)
+            .setCustomId(`leaderboard_page_${statsType}_${lineupSizes}_${page + 1}`)
             .setLabel('>')
             .setStyle('SECONDARY')
             .setDisabled(page >= numberOfPages - 1),
         new MessageButton()
-            .setCustomId(`leaderboard_last_page_${globalStats}_${lineupSizes}`)
+            .setCustomId(`leaderboard_last_page_${statsType}_${lineupSizes}`)
             .setLabel('>>')
             .setStyle('SECONDARY')
             .setDisabled(page >= numberOfPages - 1)
@@ -286,10 +304,10 @@ async function createLineupEmbed(interaction, lineup, opponentLineup, lobbyName,
     return lineupEmbed
 }
 
-exports.createLeaderBoardLineupSizeComponent = (globalStats) => {
+exports.createLeaderBoardLineupSizeComponent = (statsType) => {
     return new MessageActionRow().addComponents(
         new MessageSelectMenu()
-            .setCustomId(`leaderboard_lineup_size_select_${globalStats}`)
+            .setCustomId(`leaderboard_lineup_size_select_${statsType}`)
             .setPlaceholder('Lineup Size')
             .setMinValues(0)
             .setMaxValues(11)

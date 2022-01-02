@@ -41,8 +41,11 @@ async function findElligibleStatsForLevelling(userIds) {
     ])
 }
 
-exports.countNumberOfPlayers = async (guildId, lineupSizes = []) => {
+exports.countNumberOfPlayers = async (region, guildId, lineupSizes = []) => {
     let match = {}
+    if (region) {
+        match.region = region
+    }
     if (guildId) {
         match.guildId = guildId
     }
@@ -52,33 +55,28 @@ exports.countNumberOfPlayers = async (guildId, lineupSizes = []) => {
     return (await Stats.distinct('userId', match)).length
 }
 
-exports.findStats = async (userId, guildId, page, size, lineupSizes = []) => {
+exports.findStats = async (userId, region, guildId, page, size, lineupSizes = []) => {
     let skip = page * size
     let pipeline = []
 
+    let match = {}
     if (userId) {
-        pipeline.push(
-            {
-                $match: { 'userId': userId }
-            }
-        )
+        match.userId = userId
+    }
+
+    if (region) {
+        match.region = region
     }
 
     if (guildId) {
-        pipeline.push(
-            {
-                $match: { 'guildId': guildId }
-            }
-        )
+        match.guildId = guildId
     }
 
     if (lineupSizes.length > 0) {
-        pipeline.push(
-            {
-                $match: { lineupSize: { $in: lineupSizes.map(size => parseInt(size)) } }
-            }
-        )
+        match.lineupSize = { $in: lineupSizes.map(size => parseInt(size)) }
     }
+
+    pipeline.push({ $match: match })
 
     if (userId) {
         pipeline.push(
@@ -141,7 +139,7 @@ exports.updateStats = async (interaction, region, guildId, lineupSize, users) =>
     }))
     await Stats.bulkWrite(bulks)
 
-    if (lineupSize >= PSO_EU_MINIMUM_LINEUP_SIZE_LEVELING) {
+    if (interaction.guildId === process.env.PSO_EU_DISCORD_GUILD_ID && lineupSize >= PSO_EU_MINIMUM_LINEUP_SIZE_LEVELING) {
         const allElligibleStats = await findElligibleStatsForLevelling(notMercUsers.map(user => user.id))
 
         await Promise.all(allElligibleStats.map(async elligibleStats => {
