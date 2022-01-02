@@ -34,7 +34,7 @@ exports.findAvailableLineupQueues = async (region, channelId, lineupSize, guildI
     return await LineupQueue.find(
         {
             'lineup.channelId': { '$ne': channelId },
-            'team.region': region,
+            'lineup.team.region': region,
             'lineup.size': lineupSize,
             $or: [
                 { 'lineup.visibility': teamService.LINEUP_VISIBILITY_PUBLIC },
