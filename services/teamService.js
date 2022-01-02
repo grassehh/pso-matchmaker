@@ -2,6 +2,7 @@ const { Team, Lineup } = require("../mongoSchema")
 const constants = require("../constants")
 const { handle } = require("../utils")
 const matchmakingService = require('../services/matchmakingService');
+const interactionUtils = require('../services/interactionUtils');
 
 const ROLE_GOAL_KEEPER = 0
 const ROLE_ATTACKER = 1
@@ -193,6 +194,29 @@ exports.clearRoleFromLineup = async (channelId, roleName, selectedLineup = 1) =>
     )
 }
 
+exports.leaveLineup = async (interaction, channel, lineup) => {
+    let roleLeft = lineup.roles.find(role => role.user?.id === interaction.user.id)
+
+    if (!roleLeft) {
+        await interaction.reply({ content: `❌ You are not in the lineup`, ephemeral: true })
+        return
+    }
+
+    lineup = await this.removeUserFromLineup(lineup.channelId, interaction.user.id)
+    await matchmakingService.removeUserFromLineupQueue(lineup.channelId, interaction.user.id)
+
+    let messageContent = `Player ${interaction.user} left the ${lineup.isMixOrCaptains() ? 'queue !' : `**${roleLeft.name}** position`}`
+
+    const autoSearchResult = await matchmakingService.checkIfAutoSearch(interaction.client, interaction.user, lineup)
+    if (autoSearchResult.leftQueue) {
+        messageContent += `. Your team has been removed from the **${lineup.size}v${lineup.size}** queue !`
+    }
+
+    let reply = await interactionUtils.createReplyForLineup(interaction, lineup, autoSearchResult.updatedLineupQueue)
+    reply.content = messageContent
+    await channel.send(reply)
+}
+
 exports.notifyChannelForUserLeaving = async (client, user, channelId, messageContent) => {
     const [channel] = await handle(client.channels.fetch(channelId))
     if (channel) {
@@ -231,6 +255,10 @@ exports.findAllLineupChannelIdsByUserId = async (userId) => {
     }
 
     return []
+}
+
+exports.findAllLineupsByUserId = async (userId) => {
+    return await Lineup.find({ roles: { $elemMatch: { 'user.id': userId } } })
 }
 
 exports.findChannelIdsFromGuildIdAndUserId = async (guildId, userId) => {

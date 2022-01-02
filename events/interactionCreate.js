@@ -301,30 +301,8 @@ module.exports = {
 
                 if (interaction.customId === 'leaveLineup') {
                     let lineup = await teamService.retrieveLineup(interaction.channelId)
-                    let roleLeft = lineup.roles.find(role => role.user?.id === interaction.user.id)
-
-                    if (!roleLeft) {
-                        await interaction.reply({ content: `❌ You are not in the lineup`, ephemeral: true })
-                        return
-                    }
-
-                    lineup = await teamService.removeUserFromLineup(interaction.channelId, interaction.user.id)
-                    await matchmakingService.removeUserFromLineupQueue(interaction.channelId, interaction.user.id)
-
-                    let messageContent = `Player ${interaction.user} left the **${roleLeft.name}** position`
-
-                    const autoSearchResult = await matchmakingService.checkIfAutoSearch(interaction.client, interaction.user, lineup)
-                    if (autoSearchResult.joinedQueue) {
-                        messageContent += `. Your lineup is full, it is now searching for a **${lineup.size}v${lineup.size}** team !`
-                    }
-                    if (autoSearchResult.leftQueue) {
-                        messageContent += `. Your team has been removed from the **${lineup.size}v${lineup.size}** queue !`
-                    }
-
+                    await teamService.leaveLineup(interaction, interaction.channel, lineup)
                     await interaction.update({ components: [] })
-                    let reply = await interactionUtils.createReplyForLineup(interaction, lineup, autoSearchResult.updatedLineupQueue)
-                    reply.content = messageContent
-                    await interaction.channel.send(reply)
                     return
                 }
 
