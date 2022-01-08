@@ -41,6 +41,10 @@ async function findElligibleStatsForLevelling(userIds) {
     ])
 }
 
+exports.deleteStatsByGuildId = async (guildId) => {
+    await Stats.deleteMany({ guildId })
+}
+
 exports.countNumberOfPlayers = async (region, guildId, lineupSizes = []) => {
     let match = {}
     if (region) {
