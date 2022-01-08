@@ -81,6 +81,7 @@ const lineupSchema = new mongoose.Schema({
         required: false
     }
 })
+lineupSchema.index({ channelId: 1 });
 lineupSchema.methods.isMix = function () {
     return this.type === 'MIX'
 }
@@ -164,3 +165,21 @@ const statsSchema = new mongoose.Schema({
     }
 })
 exports.Stats = mongoose.model('Stats', statsSchema, 'stats')
+
+const bansSchema = new mongoose.Schema({
+    userId: {
+        type: String,
+        required: true
+    },
+    guildId: {
+        type: String,
+        required: true
+    },
+    expireAt: {
+        type: Date,
+        required: false
+    }
+})
+bansSchema.index({ expireAt: 1 }, { expireAfterSeconds: 0 });
+bansSchema.index({ userId: 1, guildId: 1 });
+exports.Bans = mongoose.model('Bans', bansSchema, 'bans')

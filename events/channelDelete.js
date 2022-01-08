@@ -4,8 +4,8 @@ const matchmakingService = require('../services/matchmakingService');
 module.exports = {
 	name: 'channelDelete',
 	async execute(channel) {
-		matchmakingService.deleteChallengesByChannelId(channel.id)
-		matchmakingService.deleteLineupQueuesByChannelId(channel.id)
-		teamService.deleteLineup(channel.id)
+		await matchmakingService.deleteChallengesByChannelId(channel.id)
+		await matchmakingService.deleteLineupQueuesByChannelId(channel.id)
+		await teamService.deleteLineup(channel.id)
     }
 };

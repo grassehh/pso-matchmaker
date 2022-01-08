@@ -1,5 +1,5 @@
-const { ChannelType } = require("discord-api-types/v9");
 const { Permissions } = require("discord.js");
+const { Bans } = require("../mongoSchema")
 
 exports.BOT_ADMIN_ROLE = 'PSO MM ADMIN'
 
@@ -8,7 +8,7 @@ exports.isBotAllowed = (interaction) => {
         && interaction.channel.permissionsFor(interaction.guild.me).has([Permissions.FLAGS.VIEW_CHANNEL, Permissions.FLAGS.SEND_MESSAGES])
 }
 
-exports.isAllowedToExecuteCommand = (command, member) => {
+exports.isAllowedToExecuteCommand = async (command, member) => {
     return !command.authorizedRoles
         || member.permissions.has(Permissions.FLAGS.ADMINISTRATOR)
         || member.roles.cache.some(role => command.authorizedRoles.includes(role.name.toUpperCase()) === true)

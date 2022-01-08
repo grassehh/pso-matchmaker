@@ -3,7 +3,6 @@ const { MessageActionRow, MessageButton } = require('discord.js');
 const authorizationService = require("../services/authorizationService");
 const interactionUtils = require("../services/interactionUtils");
 const teamService = require("../services/teamService");
-const matchmakingService = require("../services/matchmakingService");
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -28,10 +27,6 @@ module.exports = {
                 .setLabel(`No`)
                 .setStyle('PRIMARY')
         )
-		await matchmakingService.deleteChallengesByGuildId(team.guildId)
-		await matchmakingService.deleteLineupQueuesByGuildId(team.guildId)
-        await teamService.deleteLineupsByGuildId(team.guildId)
-		await teamService.deleteTeam(team.guildId)
         await interaction.reply({ content: '🛑 This will delete your team and all associated lineups', components: [deleteTeamActionRow], ephemeral: true })
     },
 };
