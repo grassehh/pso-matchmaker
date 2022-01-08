@@ -19,7 +19,7 @@ async function notifyUpdate() {
     let updateEmbed = new MessageEmbed()
         .setColor('#0099ff')
         .setTitle(`🚧 Maintenance in progress ...`)
-        .setDescription('A maintenance is in progress. This will only take a few minutes.\nThe bot will not be accessible in the meantime. Sorry for the inconvenience.')
+        .setDescription('A maintenance is in progress. This will only take a few secondes or minutes.\nThe bot will not be accessible in the meantime. Sorry for the inconvenience.')
         .setTimestamp()
 
     const lienups = await Lineup.find({}, { channelId: 1 })
