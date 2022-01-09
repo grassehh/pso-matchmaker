@@ -37,6 +37,8 @@ module.exports = {
             - **/setup_mix**
             - **/setup_mix_captains**
             - **/delete_lineup**
+            - **/ban**
+            - **/unban**
 
             By Default, the Discord server administrator has access to all of these commands. If you wish to give someone else's permission for these commands, create a role named **'PSO MM ADMIN'** and give it to them.
          `)
