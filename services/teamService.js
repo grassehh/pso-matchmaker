@@ -1,4 +1,4 @@
-const { Team, Lineup } = require("../mongoSchema")
+const { Team, Lineup, Bans } = require("../mongoSchema")
 const constants = require("../constants")
 const { handle } = require("../utils")
 const matchmakingService = require('../services/matchmakingService');
@@ -349,4 +349,20 @@ exports.createLineup = (channelId, size, name, autoSearch, team, type, visibilit
 
 exports.updateLastNotificationTime = async (channelId, time) => {
     await Lineup.updateOne({ channelId }, { 'lastNotificationTime': time })
+}
+
+exports.deleteBansByGuildId = async (guildId) => {
+    await Bans.deleteMany({ guildId })
+}
+
+exports.deleteBanByUserIdAndGuildId = async (userId, guildId) => {
+    return await Bans.deleteOne({ userId, guildId })
+}
+
+exports.findBanByUserIdAndGuildId = async (userId, guildId) => {
+    return await Bans.findOne({ userId, guildId })
+}
+
+exports.findBansByGuildId = async (guildId) => {
+    return await Bans.find({ guildId })
 }

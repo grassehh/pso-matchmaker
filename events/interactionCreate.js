@@ -5,6 +5,7 @@ const statsService = require("../services/statsService");
 const authorizationService = require("../services/authorizationService");
 const { MessageActionRow, MessageSelectMenu } = require("discord.js");
 const { handle } = require("../utils");
+const { Bans } = require("../mongoSchema");
 
 module.exports = {
     name: 'interactionCreate',
@@ -14,13 +15,20 @@ module.exports = {
             return
         }
 
+        const ban = await teamService.findBanByUserIdAndGuildId(interaction.user.id, interaction.guildId)
+        if (ban) {
+            let formattedDate = ban.expireAt ? new Date(ban.expireAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: '2-digit', hour: '2-digit', minute: 'numeric' }) : null
+            await interaction.reply({ content: `⛔ You are ${formattedDate ? `banned until ${formattedDate}` : 'permanently banned'}. You cannot use the bot on this server.`, ephemeral: true })
+            return
+        }
+
 
         if (interaction.isCommand()) {
             const command = interaction.client.commands.get(interaction.commandName);
 
             if (!command) return;
 
-            if (!authorizationService.isAllowedToExecuteCommand(command, interaction.member)) {
+            if (!await authorizationService.isAllowedToExecuteCommand(command, interaction.member)) {
                 await interactionUtils.replyNotAllowed(interaction)
                 return
             }
@@ -438,7 +446,10 @@ module.exports = {
                 if (interaction.customId.startsWith('delete_team_yes_')) {
                     await matchmakingService.deleteChallengesByGuildId(interaction.guildId)
                     await matchmakingService.deleteLineupQueuesByGuildId(interaction.guildId)
+                    await teamService.deleteLineupsByGuildId(interaction.guildId)
+                    await teamService.deleteBansByGuildId(interaction.guildId)
                     await teamService.deleteTeam(interaction.guildId)
+                    await statsService.deleteStatsByGuildId(interaction.guildId)
                     await interaction.reply({ content: '✅ Your team has been deleted', ephemeral: true })
                     return
                 }
@@ -606,6 +617,11 @@ module.exports = {
                         if (m.mentions.users.size > 0) {
                             const [user] = await handle(interaction.client.users.fetch(m.mentions.users.at(0).id))
                             if (user) {
+                                const ban = await teamService.findBanByUserIdAndGuildId(user.id, interaction.guildId)
+                                if (ban) {
+                                    await interaction.followUp({ content: `⛔ Player ${m.content} is banned and cannot be signed.`, ephemeral: true })
+                                    return
+                                }
                                 if (user.bot) {
                                     await interaction.followUp({ content: 'Nice try 😉', ephemeral: true })
                                     return
