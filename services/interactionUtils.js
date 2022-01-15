@@ -401,9 +401,9 @@ exports.challenge = async (interaction, lineupQueueIdToChallenge) => {
     }
 
     if (lineupQueueToChallenge.lineup.isMix()) {
-        const allMixUsers = lineupQueueToChallenge.lineup.roles.map(role => role.user).filter(user => user)
-        const numberOfMissingPlayers = lineupQueueToChallenge.lineup.size * 2 - allMixUsers.length
-        if (numberOfMissingPlayers <= 2) {
+        const numberOfSignedPlayers = lineupQueueToChallenge.lineup.roles.filter(role => role.user).map(role => role.user).length
+        const percentageOfSignedPlayers = (numberOfSignedPlayers / (lineupQueueToChallenge.lineup.size * 2 - 1)) * 100
+        if (percentageOfSignedPlayers >= 75) {
             await interaction.reply({ content: 'This mix has too many players signed in both teams, you cannot challenge it right now', ephemeral: true })
             return
         }
