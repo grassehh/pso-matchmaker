@@ -39,6 +39,7 @@ module.exports = {
             - **/delete_lineup**
             - **/ban**
             - **/unban**
+            - **/ban_list**
 
             By Default, the Discord server administrator has access to all of these commands. If you wish to give someone else's permission for these commands, create a role named **'PSO MM ADMIN'** and give it to them.
          `)
