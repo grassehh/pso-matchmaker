@@ -332,7 +332,7 @@ module.exports = {
                     }
                     lineupQueue = await matchmakingService.joinQueue(interaction.client, interaction.user, lineup)
                     await interaction.message.edit({ components: [] })
-                    await interaction.channel.send({ content: `🔎 Your team is now searching for a ${lineupQueue.lineup.size}v${lineupQueue.lineup.size} challenge`, components: interactionUtils.createLineupComponents(lineup, lineupQueue) })
+                    await interaction.channel.send({ content: `🔎 Your team is now searching for a ${lineupQueue.lineup.size}v${lineupQueue.lineup.size} challenge`, components: interactionUtils.createLineupComponents(lineup, lineupQueue, challenge) })
                     return
                 }
 
@@ -349,7 +349,7 @@ module.exports = {
                     }
                     await matchmakingService.leaveQueue(interaction.client, lineupQueue)
                     await interaction.message.edit({ components: [] })
-                    await interaction.channel.send({ content: `Your team is no longer searching for a challenge`, components: interactionUtils.createLineupComponents(lineupQueue.lineup) })
+                    await interaction.channel.send({ content: `Your team is no longer searching for a challenge`, components: interactionUtils.createLineupComponents(lineupQueue.lineup, lineupQueue, challenge) })
                     return
                 }
 
@@ -528,7 +528,7 @@ module.exports = {
                     const split = interaction.customId.split('_')
                     const selectedLineup = parseInt(split[2])
                     let lineup = await teamService.retrieveLineup(interaction.channelId)
-                    const components = interactionUtils.createLineupComponents(lineup, null, selectedLineup)
+                    const components = interactionUtils.createLineupComponents(lineup, null, null, selectedLineup)
                     await interaction.reply({ content: `What do you want to do in the **Mix #${selectedLineup}** ?`, components, ephemeral: true })
                 }
             }
