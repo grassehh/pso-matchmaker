@@ -41,21 +41,24 @@ exports.replyLineupNotSetup = async (interaction) => {
 }
 
 exports.createCancelChallengeReply = (interaction, challenge) => {
+    let embed = new MessageEmbed()
+        .setColor('#0099ff')
+
+    if (challenge.challengedTeam.lineup.isMix()) {
+        embed.setTitle(`💬 ${interaction.user} is challenging the mix '${teamService.formatTeamName(challenge.challengedTeam.lineup)}'. The match will start automatically once the mix lineup is full.`)
+    } else {
+        embed.setTitle(`💬 ${interaction.user} has sent a challenge request to the team '${teamService.formatTeamName(challenge.challengedTeam.lineup)}'. You can either wait for their answer, or cancel your request.`)
+    }
+
     let cancelChallengeRow = new MessageActionRow()
         .addComponents(
             new MessageButton()
                 .setCustomId(`cancel_challenge_${challenge.id}`)
-                .setLabel(`Cancel Request`)
+                .setLabel(`Cancel Challenge`)
                 .setStyle('DANGER')
         )
 
-    let message
-    if (challenge.challengedTeam.lineup.isMix()) {
-        message = `💬 ${interaction.user} is challenging the mix '${teamService.formatTeamName(challenge.challengedTeam.lineup)}'. The match will start automatically once the mix lineup is full.`
-    } else {
-        message = `💬 ${interaction.user} has sent a challenge request to the team '${teamService.formatTeamName(challenge.challengedTeam.lineup)}'. You can either wait for their answer, or cancel your request.`
-    }
-    return { content: message, components: [cancelChallengeRow] }
+    return { embeds: [embed], components: [cancelChallengeRow] }
 }
 
 exports.createDecideChallengeReply = (interaction, challenge) => {
@@ -140,7 +143,7 @@ exports.createStatsEmbeds = async (interaction, userId, region, guildId) => {
     } else {
         stats = stats[0]
     }
-    
+
     let statsType = '🌎 Global'
     if (region) {
         statsType = '⛺ Region'
@@ -190,7 +193,7 @@ exports.createLeaderBoardEmbeds = async (interaction, numberOfPages, searchOptio
         statsEmbed.addField(`Page ${page + 1}/${numberOfPages}`, playersStats)
     }
 
-    let description    
+    let description
     let statsType = '🌎 Global'
     if (region) {
         statsType = '⛺ Region'
@@ -385,10 +388,10 @@ exports.challenge = async (interaction, lineupQueueIdToChallenge) => {
         return
     }
 
-    if (!matchmakingService.isUserAllowedToInteractWithMatchmaking(interaction.user.id, lineup)) {
-        await interaction.reply({ content: `⛔ You must be in the lineup in order to challenge a team`, ephemeral: true })
-        return
-    }
+    // if (!matchmakingService.isUserAllowedToInteractWithMatchmaking(interaction.user.id, lineup)) {
+    //     await interaction.reply({ content: `⛔ You must be in the lineup in order to challenge a team`, ephemeral: true })
+    //     return
+    // }
 
     if (!matchmakingService.isLineupAllowedToJoinQueue(lineup)) {
         await interaction.reply({ content: '⛔ All outfield positions must be filled before challenging a team', ephemeral: true })
@@ -447,26 +450,48 @@ exports.challenge = async (interaction, lineupQueueIdToChallenge) => {
 
 exports.createLineupComponents = createLineupComponents
 
-function createLineupComponents(lineup, lineupQueue, selectedLineupNumber = 1) {
+function createLineupComponents(lineup, lineupQueue, challenge, selectedLineupNumber = 1) {
     components = createRolesComponent(lineup, selectedLineupNumber)
 
     const lineupActionsRow = new MessageActionRow()
     if (!lineup.isMix()) {
-        if (lineupQueue) {
-            lineupActionsRow.addComponents(
-                new MessageButton()
-                    .setCustomId(`stopSearch`)
-                    .setLabel(`Stop search`)
-                    .setStyle('DANGER')
-            )
+        if (challenge) {
+            if (challenge.initiatingTeam.lineup.channelId === lineup.channelId) {
+                lineupActionsRow.addComponents(
+                    new MessageButton()
+                        .setCustomId(`cancel_challenge_${challenge.id}`)
+                        .setLabel(`Cancel Challenge`)
+                        .setStyle('DANGER')
+                )
+            } else {
+                lineupActionsRow.addComponents(
+                    new MessageButton()
+                        .setCustomId(`accept_challenge_${challenge.id}`)
+                        .setLabel(`Accept Challenge`)
+                        .setStyle('SUCCESS'),
+                    new MessageButton()
+                        .setCustomId(`refuse_challenge_${challenge.id}`)
+                        .setLabel(`Refuse Challenge`)
+                        .setStyle('DANGER')
+                )
+            }
         } else {
-            lineupActionsRow.addComponents(
-                new MessageButton()
-                    .setCustomId(`startSearch`)
-                    .setLabel('Search')
-                    .setDisabled(!matchmakingService.isLineupAllowedToJoinQueue(lineup))
-                    .setStyle('SUCCESS')
-            )
+            if (lineupQueue) {
+                lineupActionsRow.addComponents(
+                    new MessageButton()
+                        .setCustomId(`stopSearch`)
+                        .setLabel(`Stop search`)
+                        .setStyle('DANGER')
+                )
+            } else {
+                lineupActionsRow.addComponents(
+                    new MessageButton()
+                        .setCustomId(`startSearch`)
+                        .setLabel('Search')
+                        .setDisabled(!matchmakingService.isLineupAllowedToJoinQueue(lineup))
+                        .setStyle('SUCCESS')
+                )
+            }
         }
 
         lineupActionsRow.addComponents(
@@ -554,8 +579,9 @@ function createRolesComponent(lineup, selectedLineupNumber = 1) {
     return components
 }
 
-function createReplyForTeamLineup(lineup, lineupQueue) {
-    return { components: createLineupComponents(lineup, lineupQueue) }
+async function createReplyForTeamLineup(lineup, lineupQueue) {
+    const challenge = await matchmakingService.findChallengeByChannelId(lineup.channelId)
+    return { components: createLineupComponents(lineup, lineupQueue, challenge) }
 }
 
 function createReplyForMixLineup(interaction, lineup, challengingLineup) {

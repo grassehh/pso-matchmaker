@@ -26,18 +26,6 @@ module.exports = {
             return
         }
 
-        let challenge = await matchmakingService.findChallengeByChannelId(interaction.channelId)
-        if (challenge) {
-            let reply
-            if (challenge.initiatingTeam.lineup.channelId == interaction.channelId) {
-                reply = interactionUtils.createCancelChallengeReply(interaction, challenge)
-            } else {
-                reply = interactionUtils.createDecideChallengeReply(interaction, challenge)
-            }
-            await interaction.reply(reply)
-            return
-        }
-
         let lineupQueues = await matchmakingService.findAvailableLineupQueues(team.region, lineup.channelId, lineup.size, team.guildId)
         if (lineupQueues.length === 0) {
             await interaction.reply({
