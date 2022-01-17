@@ -63,10 +63,10 @@ module.exports = {
                         return
                     }
 
-                    await teamService.removeUserFromLineup(interaction.channelId, interaction.user.id, lineupNumber)
+                    // await teamService.removeUserFromLineup(interaction.channelId, interaction.user.id, lineupNumber)
                     let userToAdd = {
-                        id: interaction.user.id,
-                        name: interaction.user.username
+                        id: Math.random() + '',
+                        name: Math.random() + ''
                     }
                     lineup = await teamService.addUserToLineup(interaction.channelId, selectedRoleName, userToAdd, lineupNumber)
                     await matchmakingService.removeUserFromLineupQueue(interaction.channelId, interaction.user.id)
@@ -332,7 +332,7 @@ module.exports = {
                     }
                     lineupQueue = await matchmakingService.joinQueue(interaction.client, interaction.user, lineup)
                     await interaction.message.edit({ components: [] })
-                    await interaction.channel.send({ content: `🔎 Your team is now searching for a ${lineupQueue.lineup.size}v${lineupQueue.lineup.size} challenge`, components: interactionUtils.createLineupComponents(lineup, lineupQueue) })
+                    await interaction.channel.send({ content: `🔎 Your team is now searching for a ${lineupQueue.lineup.size}v${lineupQueue.lineup.size} challenge`, components: interactionUtils.createLineupComponents(lineup, lineupQueue, challenge) })
                     return
                 }
 
@@ -349,7 +349,7 @@ module.exports = {
                     }
                     await matchmakingService.leaveQueue(interaction.client, lineupQueue)
                     await interaction.message.edit({ components: [] })
-                    await interaction.channel.send({ content: `Your team is no longer searching for a challenge`, components: interactionUtils.createLineupComponents(lineupQueue.lineup) })
+                    await interaction.channel.send({ content: `Your team is no longer searching for a challenge`, components: interactionUtils.createLineupComponents(lineupQueue.lineup, lineupQueue, challenge) })
                     return
                 }
 
@@ -367,15 +367,15 @@ module.exports = {
                         return
                     }
                     const lineup = await teamService.retrieveLineup(interaction.channelId)
-                    if (!matchmakingService.isUserAllowedToInteractWithMatchmaking(interaction.user.id, lineup)) {
-                        await interaction.reply({ content: `⛔ You must be in the lineup in order to accept a challenge`, ephemeral: true })
-                        return
-                    }
+                    // if (!matchmakingService.isUserAllowedToInteractWithMatchmaking(interaction.user.id, lineup)) {
+                    //     await interaction.reply({ content: `⛔ You must be in the lineup in order to accept a challenge`, ephemeral: true })
+                    //     return
+                    // }
 
-                    if (challenge.initiatingUser.id === interaction.user.id) {
-                        await interaction.reply({ content: "⛔ You cannot accept your own challenge request", ephemeral: true })
-                        return
-                    }
+                    // if (challenge.initiatingUser.id === interaction.user.id) {
+                    //     await interaction.reply({ content: "⛔ You cannot accept your own challenge request", ephemeral: true })
+                    //     return
+                    // }
 
                     const secondLineup = await teamService.retrieveLineup(challenge.initiatingTeam.lineup.channelId === interaction.channelId ? challenge.challengedTeam.lineup.channelId : challenge.initiatingTeam.lineup.channelId)
                     if (await matchmakingService.checkForDuplicatedPlayers(interaction, lineup, secondLineup)) {
@@ -393,16 +393,16 @@ module.exports = {
                         return
                     }
 
-                    if (challenge.initiatingUser.id === interaction.user.id) {
-                        await interaction.reply({ content: "⛔ You cannot refuse your own challenge request", ephemeral: true })
-                        return
-                    }
+                    // if (challenge.initiatingUser.id === interaction.user.id) {
+                    //     await interaction.reply({ content: "⛔ You cannot refuse your own challenge request", ephemeral: true })
+                    //     return
+                    // }
 
-                    const lineup = await teamService.retrieveLineup(interaction.channelId)
-                    if (!matchmakingService.isUserAllowedToInteractWithMatchmaking(interaction.user.id, lineup)) {
-                        await interaction.reply({ content: `⛔ You must be in the lineup in order to refuse a challenge`, ephemeral: true })
-                        return
-                    }
+                    // const lineup = await teamService.retrieveLineup(interaction.channelId)
+                    // if (!matchmakingService.isUserAllowedToInteractWithMatchmaking(interaction.user.id, lineup)) {
+                    //     await interaction.reply({ content: `⛔ You must be in the lineup in order to refuse a challenge`, ephemeral: true })
+                    //     return
+                    // }
 
                     await matchmakingService.deleteChallengeById(challengeId)
                     await matchmakingService.freeLineupQueuesByIds([challenge.challengedTeam.id, challenge.initiatingTeam.id])
@@ -424,10 +424,10 @@ module.exports = {
                         return
                     }
                     let lineup = await teamService.retrieveLineup(interaction.channelId)
-                    if (!matchmakingService.isUserAllowedToInteractWithMatchmaking(interaction.user.id, lineup)) {
-                        await interaction.reply({ content: `⛔ You must be in the lineup in order to cancel a challenge request`, ephemeral: true })
-                        return
-                    }
+                    // if (!matchmakingService.isUserAllowedToInteractWithMatchmaking(interaction.user.id, lineup)) {
+                    //     await interaction.reply({ content: `⛔ You must be in the lineup in order to cancel a challenge request`, ephemeral: true })
+                    //     return
+                    // }
 
                     await matchmakingService.deleteChallengeById(challenge.id)
                     await matchmakingService.freeLineupQueuesByIds([challenge.challengedTeam.id, challenge.initiatingTeam.id])
@@ -528,7 +528,7 @@ module.exports = {
                     const split = interaction.customId.split('_')
                     const selectedLineup = parseInt(split[2])
                     let lineup = await teamService.retrieveLineup(interaction.channelId)
-                    const components = interactionUtils.createLineupComponents(lineup, null, selectedLineup)
+                    const components = interactionUtils.createLineupComponents(lineup, null, null, selectedLineup)
                     await interaction.reply({ content: `What do you want to do in the **Mix #${selectedLineup}** ?`, components, ephemeral: true })
                 }
             }
