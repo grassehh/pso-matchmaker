@@ -45,9 +45,9 @@ exports.createCancelChallengeReply = (interaction, challenge) => {
         .setColor('#0099ff')
 
     if (challenge.challengedTeam.lineup.isMix()) {
-        embed.setTitle(`💬 ${interaction.user} is challenging the mix '${teamService.formatTeamName(challenge.challengedTeam.lineup)}'. The match will start automatically once the mix lineup is full.`)
+        embed.setDescription(`💬 ${interaction.user} is challenging the mix '${teamService.formatTeamName(challenge.challengedTeam.lineup)}'. The match will start automatically once the mix lineup is full.`)
     } else {
-        embed.setTitle(`💬 ${interaction.user} has sent a challenge request to the team '${teamService.formatTeamName(challenge.challengedTeam.lineup)}'. You can either wait for their answer, or cancel your request.`)
+        embed.setDescription(`💬 ${interaction.user} has sent a challenge request to the team '${teamService.formatTeamName(challenge.challengedTeam.lineup)}'. You can either wait for their answer, or cancel your request.`)
     }
 
     let cancelChallengeRow = new MessageActionRow()
