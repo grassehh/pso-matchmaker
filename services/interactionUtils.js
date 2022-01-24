@@ -448,6 +448,14 @@ exports.challenge = async (interaction, lineupQueueIdToChallenge) => {
     }
 }
 
+exports.createInformationEmbed = (author, description) => {
+    return new MessageEmbed()
+        .setColor('#0099ff')
+        .setTimestamp()
+        .setDescription(description)
+        .setFooter(`Author: ${author.username}`)
+}
+
 exports.createLineupComponents = createLineupComponents
 
 function createLineupComponents(lineup, lineupQueue, challenge, selectedLineupNumber = 1) {

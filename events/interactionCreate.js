@@ -75,12 +75,14 @@ module.exports = {
                     await matchmakingService.removeUserFromLineupQueue(interaction.channelId, interaction.user.id)
                     await matchmakingService.addUserToLineupQueue(interaction.channelId, selectedRoleName, userToAdd, lineupNumber)
 
-                    let messageContent = `Player ${interaction.user} signed as **${selectedRoleName}**`
+                    let description = `Player ${interaction.user} signed as **${selectedRoleName}**`
                     if (roleLeft) {
-                        messageContent = `Player ${interaction.user} swapped **${roleLeft.name}** with **${selectedRoleName}**`
+                        description = `Player ${interaction.user} swapped **${roleLeft.name}** with **${selectedRoleName}**`
                     }
 
                     if (await matchmakingService.isMixOrCaptainsReadyToStart(lineup)) {
+                        const embed = interactionUtils.createInformationEmbed(interaction.user, description)
+                        await interaction.channel.send({ embeds: [embed] })
                         const challenge = await matchmakingService.findChallengeByChannelId(interaction.channelId)
                         const secondLineup = challenge ? await teamService.retrieveLineup(challenge.initiatingTeam.lineup.channelId === interaction.channelId ? challenge.challengedTeam.lineup.channelId : challenge.initiatingTeam.lineup.channelId) : null
                         if (await matchmakingService.checkForDuplicatedPlayers(interaction, lineup, secondLineup)) {
@@ -93,15 +95,16 @@ module.exports = {
 
                     const autoSearchResult = await matchmakingService.checkIfAutoSearch(interaction.client, interaction.user, lineup)
                     if (autoSearchResult.joinedQueue) {
-                        messageContent += `. Your lineup is full, it is now searching for a **${lineup.size}v${lineup.size}** team !`
+                        description += `\nYour lineup is full, it is now searching for a **${lineup.size}v${lineup.size}** team !`
                     }
                     if (autoSearchResult.leftQueue) {
-                        messageContent += `. Your team has been removed from the **${lineup.size}v${lineup.size}** queue !`
+                        description += `\nYour team has been removed from the **${lineup.size}v${lineup.size}** queue !`
                     }
 
                     await interaction.update({ components: [] })
                     let reply = await interactionUtils.createReplyForLineup(interaction, lineup, autoSearchResult.updatedLineupQueue)
-                    reply.content = messageContent
+                    const embed = interactionUtils.createInformationEmbed(interaction.user, description)
+                    reply.embeds = (reply.embeds || []).concat(embed)
                     await interaction.channel.send(reply)
                     return
                 }
@@ -115,7 +118,7 @@ module.exports = {
 
                     const newLineup = await teamService.removeUserFromLineup(interaction.channelId, interaction.user.id)
                     if (newLineup) {
-                        lineup = newLineup
+                    lineup = newLineup
                     }
 
                     let roleToSign
@@ -132,8 +135,7 @@ module.exports = {
 
                     lineup = await teamService.addUserToLineup(interaction.channelId, roleToSign.name, userToAdd, roleToSign.lineupNumber)
 
-                    let messageContent = `Player ${interaction.user} has joined the queue !`
-
+                    let description = `Player ${interaction.user} has joined the queue !`
 
                     if (await matchmakingService.isMixOrCaptainsReadyToStart(lineup)) {
                         lineup = await teamService.startPicking(lineup.channelId)
@@ -147,7 +149,7 @@ module.exports = {
                         const secondCaptain = await interaction.client.users.fetch(captainsIds[1])
                         let currentCaptain = firstCaptain
 
-                        messageContent += ` The picking has now started. The captains are ${firstCaptain} and ${secondCaptain}.\n**${firstCaptain} turn to pick**.`
+                        description += `\nThe draft begins. The captains are ${firstCaptain} and ${secondCaptain}.\n**${firstCaptain} turn to pick**.`
 
                         let remainingRoles = lineup.roles.filter(role => role.user).map(role => ({ ...role.toObject() }))
                         lineup.roles.forEach(role => role.user = null)
@@ -183,7 +185,8 @@ module.exports = {
                         lineup.roles = firstTeamRoles.concat(secondTeamRoles)
 
                         let reply = await interactionUtils.createReplyForLineup(interaction, lineup)
-                        reply.content = messageContent
+                        const embed = interactionUtils.createInformationEmbed(interaction.user, description)
+                        reply.embeds = reply.embeds.concat(embed)
                         reply.components = interactionUtils.createCaptainsPickComponent(remainingRoles)
                         await interaction.update({ components: [] })
                         await interaction.channel.send(reply)
@@ -225,15 +228,19 @@ module.exports = {
                                 remainingRoles = []
                                 await teamService.stopPicking(lineup.channelId)
                                 await handle(i.update({ components: [] }))
-                                await interaction.followUp({ content: `${i.user} has picked ${pickedRole.user.name}. Every players have been picked. Match is ready.` })
+
+                                const embed = interactionUtils.createInformationEmbed(interaction.user, `${i.user} has picked ${pickedRole.user.name}.\nEvery players have been picked. The match is about to start.`)
+                                await interaction.followUp({ embeds: [embed] })
                                 await matchmakingService.readyMatch(interaction, null, lineup)
                                 collector.stop()
                                 return
                             }
 
-                            let reply = await interactionUtils.createReplyForLineup(interaction, lineup)
                             currentCaptain = currentCaptain.id === firstCaptain.id ? secondCaptain : firstCaptain
-                            reply.content = `${i.user} has picked ${pickedRole.user.name}.\n**${currentCaptain} turn to pick.**`
+
+                            const embed = interactionUtils.createInformationEmbed(interaction.user, `${i.user} has picked ${pickedRole.user.name}.\n**${currentCaptain} turn to pick.**`)
+                            let reply = await interactionUtils.createReplyForLineup(interaction, lineup)
+                            reply.embeds = reply.embeds.concat(embed)
                             reply.components = interactionUtils.createCaptainsPickComponent(remainingRoles)
                             await i.update({ components: [] })
                             await interaction.followUp(reply)
@@ -251,8 +258,9 @@ module.exports = {
                         return
                     }
 
+                    const embed = interactionUtils.createInformationEmbed(interaction.user, description)
                     let reply = await interactionUtils.createReplyForLineup(interaction, lineup)
-                    reply.content = messageContent
+                    reply.embeds = reply.embeds.concat(embed)
                     await interaction.update({ components: [] })
                     await interaction.channel.send(reply)
 
@@ -270,8 +278,9 @@ module.exports = {
                         return
                     }
                     await interaction.update({ components: [] })
+                    const embed = interactionUtils.createInformationEmbed(interaction.user, `Player ${interaction.user} has left the queue !`)
                     let reply = await interactionUtils.createReplyForLineup(interaction, lineup)
-                    reply.content = `Player ${interaction.user} has left the queue !`
+                    reply.embeds = reply.embeds.concat(embed)
                     interaction.channel.send(reply)
                     return
                 }
@@ -335,7 +344,8 @@ module.exports = {
                     }
                     lineupQueue = await matchmakingService.joinQueue(interaction.client, interaction.user, lineup)
                     await interaction.message.edit({ components: [] })
-                    await interaction.channel.send({ content: `🔎 Your team is now searching for a ${lineupQueue.lineup.size}v${lineupQueue.lineup.size} challenge`, components: interactionUtils.createLineupComponents(lineup, lineupQueue, challenge) })
+                    const embed = interactionUtils.createInformationEmbed(interaction.user, `🔎 Your team is now searching for a ${lineupQueue.lineup.size}v${lineupQueue.lineup.size} challenge`)
+                    await interaction.channel.send({ embeds: [embed], components: interactionUtils.createLineupComponents(lineup, lineupQueue, challenge) })
                     return
                 }
 
@@ -352,7 +362,8 @@ module.exports = {
                     }
                     await matchmakingService.leaveQueue(interaction.client, lineupQueue)
                     await interaction.message.edit({ components: [] })
-                    await interaction.channel.send({ content: `Your team is no longer searching for a challenge`, components: interactionUtils.createLineupComponents(lineupQueue.lineup, null, challenge) })
+                    const embed = interactionUtils.createInformationEmbed(interaction.user, `Your team is no longer searching for a challenge`)
+                    await interaction.channel.send({ embeds: [embed], components: interactionUtils.createLineupComponents(lineupQueue.lineup, null, challenge) })
                     return
                 }
 
@@ -650,18 +661,17 @@ module.exports = {
                         lineup = await teamService.addUserToLineup(interaction.channelId, selectedMercRole, userToAdd, selectedLineupNumber)
                         await matchmakingService.addUserToLineupQueue(interaction.channelId, selectedMercRole, userToAdd, selectedLineupNumber)
 
-                        let messageContent = `Player ${interaction.user} manually signed **${addedPlayerName}** as **${selectedMercRole}**`
-
+                        let description = `Player ${interaction.user} manually signed **${addedPlayerName}** as **${selectedMercRole}**`
                         const autoSearchResult = await matchmakingService.checkIfAutoSearch(interaction.client, interaction.user, lineup)
                         if (autoSearchResult.joinedQueue) {
-                            messageContent += `. Your lineup is full, it is now searching for a **${lineup.size}v${lineup.size}** team !`
+                            description += `\nYour lineup is full, it is now searching for a **${lineup.size}v${lineup.size}** team !`
                         }
                         if (autoSearchResult.leftQueue) {
-                            messageContent += `. Your team has been removed from the **${lineup.size}v${lineup.size}** queue !`
+                            description += `\nYour team has been removed from the **${lineup.size}v${lineup.size}** queue !`
                         }
-
+                        const embed = interactionUtils.createInformationEmbed(interaction.user, description)
                         if (await matchmakingService.isMixOrCaptainsReadyToStart(lineup)) {
-                            await interaction.channel.send(messageContent)
+                            await interaction.channel.send({ embeds: [embed] })
                             const challenge = await matchmakingService.findChallengeByChannelId(interaction.channelId)
                             const secondLineup = challenge ? await teamService.retrieveLineup(challenge.initiatingTeam.lineup.channelId === interaction.channelId ? challenge.challengedTeam.lineup.channelId : challenge.initiatingTeam.lineup.channelId) : null
                             if (await matchmakingService.checkForDuplicatedPlayers(interaction, lineup, secondLineup)) {
@@ -672,7 +682,7 @@ module.exports = {
                         }
 
                         let reply = await interactionUtils.createReplyForLineup(interaction, lineup, autoSearchResult.updatedLineupQueue)
-                        reply.content = messageContent
+                        reply.embeds = (reply.embeds || []).concat(embed)
                         await interaction.channel.send(reply)
                     })
 
@@ -700,11 +710,14 @@ module.exports = {
 
                     lineup = await teamService.clearRoleFromLineup(interaction.channelId, selectedRoleToClear, selectedLineupNumber)
 
-                    let messageContent = `Player ${interaction.user} cleared the **${selectedRoleToClear}** position`
-
+                    let description = `Player ${interaction.user} cleared the **${selectedRoleToClear}** position`
                     const autoSearchResult = await matchmakingService.checkIfAutoSearch(interaction.client, interaction.user, lineup)
+                    if (autoSearchResult.leftQueue) {
+                        description += `\nYour team has been removed from the **${lineup.size}v${lineup.size}** queue !`
+                    }
                     let reply = await interactionUtils.createReplyForLineup(interaction, lineup, autoSearchResult.updatedLineupQueue)
-                    reply.content = messageContent
+                    const embed = interactionUtils.createInformationEmbed(interaction.user, description)
+                    reply.embeds = (reply.embeds || []).concat(embed)
                     await interaction.channel.send(reply)
                     await interaction.update({ components: [], ephemeral: true })
                     return
