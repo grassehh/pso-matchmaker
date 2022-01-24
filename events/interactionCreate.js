@@ -3,13 +3,16 @@ const matchmakingService = require("../services/matchmakingService");
 const teamService = require("../services/teamService");
 const statsService = require("../services/statsService");
 const authorizationService = require("../services/authorizationService");
-const { MessageActionRow, MessageSelectMenu } = require("discord.js");
+const { MessageActionRow, MessageSelectMenu, InteractionCollector } = require("discord.js");
 const { handle } = require("../utils");
-const { Bans } = require("../mongoSchema");
 
 module.exports = {
     name: 'interactionCreate',
     async execute(interaction) {
+        if (!interaction.isCommand() && !interaction.isButton() && !interaction.isSelectMenu()) {
+            return
+        }
+
         if (!authorizationService.isBotAllowed(interaction)) {
             await interaction.reply({ content: '⛔ Please add me to this channel before using any command (I need  SEND_MESSAGES and VIEW_CHANNEL permissions)', ephemeral: true })
             return
@@ -349,7 +352,7 @@ module.exports = {
                     }
                     await matchmakingService.leaveQueue(interaction.client, lineupQueue)
                     await interaction.message.edit({ components: [] })
-                    await interaction.channel.send({ content: `Your team is no longer searching for a challenge`, components: interactionUtils.createLineupComponents(lineupQueue.lineup, lineupQueue, challenge) })
+                    await interaction.channel.send({ content: `Your team is no longer searching for a challenge`, components: interactionUtils.createLineupComponents(lineupQueue.lineup, null, challenge) })
                     return
                 }
 

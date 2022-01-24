@@ -1,5 +1,4 @@
 const { Permissions } = require("discord.js");
-const { Bans } = require("../mongoSchema")
 
 exports.BOT_ADMIN_ROLE = 'PSO MM ADMIN'
 
