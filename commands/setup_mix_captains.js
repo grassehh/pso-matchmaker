@@ -16,11 +16,11 @@ module.exports = {
                 .addChoice('4', 4)
                 .addChoice('5', 5)
                 .addChoice('6', 6)
-                .addChoice('7', 7)
+                /*.addChoice('7', 7)
                 .addChoice('8', 8)
                 .addChoice('9', 9)
                 .addChoice('10', 10)
-                .addChoice('11', 11)
+                .addChoice('11', 11)*/
             ),
     authorizedRoles: [authorizationService.BOT_ADMIN_ROLE],
     async execute(interaction) {

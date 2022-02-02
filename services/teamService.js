@@ -26,11 +26,11 @@ const RB = { name: 'RB', type: ROLE_DEFENDER }
 const CDM = { name: 'CDM', type: ROLE_MIDFIELDER }
 
 const DEFAULT_PLAYER_ROLES = new Map([
-    [1, [CF]],
-    [2, [CF, GK]],
-    [3, [LM, RM, GK]],
+    [1, [CM]],
+    [2, [ST, GK]],
+    [3, [LW, RW, GK]],
     [4, [LW, RW, CDM, GK]],
-    [5, [CF, LB, CB, RB, GK]],
+    [5, [LW, RW, LB, RB, GK]],
     [6, [LW, RW, CM, LB, RB, GK]],
     [7, [LW, RW, CM, LB, CB, RB, GK]],
     [8, [LW, CF, RW, CM, LB, CB, RB, GK]],
