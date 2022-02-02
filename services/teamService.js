@@ -27,7 +27,7 @@ const CDM = { name: 'CDM', type: ROLE_MIDFIELDER }
 
 const DEFAULT_PLAYER_ROLES = new Map([
     [1, [CM]],
-    [2, [ST, GK]],
+    [2, [CF, GK]],
     [3, [LW, RW, GK]],
     [4, [LW, RW, CDM, GK]],
     [5, [LW, RW, LB, RB, GK]],
