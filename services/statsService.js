@@ -1,4 +1,4 @@
-const { PSO_EU_MINIMUM_LINEUP_SIZE_LEVELING, MERC_USER_ID } = require("../constants")
+const { EUSL_EU_MINIMUM_LINEUP_SIZE_LEVELING, MERC_USER_ID } = require("../constants")
 const { Stats } = require("../mongoSchema")
 const { handle } = require("../utils")
 
@@ -7,13 +7,13 @@ exports.DEFAULT_LEADERBOARD_PAGE_SIZE = 10
 function getLevelingRoleIdsFromStats(userStats) {
     let roles = []
     if (userStats.numberOfGames >= 50) {
-        roles.push(process.env.PSO_EU_DISCORD_CONFIRMED_ROLE_ID)
+        roles.push(process.env.EUSL_EU_DISCORD_CONFIRMED_ROLE_ID)
     }
     if (userStats.numberOfGames >= 250) {
-        roles.push(process.env.PSO_EU_DISCORD_ADVANCED_ROLE_ID)
+        roles.push(process.env.EUSL_EU_DISCORD_ADVANCED_ROLE_ID)
     }
     if (userStats.numberOfGames >= 800) {
-        roles.push(process.env.PSO_EU_DISCORD_VETERAN_ROLE_ID)
+        roles.push(process.env.EUSL_EU_DISCORD_VETERAN_ROLE_ID)
     }
     return roles
 }
@@ -26,7 +26,7 @@ async function findElligibleStatsForLevelling(userIds) {
                     $in: userIds
                 },
                 lineupSize: {
-                    $gte: PSO_EU_MINIMUM_LINEUP_SIZE_LEVELING
+                    $gte: EUSL_EU_MINIMUM_LINEUP_SIZE_LEVELING
                 }
             }
         },
@@ -143,13 +143,13 @@ exports.updateStats = async (interaction, region, guildId, lineupSize, users) =>
     }))
     await Stats.bulkWrite(bulks)
 
-    if (interaction.guildId === process.env.PSO_EU_DISCORD_GUILD_ID && lineupSize >= PSO_EU_MINIMUM_LINEUP_SIZE_LEVELING) {
+    if (interaction.guildId === process.env.EUSL_EU_DISCORD_GUILD_ID && lineupSize >= EUSL_EU_MINIMUM_LINEUP_SIZE_LEVELING) {
         const allElligibleStats = await findElligibleStatsForLevelling(notMercUsers.map(user => user.id))
 
         await Promise.all(allElligibleStats.map(async elligibleStats => {
-            const [psoEuGuild] = await handle(interaction.client.guilds.fetch(process.env.PSO_EU_DISCORD_GUILD_ID))
+            const [euslEuGuild] = await handle(interaction.client.guilds.fetch(process.env.EUSL_EU_DISCORD_GUILD_ID))
             const levelingRoleIds = getLevelingRoleIdsFromStats(elligibleStats)
-            const [member] = await handle(psoEuGuild.members.fetch(elligibleStats._id))
+            const [member] = await handle(euslEuGuild.members.fetch(elligibleStats._id))
             if (member) {
                 await handle(member.roles.add(levelingRoleIds))
             }

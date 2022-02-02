@@ -285,7 +285,7 @@ async function createLineupEmbed(interaction, lineup, opponentLineup, lobbyName,
             }
             let playerDmEmbed = new MessageEmbed()
                 .setColor('#6aa84f')
-                .setTitle(`⚽ PSO Match ready ⚽`)
+                .setTitle(`:hockey: EUSL Match ready :hockey:`)
                 .setDescription(`You are playing${lineup.isCaptains() && !role.name.includes('GK') ? ' ' : ` **${role.name}** `}against **${opponentTeamName}**`)
                 .addField('Lobby name', `${lobbyName}`)
                 .addField('Lobby password', `${lobbyPassword}`)
@@ -315,7 +315,7 @@ exports.createLeaderBoardLineupSizeComponent = (statsType) => {
             .setMinValues(0)
             .setMaxValues(11)
             .addOptions([
-                {
+                /*{
                     label: '1v1',
                     value: '1'
                 },
@@ -326,11 +326,11 @@ exports.createLeaderBoardLineupSizeComponent = (statsType) => {
                 {
                     label: '3v3',
                     value: '3'
-                },
+                },*/
                 {
                     label: '4v4',
                     value: '4'
-                },
+                }/*,
                 {
                     label: '5v5',
                     value: '5'
@@ -358,7 +358,7 @@ exports.createLeaderBoardLineupSizeComponent = (statsType) => {
                 {
                     label: '11v11',
                     value: '11'
-                }
+                }*/
             ])
     )
 }

@@ -7,7 +7,7 @@ const constants = require("../constants")
 module.exports = {
     data: new SlashCommandBuilder()
         .setName('register_team')
-        .setDescription('Register your team against PSO matchmaker so you can start using the matchmaking')
+        .setDescription('Register your team against EUSL matchmaker so you can start using the matchmaking')
         .addStringOption(option => option.setName('team_name')
             .setRequired(true)
             .setDescription('The name of your team')
@@ -16,9 +16,9 @@ module.exports = {
             .setRequired(true)
             .setDescription('The region of your team')
             .addChoice('Europe', 'EU')
-            .addChoice('North America', 'NA')
+            /*.addChoice('North America', 'NA')
             .addChoice('South America', 'SA')
-            .addChoice('East Asia', 'AS')
+            .addChoice('East Asia', 'AS')*/
         ),
     authorizedRoles: [authorizationService.BOT_ADMIN_ROLE],
     async execute(interaction) {

@@ -11,9 +11,9 @@ module.exports = {
             .setRequired(true)
             .setDescription('The region of your team')
             .addChoice('Europe', 'EU')
-            .addChoice('North America', 'NA')
+            /*.addChoice('North America', 'NA')
             .addChoice('South America', 'SA')
-            .addChoice('East Asia', 'AS')
+            .addChoice('East Asia', 'AS')*/
         ),
     authorizedRoles: [authorizationService.BOT_ADMIN_ROLE],
     async execute(interaction) {

@@ -1,7 +1,7 @@
 const { Permissions } = require("discord.js");
 const { Bans } = require("../mongoSchema")
 
-exports.BOT_ADMIN_ROLE = 'PSO MM ADMIN'
+exports.BOT_ADMIN_ROLE = 'EUSL MM ADMIN'
 
 exports.isBotAllowed = (interaction) => {
     return interaction.channel.type === 'GUILD_TEXT'
