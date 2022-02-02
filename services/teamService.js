@@ -51,7 +51,7 @@ exports.LINEUP_TYPE_MIX = 'MIX'
 exports.LINEUP_TYPE_CAPTAINS = 'CAPTAINS'
 
 function removeSpecialCharacters(name) {
-    return name.replace(/(:[^:]*:)|(<.*>)/ig, '')
+    return name.replace(/(:[^:]*:)|(<.*>)|\*/ig, '')
 }
 
 exports.validateTeamName = (name) => {
