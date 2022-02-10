@@ -139,7 +139,7 @@ exports.joinQueue = async (client, user, lineup) => {
             new MessageButton()
                 .setCustomId(`challenge_${lineupQueue.id}`)
                 .setLabel('Challenge them !')
-                .setEmoji('⚽')
+                .setEmoji('🏒')
                 .setStyle('PRIMARY')
         )
         const [channel] = await handle(client.channels.fetch(channelId))
@@ -277,7 +277,7 @@ exports.readyMatch = async (interaction, challenge, mixLineup) => {
     }
     let lobbyCreationEmbed = new MessageEmbed()
         .setColor('#6aa84f')
-        .setTitle(`${challenge ? '⚽ Challenge Accepted ⚽' : '⚽ Match Ready ⚽'}`)
+        .setTitle(`${challenge ? '🏒 Challenge Accepted 🏒' : '🏒 Match Ready 🏒'}`)
         .setTimestamp()
         .addField('Each player has received the lobby information in private message', lobbyCreationEmbedFieldValue)
 

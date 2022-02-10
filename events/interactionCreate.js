@@ -274,6 +274,12 @@ module.exports = {
                 }
 
                 if (interaction.customId.startsWith('addMerc_')) {
+
+                    if(!interaction.member.permissions.has("ADMINISTRATOR")){
+                        await interactionUtils.replyNotAllowed(interaction)
+                        return  
+                    }
+
                     const selectedLineupNumber = parseInt(interaction.customId.split('_')[1])
                     let lineup = await teamService.retrieveLineup(interaction.channelId)
 
@@ -291,6 +297,12 @@ module.exports = {
                 }
 
                 if (interaction.customId.startsWith('clearRole_')) {
+                    
+                    if(!interaction.member.permissions.has("ADMINISTRATOR")){
+                        await interactionUtils.replyNotAllowed(interaction)
+                        return
+                    }
+
                     const selectedLineupNumber = parseInt(interaction.customId.split('_')[1])
                     let lineup = await teamService.retrieveLineup(interaction.channelId)
 
@@ -310,7 +322,9 @@ module.exports = {
                 if (interaction.customId === 'leaveLineup') {
                     let lineup = await teamService.retrieveLineup(interaction.channelId)
                     await teamService.leaveLineup(interaction, interaction.channel, lineup)
-                    await interaction.update({ components: [] })
+                    if(!interaction.replied){
+                        await interaction.update({ components: [] })
+                    }
                     return
                 }
 
