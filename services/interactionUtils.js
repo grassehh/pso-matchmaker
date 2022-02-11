@@ -157,7 +157,7 @@ exports.createStatsEmbeds = async (interaction, userId, region, guildId) => {
         .setTimestamp()
         .setDescription(user.toString())
         .setFooter(`Author: ${interaction.user.username}`)
-    statsEmbed.addField('⚽ Games played', stats.numberOfGames.toString())
+    statsEmbed.addField('🏒 Games played', stats.numberOfGames.toString())
 
     return [statsEmbed]
 }
@@ -169,14 +169,14 @@ exports.createLeaderBoardEmbeds = async (interaction, numberOfPages, searchOptio
     if (allStats.length === 0) {
         statsEmbed = new MessageEmbed()
             .setColor('#0099ff')
-            .setTitle('⚽ Games Leaderboard 🏆')
+            .setTitle('🏒 Games Leaderboard 🏆')
             .setTimestamp()
             .setFooter(`Author: ${interaction.user.username}`)
             .addField('Ooooof', 'This looks pretty empty here. Time to get some games lads !')
     } else {
         statsEmbed = new MessageEmbed()
             .setColor('#0099ff')
-            .setTitle('⚽ Games Leaderboard 🏆')
+            .setTitle('🏒 Games Leaderboard 🏆')
             .setTimestamp()
             .setFooter(`Author: ${interaction.user.username}`)
         let playersStats = ''
@@ -587,7 +587,7 @@ async function createReplyForTeamLineup(lineup, lineupQueue) {
 function createReplyForMixLineup(interaction, lineup, challengingLineup) {
     let firstLineupEmbed = new MessageEmbed()
         .setColor('#0099ff')
-        .setTitle(`Team #1`)
+        .setTitle(`Red Team`)
         .setTimestamp()
         .setFooter(`Author: ${interaction.user.username}`)
     fillLineupEmbedWithRoles(firstLineupEmbed, lineup.roles.filter(role => role.lineupNumber === 1))
@@ -607,7 +607,7 @@ function createReplyForMixLineup(interaction, lineup, challengingLineup) {
     } else {
         secondLineupEmbed = new MessageEmbed()
             .setColor('#0099ff')
-            .setTitle(`Team #2`)
+            .setTitle(`Blue Team`)
             .setTimestamp()
             .setFooter(`Author: ${interaction.user.username}`)
         fillLineupEmbedWithRoles(secondLineupEmbed, lineup.roles.filter(role => role.lineupNumber === 2))
@@ -616,7 +616,7 @@ function createReplyForMixLineup(interaction, lineup, challengingLineup) {
     const lineupActionsComponent = new MessageActionRow().addComponents(
         new MessageButton()
             .setCustomId(`mix_lineup_1`)
-            .setLabel(`Team #1`)
+            .setLabel(`Red Team`)
             .setStyle('PRIMARY')
     )
 
@@ -624,7 +624,7 @@ function createReplyForMixLineup(interaction, lineup, challengingLineup) {
         lineupActionsComponent.addComponents(
             new MessageButton()
                 .setCustomId(`mix_lineup_2`)
-                .setLabel(`Team #2`)
+                .setLabel(`Blue Team`)
                 .setStyle('PRIMARY')
         )
     }
