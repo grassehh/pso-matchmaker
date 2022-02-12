@@ -38,40 +38,86 @@ module.exports = {
             return
         }
 
-        const lineupsEmbed = new MessageEmbed()
+        const teamLineupsEmbed = new MessageEmbed()
             .setColor('#0099ff')
             .setTitle(`Teams for ${lineup.size}v${lineup.size}`)
             .setTimestamp()
             .setFooter(`Author: ${interaction.user.username}`)
-        for (let lineupQueue of lineupQueues) {
-            let lineupFieldValue = lineupQueue.lineup.roles.filter(role => role.lineupNumber === 1).filter(role => role.user != null).length + ' players signed'
-            if (!teamService.hasGkSigned(lineupQueue.lineup)) {
-                lineupFieldValue += ' **(no gk)**'
-            }
-            lineupsEmbed.addField(teamService.formatTeamName(lineupQueue.lineup, false), lineupFieldValue)
-        }
-
-        let teamsActionRow = new MessageActionRow()
-
-        if (lineupQueues.length < 6) {
-            for (let lineupQueue of lineupQueues) {
-                teamsActionRow.addComponents(
-                    new MessageButton()
-                        .setCustomId(`challenge_${lineupQueue.id}`)
-                        .setLabel(teamService.formatTeamName(lineupQueue.lineup, true))
-                        .setStyle('PRIMARY')
-                )
-            }
+        const teamLineupQueues = lineupQueues.filter(lineupQueue => !lineupQueue.lineup.isMix())
+        let teamsActionComponents = []
+        if (teamLineupQueues.length === 0) {
+            teamLineupsEmbed.setDescription(`No Team available for ${lineup.size}v${lineup.size}`)
         } else {
-            const challengesSelectMenu = new MessageSelectMenu()
-                .setCustomId(`challenge_select`)
-                .setPlaceholder('Select a Team to challenge')
-            for (let lineupQueue of lineupQueues) {
-                challengesSelectMenu.addOptions([{ label: teamService.formatTeamName(lineupQueue.lineup, true), value: lineupQueue.id }])
+            for (let lineupQueue of teamLineupQueues) {
+                let lineupFieldValue = lineupQueue.lineup.roles.filter(role => role.lineupNumber === 1).filter(role => role.user != null).length + ' players signed'
+                if (!teamService.hasGkSigned(lineupQueue.lineup)) {
+                    lineupFieldValue += ' **(no GK)**'
+                }
+                teamLineupsEmbed.addField(teamService.formatTeamName(lineupQueue.lineup, false), lineupFieldValue)
             }
-            teamsActionRow.addComponents(challengesSelectMenu)
+            let teamsActionRow = new MessageActionRow()
+            if (teamLineupQueues.length < 6) {
+                for (let lineupQueue of teamLineupQueues) {
+                    teamsActionRow.addComponents(
+                        new MessageButton()
+                            .setCustomId(`challenge_${lineupQueue.id}`)
+                            .setLabel(teamService.formatTeamName(lineupQueue.lineup, true))
+                            .setStyle('PRIMARY')
+                    )
+                }
+            } else {
+                const challengesSelectMenu = new MessageSelectMenu()
+                    .setCustomId(`challenge_select`)
+                    .setPlaceholder('Select a Team to challenge')
+                for (let lineupQueue of teamLineupQueues) {
+                    challengesSelectMenu.addOptions([{ label: teamService.formatTeamName(lineupQueue.lineup, true), value: lineupQueue.id }])
+                }
+                teamsActionRow.addComponents(challengesSelectMenu)
+            }
+            teamsActionComponents = [teamsActionRow]
         }
 
-        await interaction.reply({ embeds: [lineupsEmbed], components: [teamsActionRow] })
+        const mixLineupsEmbed = new MessageEmbed()
+            .setColor('#0099ff')
+            .setTitle(`Mixes for ${lineup.size}v${lineup.size}`)
+            .setTimestamp()
+            .setFooter(`Author: ${interaction.user.username}`)
+        const mixLineupQueues = lineupQueues.filter(lineupQueue => lineupQueue.lineup.isMix())
+        let mixesActionComponents = []
+        if (mixLineupQueues.length === 0) {
+            mixLineupsEmbed.setDescription(`No Mix available for ${lineup.size}v${lineup.size}`)
+        } else {
+            for (let lineupQueue of mixLineupQueues) {
+                let lineupFieldValue = lineupQueue.lineup.roles.filter(role => role.lineupNumber === 1).filter(role => role.user != null).length + ' players signed'
+                if (!teamService.hasGkSigned(lineupQueue.lineup)) {
+                    lineupFieldValue += ' **(no GK)**'
+                }
+                mixLineupsEmbed.addField(teamService.formatTeamName(lineupQueue.lineup, false), lineupFieldValue)
+            }
+            let mixesActionRow = new MessageActionRow()
+            if (mixLineupQueues.length < 6) {
+                for (let lineupQueue of mixLineupQueues) {
+                    mixesActionRow.addComponents(
+                        new MessageButton()
+                            .setCustomId(`challenge_${lineupQueue.id}`)
+                            .setLabel(teamService.formatTeamName(lineupQueue.lineup, true))
+                            .setStyle('SECONDARY')
+                    )
+                }            
+            } else {
+                const challengesSelectMenu = new MessageSelectMenu()
+                    .setCustomId(`challenge_select`)
+                    .setPlaceholder('Select a Mix to challenge')
+                for (let lineupQueue of mixLineupQueues) {
+                    challengesSelectMenu.addOptions([{ label: teamService.formatTeamName(lineupQueue.lineup, true), value: lineupQueue.id }])
+                }
+                mixesActionRow.addComponents(challengesSelectMenu)
+            }
+            mixesActionComponents = [mixesActionRow]
+        }
+
+
+        await interaction.channel.send({ embeds: [mixLineupsEmbed], components: mixesActionComponents })
+        await interaction.reply({ embeds: [teamLineupsEmbed], components: teamsActionComponents })
     }
 }
