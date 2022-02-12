@@ -131,7 +131,7 @@ exports.joinQueue = async (client, user, lineup) => {
             .setFooter(`Author: ${user.username}`)
         let lineupFieldValue = lineup.roles.filter(role => role.user != null).length + ' players signed'
         if (!teamService.hasGkSigned(lineupQueue.lineup)) {
-            lineupFieldValue += ' **(no gk)**'
+            lineupFieldValue += ' **(no GK)**'
         }
         teamEmbed.addField(teamService.formatTeamName(lineup), lineupFieldValue)
 

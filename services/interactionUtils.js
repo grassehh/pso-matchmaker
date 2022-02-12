@@ -609,7 +609,7 @@ function createReplyForMixLineup(interaction, lineup, challengingLineup) {
             .setFooter(`Author: ${interaction.user.username}`)
         let fieldValue = challengingLineup.roles.filter(role => role.user != null).length + ' players signed'
         if (!teamService.hasGkSigned(challengingLineup)) {
-            fieldValue += ' **(no gk)**'
+            fieldValue += ' **(no GK)**'
         }
         secondLineupEmbed.addField(teamService.formatTeamName(challengingLineup, false), fieldValue)
     } else {

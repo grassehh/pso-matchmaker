@@ -91,6 +91,9 @@ lineupSchema.methods.isCaptains = function () {
 lineupSchema.methods.isMixOrCaptains = function () {
     return this.isMix() || this.isCaptains()
 }
+lineupSchema.methods.numberOfSignedPlayers = function () {
+    return this.roles.filter(role => role.lineupNumber === 1).filter(role => role.user != null).length
+}
 exports.Lineup = mongoose.model('Lineup', lineupSchema, 'lineups')
 
 const lineupQueueSchema = new mongoose.Schema({
