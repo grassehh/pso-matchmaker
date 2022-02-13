@@ -543,7 +543,7 @@ module.exports = {
                     const selectedLineup = parseInt(split[2])
                     let lineup = await teamService.retrieveLineup(interaction.channelId)
                     const components = interactionUtils.createLineupComponents(lineup, null, null, selectedLineup)
-                    await interaction.reply({ content: `What do you want to do in the **Team #${selectedLineup}** ?`, components, ephemeral: true })
+                    await interaction.reply({ content: `What do you want to do in the **${selectedLineup === 1 ? 'Red' : 'Blue'} Team** ?`, components, ephemeral: true })
                 }
             }
 
