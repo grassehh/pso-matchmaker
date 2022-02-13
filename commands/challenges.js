@@ -39,7 +39,7 @@ module.exports = {
         }
 
         const teamLineupsEmbed = new MessageEmbed()
-            .setColor('#4752c4')
+            .setColor('#5865f2')
             .setTitle(`Teams for ${lineup.size}v${lineup.size}`)
             .setTimestamp()
             .setFooter(`Author: ${interaction.user.username}`)

@@ -260,11 +260,11 @@ exports.createLineupEmbedsForNextMatch = async (interaction, lineup, opponentLin
 async function createLineupEmbed(interaction, lineup, opponentLineup, lobbyName, lobbyPassword, lineupNumber = 1) {
     const roles = lineup.roles.filter(role => role.lineupNumber === lineupNumber)
 
-    const opponentTeamName = opponentLineup ? teamService.formatTeamName(opponentLineup) : `${teamService.formatTeamName(lineup)} #${lineupNumber}`
+    const opponentTeamName = opponentLineup ? teamService.formatTeamName(opponentLineup) : `${lineupNumber === 1 ? 'Blue' : 'Red'} Team`
 
     let lineupEmbed = new MessageEmbed()
         .setColor('#6aa84f')
-        .setTitle(opponentLineup ? `Lineup against ${opponentTeamName}` : `Team #${lineupNumber} lineup`)
+        .setTitle(opponentLineup ? `Lineup against ${opponentTeamName}` : `${lineupNumber === 1 ? 'Red' : 'Blue'} Team lineup`)
         .setTimestamp()
         .setFooter(`Author: ${interaction.user.username}`)
     const promises = roles.map(async (role) => {
@@ -594,8 +594,8 @@ async function createReplyForTeamLineup(lineup, lineupQueue) {
 
 function createReplyForMixLineup(interaction, lineup, challengingLineup) {
     let firstLineupEmbed = new MessageEmbed()
-        .setColor('#0099ff')
-        .setTitle(`Team #1`)
+        .setColor('#ed4245')
+        .setTitle(`Red Team`)
         .setTimestamp()
         .setFooter(`Author: ${interaction.user.username}`)
     fillLineupEmbedWithRoles(firstLineupEmbed, lineup.roles.filter(role => role.lineupNumber === 1))
@@ -615,7 +615,7 @@ function createReplyForMixLineup(interaction, lineup, challengingLineup) {
     } else {
         secondLineupEmbed = new MessageEmbed()
             .setColor('#0099ff')
-            .setTitle(`Team #2`)
+            .setTitle(`Blue Team`)
             .setTimestamp()
             .setFooter(`Author: ${interaction.user.username}`)
         fillLineupEmbedWithRoles(secondLineupEmbed, lineup.roles.filter(role => role.lineupNumber === 2))
@@ -624,15 +624,15 @@ function createReplyForMixLineup(interaction, lineup, challengingLineup) {
     const lineupActionsComponent = new MessageActionRow().addComponents(
         new MessageButton()
             .setCustomId(`mix_lineup_1`)
-            .setLabel(`Team #1`)
-            .setStyle('PRIMARY')
+            .setLabel(`Red Team`)
+            .setStyle('DANGER')
     )
 
     if (!challengingLineup) {
         lineupActionsComponent.addComponents(
             new MessageButton()
                 .setCustomId(`mix_lineup_2`)
-                .setLabel(`Team #2`)
+                .setLabel(`Blue Team`)
                 .setStyle('PRIMARY')
         )
     }
@@ -641,7 +641,7 @@ function createReplyForMixLineup(interaction, lineup, challengingLineup) {
         new MessageButton()
             .setCustomId(`leaveLineup`)
             .setLabel(`Leave`)
-            .setStyle('DANGER')
+            .setStyle('SECONDARY')
     )
 
     return { embeds: [firstLineupEmbed, secondLineupEmbed], components: [lineupActionsComponent] }
