@@ -39,7 +39,7 @@ module.exports = {
         }
 
         const teamLineupsEmbed = new MessageEmbed()
-            .setColor('#0099ff')
+            .setColor('#4752c4')
             .setTitle(`Teams for ${lineup.size}v${lineup.size}`)
             .setTimestamp()
             .setFooter(`Author: ${interaction.user.username}`)
@@ -78,7 +78,7 @@ module.exports = {
         }
 
         const mixLineupsEmbed = new MessageEmbed()
-            .setColor('#0099ff')
+            .setColor('#4f545c')
             .setTitle(`Mixes for ${lineup.size}v${lineup.size}`)
             .setTimestamp()
             .setFooter(`Author: ${interaction.user.username}`)
