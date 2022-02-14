@@ -41,8 +41,6 @@ module.exports = {
         const teamLineupsEmbed = new MessageEmbed()
             .setColor('#5865f2')
             .setTitle(`Teams for ${lineup.size}v${lineup.size}`)
-            .setTimestamp()
-            .setFooter(`Author: ${interaction.user.username}`)
         const teamLineupQueues = lineupQueues.filter(lineupQueue => !lineupQueue.lineup.isMix())
         let teamsActionComponents = []
         if (teamLineupQueues.length === 0) {
@@ -80,8 +78,6 @@ module.exports = {
         const mixLineupsEmbed = new MessageEmbed()
             .setColor('#566573')
             .setTitle(`Mixes for ${lineup.size}v${lineup.size}`)
-            .setTimestamp()
-            .setFooter(`Author: ${interaction.user.username}`)
         const mixLineupQueues = lineupQueues.filter(lineupQueue => lineupQueue.lineup.isMix())
         let mixesActionComponents = []
         if (mixLineupQueues.length === 0) {

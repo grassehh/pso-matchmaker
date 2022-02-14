@@ -110,19 +110,27 @@ module.exports = {
                 }
 
                 if (interaction.customId.startsWith('join_')) {
+                    const customId = interaction.customId.split('_')[1]
+
                     let lineup = await teamService.retrieveLineup(interaction.channelId)
                     if (lineup.isPicking) {
                         await interaction.reply({ content: '⛔ Captains are currently picking the teams', ephemeral: true })
                         return
                     }
 
+                    const signedRole = lineup.roles.filter(role => role.user).find(role => role.user.id == interaction.user.id)
+                    if (signedRole && ((signedRole.name.includes('GK') && customId === 'gk') || (!signedRole.name.includes('GK') && customId !== 'gk'))) {
+                        await interaction.reply({ content: '❌ You are already in the lineup', ephemeral: true })
+                        return
+                    }
+
                     const newLineup = await teamService.removeUserFromLineup(interaction.channelId, interaction.user.id)
                     if (newLineup) {
-                    lineup = newLineup
+                        lineup = newLineup
                     }
 
                     let roleToSign
-                    if (interaction.customId.split('_')[1] === 'gk') {
+                    if (customId === 'gk') {
                         roleToSign = lineup.roles.filter(role => role.name.includes('GK')).find(role => !role.user)
                     } else {
                         roleToSign = lineup.roles.filter(role => !role.name.includes('GK')).find(role => !role.user)

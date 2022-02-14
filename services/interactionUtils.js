@@ -64,7 +64,7 @@ exports.createCancelChallengeReply = (interaction, challenge) => {
 exports.createDecideChallengeReply = (interaction, challenge) => {
 
     if (challenge.challengedTeam.lineup.isMix()) {
-        return createReplyForMixLineup(interaction, challenge.challengedTeam.lineup, challenge.initiatingTeam.lineup)
+        return createReplyForMixLineup(challenge.challengedTeam.lineup, challenge.initiatingTeam.lineup)
     } else {
         const challengeEmbed = new MessageEmbed()
             .setColor('#566573')
@@ -94,11 +94,11 @@ exports.createReplyForLineup = async (interaction, lineup, lineupQueue) => {
         if (challenge) {
             challengingLineup = await teamService.retrieveLineup(challenge.initiatingTeam.lineup.channelId)
         }
-        return createReplyForMixLineup(interaction, lineup, challengingLineup)
+        return createReplyForMixLineup(lineup, challengingLineup)
     }
 
     if (lineup.isCaptains()) {
-        return createReplyForCaptainsLineup(interaction, lineup)
+        return createReplyForCaptainsLineup(lineup)
     }
 
     return createReplyForTeamLineup(lineup, lineupQueue)
@@ -265,8 +265,6 @@ async function createLineupEmbed(interaction, lineup, opponentLineup, lobbyName,
     let lineupEmbed = new MessageEmbed()
         .setColor('#6aa84f')
         .setTitle(opponentLineup ? `Lineup against ${opponentTeamName}` : `${lineupNumber === 1 ? 'Red' : 'Blue'} Team lineup`)
-        .setTimestamp()
-        .setFooter(`Author: ${interaction.user.username}`)
     const promises = roles.map(async (role) => {
         if (!role.user) {
             return { role, playerName: '\u200b' }
@@ -403,14 +401,14 @@ exports.challenge = async (interaction, lineupQueueIdToChallenge) => {
         return
     }
 
-    if (lineupQueueToChallenge.lineup.isMix()) {
-        const numberOfSignedPlayers = lineupQueueToChallenge.lineup.roles.filter(role => role.user).map(role => role.user).length
-        const percentageOfSignedPlayers = (numberOfSignedPlayers / (lineupQueueToChallenge.lineup.size * 2 - 1)) * 100
-        if (percentageOfSignedPlayers >= 75) {
-            await interaction.reply({ content: 'This mix has too many players signed in both teams, you cannot challenge it right now', ephemeral: true })
-            return
-        }
-    }
+    // if (lineupQueueToChallenge.lineup.isMix()) {
+    //     const numberOfSignedPlayers = lineupQueueToChallenge.lineup.roles.filter(role => role.user).map(role => role.user).length
+    //     const percentageOfSignedPlayers = (numberOfSignedPlayers / (lineupQueueToChallenge.lineup.size * 2 - 1)) * 100
+    //     if (percentageOfSignedPlayers >= 75) {
+    //         await interaction.reply({ content: 'This mix has too many players signed in both teams, you cannot challenge it right now', ephemeral: true })
+    //         return
+    //     }
+    // }
 
     if (await matchmakingService.checkForDuplicatedPlayers(interaction, lineup, lineupQueueToChallenge.lineup)) {
         return
@@ -592,7 +590,7 @@ async function createReplyForTeamLineup(lineup, lineupQueue) {
     return { components: createLineupComponents(lineup, lineupQueue, challenge) }
 }
 
-function createReplyForMixLineup(interaction, lineup, challengingLineup) {
+function createReplyForMixLineup(lineup, challengingLineup) {
     let firstLineupEmbed = new MessageEmbed()
         .setColor('#ed4245')
         .setTitle(`Red Team`)
@@ -601,10 +599,8 @@ function createReplyForMixLineup(interaction, lineup, challengingLineup) {
     let secondLineupEmbed
     if (challengingLineup) {
         secondLineupEmbed = new MessageEmbed()
-            .setColor('#566573')
+            .setColor('#0099ff')
             .setTitle(`VS`)
-            .setTimestamp()
-            .setFooter(`Author: ${interaction.user.username}`)
         let fieldValue = challengingLineup.roles.filter(role => role.user != null).length + ' players signed'
         if (!teamService.hasGkSigned(challengingLineup)) {
             fieldValue += ' **(no GK)**'
@@ -614,8 +610,6 @@ function createReplyForMixLineup(interaction, lineup, challengingLineup) {
         secondLineupEmbed = new MessageEmbed()
             .setColor('#0099ff')
             .setTitle(`Blue Team`)
-            .setTimestamp()
-            .setFooter(`Author: ${interaction.user.username}`)
         fillLineupEmbedWithRoles(secondLineupEmbed, lineup.roles.filter(role => role.lineupNumber === 2))
         secondLineupEmbed.setDescription('*If a Team faces the mix, it will replace the Blue Team*\n\n' + secondLineupEmbed.description)
     }
@@ -646,12 +640,10 @@ function createReplyForMixLineup(interaction, lineup, challengingLineup) {
     return { embeds: [firstLineupEmbed, secondLineupEmbed], components: [lineupActionsComponent] }
 }
 
-function createReplyForCaptainsLineup(interaction, lineup) {
+function createReplyForCaptainsLineup(lineup) {
     let lineupEmbed = new MessageEmbed()
-        .setColor('#566573')
-        .setTitle(`Player queue`)
-        .setTimestamp()
-        .setFooter(`Author: ${interaction.user.username}`)
+        .setColor('#ed4245')
+        .setTitle(`Player Queue`)
     fillLineupEmbedWithRoles(lineupEmbed, lineup.roles)
 
     const numberOfOutfieldUsers = lineup.roles.filter(role => !role.name.includes('GK') && role.user).length
