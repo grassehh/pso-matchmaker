@@ -125,7 +125,7 @@ exports.joinQueue = async (client, user, lineup) => {
 
     await Promise.all(channelIds.map(async channelId => {
         const teamEmbed = new MessageEmbed()
-            .setColor('#0099ff')
+            .setColor('#566573')
             .setTitle(`A Team has joined the queue for ${lineup.size}v${lineup.size}`)
             .setTimestamp()
             .setFooter(`Author: ${user.username}`)
@@ -255,7 +255,7 @@ exports.checkForDuplicatedPlayers = async (interaction, firstLineup, secondLineu
         description = description.substring(0, description.length - 2)
 
         const duplicatedUsersEmbed = new MessageEmbed()
-            .setColor('#0099ff')
+            .setColor('#566573')
             .setTitle(`⛔ Some players are signed in both teams !`)
             .setDescription(description)
             .setTimestamp()

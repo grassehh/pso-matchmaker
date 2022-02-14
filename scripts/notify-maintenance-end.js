@@ -17,7 +17,7 @@ async function notifyUpdate() {
     await mongoose.connect(process.env.MONGO_URI || '', { keepAlive: true })
 
     let updateEmbed = new MessageEmbed()
-        .setColor('#0099ff')
+        .setColor('#566573')
         .setTitle(`✅ Maintenance finished !`)
         .setDescription('The maintenance is now finished. Bot is up and running again. Have fun !')
         .setTimestamp()

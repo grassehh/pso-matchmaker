@@ -16,7 +16,7 @@ module.exports = {
         }
 
         const teamEmbed = new MessageEmbed()
-            .setColor('#0099ff')
+            .setColor('#566573')
             .setTitle(`Team information`)
             .setTimestamp()
         teamEmbed.addField('Name', team.name, true)

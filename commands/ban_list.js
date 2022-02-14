@@ -21,7 +21,7 @@ module.exports = {
         const bans = await teamService.findBansByGuildId(team.guildId)
 
         const bansEmbed = new MessageEmbed()
-            .setColor('#0099ff')
+            .setColor('#566573')
             .setTitle(`Banned players`)
             .setTimestamp()
 
