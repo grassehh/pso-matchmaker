@@ -401,14 +401,14 @@ exports.challenge = async (interaction, lineupQueueIdToChallenge) => {
         return
     }
 
-    // if (lineupQueueToChallenge.lineup.isMix()) {
-    //     const numberOfSignedPlayers = lineupQueueToChallenge.lineup.roles.filter(role => role.user).map(role => role.user).length
-    //     const percentageOfSignedPlayers = (numberOfSignedPlayers / (lineupQueueToChallenge.lineup.size * 2 - 1)) * 100
-    //     if (percentageOfSignedPlayers >= 75) {
-    //         await interaction.reply({ content: 'This mix has too many players signed in both teams, you cannot challenge it right now', ephemeral: true })
-    //         return
-    //     }
-    // }
+    if (lineupQueueToChallenge.lineup.isMix()) {
+        const numberOfSignedPlayers = lineupQueueToChallenge.lineup.roles.filter(role => role.user).map(role => role.user).length
+        const percentageOfSignedPlayers = (numberOfSignedPlayers / (lineupQueueToChallenge.lineup.size * 2 - 1)) * 100
+        if (percentageOfSignedPlayers >= 75) {
+            await interaction.reply({ content: 'This mix has too many players signed in both teams, you cannot challenge it right now', ephemeral: true })
+            return
+        }
+    }
 
     if (await matchmakingService.checkForDuplicatedPlayers(interaction, lineup, lineupQueueToChallenge.lineup)) {
         return
