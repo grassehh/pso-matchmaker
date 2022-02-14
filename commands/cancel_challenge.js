@@ -17,7 +17,7 @@ module.exports = {
 
         let challenge = await matchmakingService.findChallengeByChannelId(interaction.channelId)
         if (!challenge) {
-            await interaction.reply({ content: "❌ Your lineup is not currently challenging", ephemeral: true })
+            await interaction.reply({ content: "⛔ Your lineup is not currently challenging", ephemeral: true })
             return
         }
 
@@ -35,13 +35,13 @@ module.exports = {
             if (!challenge.challengedTeam.lineup.isMix()) {
                 await challengedTeamChannel.messages.edit(challenge.challengedMessageId, { components: [] })
             }
-            await challengedTeamChannel.send(`❌ ${interaction.user} has cancelled the challenge request against **${teamService.formatTeamName(challenge.initiatingTeam.lineup)}**`)
+            await challengedTeamChannel.send(`⛔ ${interaction.user} has cancelled the challenge request against **${teamService.formatTeamName(challenge.initiatingTeam.lineup)}**`)
         }
 
         const [initiatingTeamChannel] = await handle(interaction.client.channels.fetch(challenge.initiatingTeam.lineup.channelId))
         if (initiatingTeamChannel) {
             await initiatingTeamChannel.messages.edit(challenge.initiatingMessageId, { components: [] })
-            await initiatingTeamChannel.send(`❌ ${interaction.user} has cancelled the challenge request against **${teamService.formatTeamName(challenge.challengedTeam.lineup)}**`)
+            await initiatingTeamChannel.send(`⛔ ${interaction.user} has cancelled the challenge request against **${teamService.formatTeamName(challenge.challengedTeam.lineup)}**`)
         }
         await interaction.reply({ content: 'You have cancelled the challenge request', ephemeral: true })
     }

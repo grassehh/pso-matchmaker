@@ -23,13 +23,13 @@ module.exports = {
         if (userId) {
             const res = await teamService.deleteBanByUserIdAndGuildId(userId, team.guildId)
             if (res.deletedCount === 0) {
-                await interaction.reply({ content: `❌ User '${playerMention}' is not banned`, ephemeral: true })
+                await interaction.reply({ content: `⛔ User '${playerMention}' is not banned`, ephemeral: true })
                 return
             }
             await interaction.reply({ content: `✅ Player ${playerMention} is now unbanned`, ephemeral: true })
             return
         }
 
-        await interaction.reply({ content: `❌ User '${playerMention}' not found`, ephemeral: true })
+        await interaction.reply({ content: `⛔ User '${playerMention}' not found`, ephemeral: true })
     }
 }

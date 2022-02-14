@@ -25,7 +25,7 @@ module.exports = {
 
         const duration = interaction.options.getInteger('duration')
         if (duration != null && (duration != -1 && duration < 1)) {
-            await interaction.reply({ content: `❌ Please chose a duration of either -1 or greater than 0`, ephemeral: true })
+            await interaction.reply({ content: `⛔ Please chose a duration of either -1 or greater than 0`, ephemeral: true })
             return
         }
 
@@ -33,11 +33,11 @@ module.exports = {
         const userId = getUserIdFromMention(playerMention)
         if (userId) {            
             if (userId === interaction.client.user.id) {
-                await interaction.reply({ content: `❌ You cannot ban the bot !`, ephemeral: true })
+                await interaction.reply({ content: `⛔ You cannot ban the bot !`, ephemeral: true })
                 return
             }
             if (userId === interaction.user.id) {
-                await interaction.reply({ content: `❌ You surely don't want to ban yourself !`, ephemeral: true })
+                await interaction.reply({ content: `⛔ You surely don't want to ban yourself !`, ephemeral: true })
                 return
             }
 
@@ -59,6 +59,6 @@ module.exports = {
             return
         }
 
-        await interaction.reply({ content: `❌ User '${playerMention}' not found`, ephemeral: true })
+        await interaction.reply({ content: `⛔ User '${playerMention}' not found`, ephemeral: true })
     }
 }

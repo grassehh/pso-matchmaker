@@ -270,11 +270,8 @@ exports.checkForDuplicatedPlayers = async (interaction, firstLineup, secondLineu
 }
 
 exports.readyMatch = async (interaction, challenge, mixLineup) => {
-    let firstResponsibleUser = await interaction.client.users.fetch(challenge ? challenge.initiatingUser.id : interaction.user)
-    let lobbyCreationEmbedFieldValue = `${firstResponsibleUser} is responsible of creating the lobby`
-    if (challenge) {
-        lobbyCreationEmbedFieldValue += `. If he is not available, then ${interaction.user} is the next responsible player.`
-    }
+    let responsibleUser = await interaction.client.users.fetch(challenge ? challenge.initiatingUser.id : interaction.user)
+    let lobbyCreationEmbedFieldValue = `${responsibleUser} is responsible of creating the lobby`
     let lobbyCreationEmbed = new MessageEmbed()
         .setColor('#6aa84f')
         .setTitle(`${challenge ? '⚽ Challenge Accepted ⚽' : '⚽ Match Ready ⚽'}`)

@@ -24,7 +24,7 @@ module.exports = {
             if (matchingUsers.size == 0) {
                 const statsEmbed = new MessageEmbed()
                     .setColor('#566573')
-                    .setTitle(`❌ Player **${playerName}** not found`)
+                    .setTitle(`⛔ Player **${playerName}** not found`)
                     .setTimestamp()
                 await interaction.reply({ embeds: [statsEmbed], ephemeral: true})
                 return

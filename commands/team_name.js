@@ -23,7 +23,7 @@ module.exports = {
         const newName = interaction.options.getString('name')
         if (!teamService.validateTeamName(newName)) {
             await interaction.reply({
-                content: `❌ Please choose a name with less than ${constants.MAX_TEAM_NAME_LENGTH} characters.`,
+                content: `⛔ Please choose a name with less than ${constants.MAX_TEAM_NAME_LENGTH} characters.`,
                 ephemeral: true
             })
             return
@@ -32,7 +32,7 @@ module.exports = {
         const duplicatedTeam = await teamService.findTeamByRegionAndName(team.region, newName)
         if (duplicatedTeam) {
             await interaction.reply({
-                content: `❌ Another team is already registered under the name **'${newName}'**. Please chose another name.`,
+                content: `⛔ Another team is already registered under the name **'${newName}'**. Please chose another name.`,
                 ephemeral: true
             })
             return
