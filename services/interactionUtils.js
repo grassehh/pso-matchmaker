@@ -42,7 +42,7 @@ exports.replyLineupNotSetup = async (interaction) => {
 
 exports.createCancelChallengeReply = (interaction, challenge) => {
     let embed = new MessageEmbed()
-        .setColor('#0099ff')
+        .setColor('#566573')
 
     if (challenge.challengedTeam.lineup.isMix()) {
         embed.setDescription(`💬 ${interaction.user} is challenging the mix '${teamService.formatTeamName(challenge.challengedTeam.lineup)}'. The match will start automatically once the mix lineup is full.`)
@@ -67,7 +67,7 @@ exports.createDecideChallengeReply = (interaction, challenge) => {
         return createReplyForMixLineup(interaction, challenge.challengedTeam.lineup, challenge.initiatingTeam.lineup)
     } else {
         const challengeEmbed = new MessageEmbed()
-            .setColor('#0099ff')
+            .setColor('#566573')
             .setTitle(`Team '${teamService.formatTeamName(challenge.initiatingTeam.lineup)}' is challenging you for a ${challenge.initiatingTeam.lineup.size}v${challenge.initiatingTeam.lineup.size} match !`)
             .setDescription(`Contact ${challenge.initiatingUser.mention} if you want to arrange further.`)
             .setTimestamp()
@@ -152,7 +152,7 @@ exports.createStatsEmbeds = async (interaction, userId, region, guildId) => {
         statsType = '👕 Team'
     }
     const statsEmbed = new MessageEmbed()
-        .setColor('#0099ff')
+        .setColor('#566573')
         .setTitle(`${statsType} Stats`)
         .setTimestamp()
         .setDescription(user.toString())
@@ -168,14 +168,14 @@ exports.createLeaderBoardEmbeds = async (interaction, numberOfPages, searchOptio
     let statsEmbed
     if (allStats.length === 0) {
         statsEmbed = new MessageEmbed()
-            .setColor('#0099ff')
+            .setColor('#566573')
             .setTitle('⚽ Games Leaderboard 🏆')
             .setTimestamp()
             .setFooter(`Author: ${interaction.user.username}`)
             .addField('Ooooof', 'This looks pretty empty here. Time to get some games lads !')
     } else {
         statsEmbed = new MessageEmbed()
-            .setColor('#0099ff')
+            .setColor('#566573')
             .setTitle('⚽ Games Leaderboard 🏆')
             .setTimestamp()
             .setFooter(`Author: ${interaction.user.username}`)
@@ -450,7 +450,7 @@ exports.challenge = async (interaction, lineupQueueIdToChallenge) => {
 
 exports.createInformationEmbed = (author, description) => {
     return new MessageEmbed()
-        .setColor('#0099ff')
+        .setColor('#566573')
         .setTimestamp()
         .setDescription(description)
         .setFooter(`Author: ${author.username}`)
@@ -596,14 +596,12 @@ function createReplyForMixLineup(interaction, lineup, challengingLineup) {
     let firstLineupEmbed = new MessageEmbed()
         .setColor('#ed4245')
         .setTitle(`Red Team`)
-        .setTimestamp()
-        .setFooter(`Author: ${interaction.user.username}`)
     fillLineupEmbedWithRoles(firstLineupEmbed, lineup.roles.filter(role => role.lineupNumber === 1))
 
     let secondLineupEmbed
     if (challengingLineup) {
         secondLineupEmbed = new MessageEmbed()
-            .setColor('#0099ff')
+            .setColor('#566573')
             .setTitle(`VS`)
             .setTimestamp()
             .setFooter(`Author: ${interaction.user.username}`)
@@ -619,6 +617,7 @@ function createReplyForMixLineup(interaction, lineup, challengingLineup) {
             .setTimestamp()
             .setFooter(`Author: ${interaction.user.username}`)
         fillLineupEmbedWithRoles(secondLineupEmbed, lineup.roles.filter(role => role.lineupNumber === 2))
+        secondLineupEmbed.setDescription('*If a Team faces the mix, it will replace the Blue Team*\n\n' + secondLineupEmbed.description)
     }
 
     const lineupActionsComponent = new MessageActionRow().addComponents(
@@ -649,7 +648,7 @@ function createReplyForMixLineup(interaction, lineup, challengingLineup) {
 
 function createReplyForCaptainsLineup(interaction, lineup) {
     let lineupEmbed = new MessageEmbed()
-        .setColor('#0099ff')
+        .setColor('#566573')
         .setTitle(`Player queue`)
         .setTimestamp()
         .setFooter(`Author: ${interaction.user.username}`)

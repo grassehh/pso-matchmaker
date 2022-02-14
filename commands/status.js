@@ -36,7 +36,7 @@ module.exports = {
 
         const challenge = await matchmakingService.findChallengeByChannelId(interaction.channelId)
         let lineupStatusEmbed = new MessageEmbed()
-            .setColor('#0099ff')
+            .setColor('#566573')
             .setTimestamp()
             .setFooter(`Author: ${interaction.user.username}`)
 

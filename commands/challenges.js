@@ -31,7 +31,7 @@ module.exports = {
             await interaction.reply({
                 embeds: [
                     new MessageEmbed()
-                        .setColor('#0099ff')
+                        .setColor('#566573')
                         .setDescription(`No Team is currently seaching for a ${lineup.size}v${lineup.size} match 😪`)
                 ]
             })
@@ -78,7 +78,7 @@ module.exports = {
         }
 
         const mixLineupsEmbed = new MessageEmbed()
-            .setColor('#4f545c')
+            .setColor('#566573')
             .setTitle(`Mixes for ${lineup.size}v${lineup.size}`)
             .setTimestamp()
             .setFooter(`Author: ${interaction.user.username}`)
