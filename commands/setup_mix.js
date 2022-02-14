@@ -46,7 +46,7 @@ module.exports = {
         let lineupName = interaction.options.getString("name")
         if (!teamService.validateLineupName(lineupName)) {
             await interaction.reply({
-                content: `❌ Please choose a name with less than ${constants.MAX_LINEUP_NAME_LENGTH} characters.`,
+                content: `⛔ Please choose a name with less than ${constants.MAX_LINEUP_NAME_LENGTH} characters.`,
                 ephemeral: true
             })
             return

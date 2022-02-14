@@ -195,7 +195,7 @@ exports.leaveLineup = async (interaction, channel, lineup) => {
     let roleLeft = lineup.roles.find(role => role.user?.id === interaction.user.id)
 
     if (!roleLeft) {
-        await interaction.reply({ content: `❌ You are not in the lineup`, ephemeral: true })
+        await interaction.reply({ content: `⛔ You are not in the lineup`, ephemeral: true })
         return
     }
 

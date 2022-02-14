@@ -25,7 +25,7 @@ module.exports = {
         let team = await teamService.findTeamByGuildId(interaction.guildId)
         if (team) {
             await interaction.reply({
-                content: `❌ You team is already registered as '${team.name}'. Use the /team_name command if you wish to change the name of your team.`,
+                content: `⛔ You team is already registered as '${team.name}'. Use the /team_name command if you wish to change the name of your team.`,
                 ephemeral: true
             })
             return
@@ -34,7 +34,7 @@ module.exports = {
         const name = interaction.options.getString('team_name')
         if (!teamService.validateTeamName(name)) {
             await interaction.reply({
-                content: `❌ Please choose a name with less than ${constants.MAX_TEAM_NAME_LENGTH} characters.`,
+                content: `⛔ Please choose a name with less than ${constants.MAX_TEAM_NAME_LENGTH} characters.`,
                 ephemeral: true
             })
             return
@@ -44,7 +44,7 @@ module.exports = {
         const duplicatedTeam = await teamService.findTeamByRegionAndName(region, name)
         if (duplicatedTeam) {
             await interaction.reply({
-                content: `❌ Another team is alraedy registered under the name **'${name}'**. Please chose another name.`,
+                content: `⛔ Another team is alraedy registered under the name **'${name}'**. Please chose another name.`,
                 ephemeral: true
             })
             return
