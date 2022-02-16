@@ -48,6 +48,7 @@ module.exports = {
                     lineupStatusEmbed.setTitle(`💬 Your are challenging ${teamService.formatTeamName(challenge.challengedTeam.lineup)}`)
                 } else {
                     lineupStatusEmbed.setTitle(`💬 ${teamService.formatTeamName(challenge.initiatingTeam.lineup)} is challenging you`)
+                        .setDescription(`Contact ${challenge.initiatingUser.mention} if you want to arrange further.`)
                 }
             }
         } else if (lineupQueue) {

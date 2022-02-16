@@ -52,7 +52,7 @@ exports.LINEUP_TYPE_MIX = 'MIX'
 exports.LINEUP_TYPE_CAPTAINS = 'CAPTAINS'
 
 function removeSpecialCharacters(name) {
-    return name.replace(/(:[^:]*:)|(<.*>)/ig, '')
+    return name.replace(/(:[^:]*:)|(<.*>)|\*/ig, '')
 }
 
 exports.validateTeamName = (name) => {
@@ -200,29 +200,31 @@ exports.leaveLineup = async (interaction, channel, lineup) => {
     lineup = await this.removeUserFromLineup(lineup.channelId, interaction.user.id)
     await matchmakingService.removeUserFromLineupQueue(lineup.channelId, interaction.user.id)
 
-    let messageContent = `Player ${interaction.user} left the ${lineup.isMixOrCaptains() ? 'queue !' : `**${roleLeft.name}** position`}`
+    let description = `Player ${interaction.user} left the ${lineup.isMixOrCaptains() ? 'queue !' : `**${roleLeft.name}** position`}`
 
     const autoSearchResult = await matchmakingService.checkIfAutoSearch(interaction.client, interaction.user, lineup)
     if (autoSearchResult.leftQueue) {
-        messageContent += `. Your team has been removed from the **${lineup.size}v${lineup.size}** queue !`
+        description += `\nYour team has been removed from the **${lineup.size}v${lineup.size}** queue !`
     }
 
     let reply = await interactionUtils.createReplyForLineup(interaction, lineup, autoSearchResult.updatedLineupQueue)
-    reply.content = messageContent
+    const embed = interactionUtils.createInformationEmbed(interaction.user, description)
+    reply.embeds = (reply.embeds || []).concat(embed)
     await channel.send(reply)
 }
 
-exports.notifyChannelForUserLeaving = async (client, user, channelId, messageContent) => {
+exports.notifyChannelForUserLeaving = async (client, user, channelId, description) => {
     const [channel] = await handle(client.channels.fetch(channelId))
     if (channel) {
         const lineup = await this.retrieveLineup(channelId)
 
         const autoSearchResult = await matchmakingService.checkIfAutoSearch(client, user, lineup)
         if (autoSearchResult.leftQueue) {
-            messageContent += `. Your team has been removed from the **${lineup.size}v${lineup.size}** queue !`
+            description += `\nYour team has been removed from the **${lineup.size}v${lineup.size}** queue !`
         }
 
-        await channel.send({ content: messageContent })
+        const embed = interactionUtils.createInformationEmbed(user, description)
+        await channel.send({ embeds: [embed] })
     }
 }
 

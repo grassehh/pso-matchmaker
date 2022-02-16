@@ -1,5 +1,4 @@
 const { Permissions } = require("discord.js");
-const { Bans } = require("../mongoSchema")
 
 exports.BOT_ADMIN_ROLE = 'EUSL MM ADMIN'
 
@@ -12,4 +11,8 @@ exports.isAllowedToExecuteCommand = async (command, member) => {
     return !command.authorizedRoles
         || member.permissions.has(Permissions.FLAGS.ADMINISTRATOR)
         || member.roles.cache.some(role => command.authorizedRoles.includes(role.name.toUpperCase()) === true)
+}
+
+exports.hasAdminPermissions = async (member) => {
+    return member.permissions.has(Permissions.FLAGS.ADMINISTRATOR)
 }

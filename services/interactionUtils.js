@@ -1,4 +1,4 @@
-const { MessageActionRow, MessageButton, MessageEmbed, MessageSelectMenu } = require("discord.js");
+const { MessageActionRow, MessageButton, MessageEmbed, MessageSelectMenu, Permissions } = require("discord.js");
 const teamService = require("../services/teamService");
 const statsService = require("../services/statsService");
 const matchmakingService = require("../services/matchmakingService");
@@ -45,9 +45,9 @@ exports.createCancelChallengeReply = (interaction, challenge) => {
         .setColor('#0099ff')
 
     if (challenge.challengedTeam.lineup.isMix()) {
-        embed.setTitle(`💬 ${interaction.user} is challenging the mix '${teamService.formatTeamName(challenge.challengedTeam.lineup)}'. The match will start automatically once the mix lineup is full.`)
+        embed.setDescription(`💬 ${interaction.user} is challenging the mix '${teamService.formatTeamName(challenge.challengedTeam.lineup)}'. The match will start automatically once the mix lineup is full.`)
     } else {
-        embed.setTitle(`💬 ${interaction.user} has sent a challenge request to the team '${teamService.formatTeamName(challenge.challengedTeam.lineup)}'. You can either wait for their answer, or cancel your request.`)
+        embed.setDescription(`💬 ${interaction.user} has sent a challenge request to the team '${teamService.formatTeamName(challenge.challengedTeam.lineup)}'. You can either wait for their answer, or cancel your request.`)
     }
 
     let cancelChallengeRow = new MessageActionRow()
@@ -101,7 +101,7 @@ exports.createReplyForLineup = async (interaction, lineup, lineupQueue) => {
         return createReplyForCaptainsLineup(interaction, lineup)
     }
 
-    return createReplyForTeamLineup(lineup, lineupQueue)
+    return createReplyForTeamLineup(interaction, lineup, lineupQueue)
 }
 
 exports.createCaptainsPickComponent = (roles) => {
@@ -448,9 +448,17 @@ exports.challenge = async (interaction, lineupQueueIdToChallenge) => {
     }
 }
 
+exports.createInformationEmbed = (author, description) => {
+    return new MessageEmbed()
+        .setColor('#0099ff')
+        .setTimestamp()
+        .setDescription(description)
+        .setFooter(`Author: ${author.username}`)
+}
+
 exports.createLineupComponents = createLineupComponents
 
-function createLineupComponents(lineup, lineupQueue, challenge, selectedLineupNumber = 1) {
+function createLineupComponents(interaction, lineup, lineupQueue, challenge, selectedLineupNumber = 1) {
     components = createRolesComponent(lineup, selectedLineupNumber)
 
     const lineupActionsRow = new MessageActionRow()
@@ -502,6 +510,7 @@ function createLineupComponents(lineup, lineupQueue, challenge, selectedLineupNu
         )
     }
 
+    //TODO: check if reading member has Admin rights
     const numberOfSignedPlayers = lineup.roles.filter(role => role.lineupNumber === selectedLineupNumber).filter(role => role.user != null).length
     const numberOfMissingPlayers = lineup.size - numberOfSignedPlayers
     lineupActionsRow.addComponents(
@@ -579,9 +588,9 @@ function createRolesComponent(lineup, selectedLineupNumber = 1) {
     return components
 }
 
-async function createReplyForTeamLineup(lineup, lineupQueue) {
+async function createReplyForTeamLineup(interaction, lineup, lineupQueue) {
     const challenge = await matchmakingService.findChallengeByChannelId(lineup.channelId)
-    return { components: createLineupComponents(lineup, lineupQueue, challenge) }
+    return { components: createLineupComponents(interaction, lineup, lineupQueue, challenge) }
 }
 
 function createReplyForMixLineup(interaction, lineup, challengingLineup) {
