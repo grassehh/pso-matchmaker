@@ -330,7 +330,9 @@ module.exports = {
                 if (interaction.customId === 'leaveLineup') {
                     let lineup = await teamService.retrieveLineup(interaction.channelId)
                     await teamService.leaveLineup(interaction, interaction.channel, lineup)
-                    await interaction.update({ components: [] })
+                    if (!interaction.replied) {
+                        await interaction.update({ components: [] })
+                    }
                     return
                 }
 
