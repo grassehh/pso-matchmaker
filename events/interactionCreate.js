@@ -31,7 +31,7 @@ module.exports = {
 
             if (!command) return;
 
-            if (!await authorizationService.isAllowedToExecuteCommand(command, interaction.member)) {
+            if (!authorizationService.isAllowedToExecuteCommand(command, interaction.member)) {
                 await interactionUtils.replyNotAllowed(interaction)
                 return
             }
@@ -313,6 +313,11 @@ module.exports = {
                 if (interaction.customId.startsWith('clearRole_')) {
                     const selectedLineupNumber = parseInt(interaction.customId.split('_')[1])
                     let lineup = await teamService.retrieveLineup(interaction.channelId)
+
+                    if (lineup.isMix() && !authorizationService.isMatchmakingAdmin(interaction.member)) {
+                        await interaction.reply({ content: "⛔ You are not allowed to use this action", ephemeral: true })
+                        return
+                    }
 
                     const clearRoleSelectMenu = new MessageSelectMenu()
                         .setCustomId(`clearRole_select_${selectedLineupNumber}`)
