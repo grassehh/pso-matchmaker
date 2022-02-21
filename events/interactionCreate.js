@@ -357,6 +357,12 @@ module.exports = {
                         await interactionUtils.replyLineupNotSetup(interaction)
                         return
                     }
+
+                    if (!matchmakingService.isLineupAllowedToJoinQueue(lineup)) {
+                        interaction.reply({ content: '⛔ All outfield positions must be filled before searching', ephemeral: true })
+                        return
+                    }
+
                     lineupQueue = await matchmakingService.joinQueue(interaction.client, interaction.user, lineup)
                     await interaction.message.edit({ components: [] })
                     const embed = interactionUtils.createInformationEmbed(interaction.user, `🔎 Your team is now searching for a ${lineupQueue.lineup.size}v${lineupQueue.lineup.size} challenge`)

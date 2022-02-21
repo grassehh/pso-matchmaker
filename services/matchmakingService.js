@@ -126,13 +126,13 @@ exports.joinQueue = async (client, user, lineup) => {
     await Promise.all(channelIds.map(async channelId => {
         const teamEmbed = new MessageEmbed()
             .setColor('#566573')
-            .setTitle(`A Team has joined the queue for ${lineup.size}v${lineup.size}`)
+            .setTitle(`A team is searching for a ${lineup.size}v${lineup.size} match`)
             .setTimestamp()
-            .setFooter(`Author: ${user.username}`)
         let lineupFieldValue = lineup.roles.filter(role => role.user != null).length + ' players signed'
         if (!teamService.hasGkSigned(lineupQueue.lineup)) {
             lineupFieldValue += ' **(no GK)**'
         }
+        lineupFieldValue += `\n\n*Contact ${user} for more information*`
         teamEmbed.addField(teamService.formatTeamName(lineup), lineupFieldValue)
 
         const challengeTeamRow = new MessageActionRow().addComponents(
@@ -173,7 +173,7 @@ exports.leaveQueue = async (client, lineupQueue) => {
 
 exports.checkIfAutoSearch = async (client, user, lineup) => {
     let lineupQueue = await this.findLineupQueueByChannelId(lineup.channelId)
-    let autoSearchResult = { joinedQueue: false, leftQueue: false, updatedLineupQueue: lineupQueue }
+    let autoSearchResult = { joinedQueue: false, leftQueue: false, cancelledChallenge: false, updatedLineupQueue: lineupQueue }
 
     if (lineup.isMixOrCaptains()) {
         return autoSearchResult
@@ -185,9 +185,16 @@ exports.checkIfAutoSearch = async (client, user, lineup) => {
         return autoSearchResult
     }
 
-    if (!isLineupAllowedToJoinQueue(lineup) && lineupQueue) {
-        let challenge = await this.findChallengeByGuildId(lineup.team.guildId)
-        if (!challenge) {
+    if (!isLineupAllowedToJoinQueue(lineup)) {
+        const challenge = await this.findChallengeByGuildId(lineup.team.guildId)
+
+        if (challenge && challenge.challengedTeam.lineup.isMix()) {
+            await this.freeLineupQueuesByIds([challenge.challengedTeam.id, challenge.initiatingTeam.id])
+            await this.deleteChallengeById(challenge.id)
+            autoSearchResult.cancelledChallenge = true
+        }
+
+        if (lineupQueue) {
             await this.leaveQueue(client, lineupQueue)
             autoSearchResult.updatedLineupQueue = null
             autoSearchResult.leftQueue = true
