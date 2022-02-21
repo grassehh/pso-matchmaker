@@ -66,12 +66,14 @@ exports.createCancelChallengeReply = (interaction, challenge) => {
 exports.createDecideChallengeReply = (interaction, challenge) => {
 
     if (challenge.challengedTeam.lineup.isMix()) {
-        return createReplyForMixLineup(challenge.challengedTeam.lineup, challenge.initiatingTeam.lineup)
+        reply = createReplyForMixLineup(challenge.challengedTeam.lineup, challenge.initiatingTeam.lineup)
+        reply.embeds = reply.embeds.concat(this.createInformationEmbed(interaction.user, `${teamService.formatTeamName(challenge.initiatingTeam.lineup)} is challenging the mix`))
+        return reply
     } else {
         const challengeEmbed = new MessageEmbed()
             .setColor('#566573')
-            .setTitle(`Team '${teamService.formatTeamName(challenge.initiatingTeam.lineup)}' is challenging you for a ${challenge.initiatingTeam.lineup.size}v${challenge.initiatingTeam.lineup.size} match !`)
-            .setDescription(`Contact ${challenge.initiatingUser.mention} if you want to arrange further.`)
+            .setTitle(`A team wants to play against you !`)
+            .setDescription(`**${teamService.formatTeamName(challenge.initiatingTeam.lineup)}**\nContact ${challenge.initiatingUser.mention} if you want to arrange further.`)
             .setTimestamp()
             .setFooter(`Author: ${interaction.user.username}`)
         let challengeActionRow = new MessageActionRow()
@@ -361,91 +363,6 @@ exports.createLeaderBoardLineupSizeComponent = (statsType) => {
                 }
             ])
     )
-}
-
-exports.challenge = async (interaction, lineupQueueIdToChallenge) => {
-    let lineupQueueToChallenge = await matchmakingService.findLineupQueueById(lineupQueueIdToChallenge)
-    if (!lineupQueueToChallenge) {
-        await interaction.reply({ content: "⛔ This team is no longer challenging", ephemeral: true })
-        return
-    }
-
-    let challenge = await matchmakingService.findChallengeByChannelId(interaction.channelId)
-    if (challenge) {
-        await this.replyAlreadyChallenging(interaction, challenge)
-        return
-    }
-
-    challenge = await matchmakingService.findChallengeByChannelId(lineupQueueToChallenge.lineup.channelId)
-    if (challenge) {
-        await interaction.reply({ content: "⛔ This team is negociating a challenge", ephemeral: true })
-        return
-    }
-
-    let lineup = await teamService.retrieveLineup(interaction.channelId)
-    if (!lineup) {
-        await this.replyLineupNotSetup(interaction)
-        return
-    }
-
-    if (!matchmakingService.isUserAllowedToInteractWithMatchmaking(interaction.user.id, lineup)) {
-        await interaction.reply({ content: `⛔ You must be in the lineup in order to challenge a team`, ephemeral: true })
-        return
-    }
-
-    if (!matchmakingService.isLineupAllowedToJoinQueue(lineup)) {
-        await interaction.reply({ content: '⛔ All outfield positions must be filled before challenging a team', ephemeral: true })
-        return
-    }
-
-    if (lineupQueueToChallenge.lineup.size !== lineup.size) {
-        await interaction.reply({ content: `⛔ Your team is configured for ${lineup.size}v${lineup.size} while the team you are trying to challenge is configured for ${lineupQueueToChallenge.lineup.size}v${lineupQueueToChallenge.lineup.size}. Both teams must have the same size to challenge.`, ephemeral: true })
-        return
-    }
-
-    if (lineupQueueToChallenge.lineup.isMix()) {
-        const numberOfSignedPlayers = lineupQueueToChallenge.lineup.roles.filter(role => role.user).map(role => role.user).length
-        const percentageOfSignedPlayers = (numberOfSignedPlayers / (lineupQueueToChallenge.lineup.size * 2 - 1)) * 100
-        if (percentageOfSignedPlayers >= 75) {
-            await interaction.reply({ content: 'This mix has too many players signed in both teams, you cannot challenge it right now', ephemeral: true })
-            return
-        }
-    }
-
-    if (await matchmakingService.checkForDuplicatedPlayers(interaction, lineup, lineupQueueToChallenge.lineup)) {
-        return
-    }
-
-    let lineupQueue = await matchmakingService.findLineupQueueByChannelId(interaction.channelId)
-    if (!lineupQueue) {
-        lineupQueue = new LineupQueue({ lineup })
-    }
-    challenge = new Challenge({
-        initiatingUser: {
-            id: interaction.user.id,
-            name: interaction.user.username,
-            mention: interaction.user.toString()
-        },
-        initiatingTeam: lineupQueue,
-        challengedTeam: lineupQueueToChallenge
-    })
-
-    let channel = await interaction.client.channels.fetch(challenge.challengedTeam.lineup.channelId)
-    let challengedMessage = await channel.send(this.createDecideChallengeReply(interaction, challenge))
-    challenge.challengedMessageId = challengedMessage.id
-
-    await matchmakingService.reserveLineupQueuesByIds([lineupQueueIdToChallenge, lineupQueue.id])
-    let initiatingMessage = await interaction.channel.send(this.createCancelChallengeReply(interaction, challenge))
-    challenge.initiatingMessageId = initiatingMessage.id
-
-    await challenge.save()
-
-    await interaction.deferUpdate()
-
-    if (await matchmakingService.isMixOrCaptainsReadyToStart(lineupQueueToChallenge.lineup)) {
-        await matchmakingService.readyMatch(interaction, challenge, lineup)
-        return
-    }
 }
 
 exports.createInformationEmbed = (author, description) => {

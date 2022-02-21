@@ -40,6 +40,6 @@ module.exports = {
         }
 
         await matchmakingService.joinQueue(interaction.client, interaction.user, lineup)
-        await interaction.reply( `🔎 Your team is now searching for a ${lineup.size}v${lineup.size} challenge`)
+        await interaction.reply( `🔎 Your team is now searching for a team to challenge`)
     }
 };

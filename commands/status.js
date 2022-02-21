@@ -52,9 +52,9 @@ module.exports = {
                 }
             }
         } else if (lineupQueue) {
-            lineupStatusEmbed.setTitle("🔎 Your are searching for a Team ...")
+            lineupStatusEmbed.setTitle("🔎 Your are searching for a team to challenge ...")
         } else {
-            lineupStatusEmbed.setTitle("Your are not searching for a Team")
+            lineupStatusEmbed.setTitle("😴 Your are not searching for a team")
             lineupStatusEmbed.addField('Lineup size', `${lineup.size}v${lineup.size}`, true)
                 .addField('Lineup name', lineup.name ? lineup.name : '*none*', true)
                 .addField('Auto-search', `${lineup.autoSearch ? '**enabled**' : '*disabled*'}`, true)
