@@ -45,16 +45,16 @@ module.exports = {
                 lineupStatusEmbed.setTitle(`💬 You are challenging the mix ${teamService.formatTeamName(challenge.challengedTeam.lineup)}`)
             } else {
                 if (challenge.initiatingTeam.lineup.channelId === lineup.channelId) {
-                    lineupStatusEmbed.setTitle(`💬 Your are challenging ${teamService.formatTeamName(challenge.challengedTeam.lineup)}`)
+                    lineupStatusEmbed.setTitle(`💬 You are challenging ${teamService.formatTeamName(challenge.challengedTeam.lineup)}`)
                 } else {
                     lineupStatusEmbed.setTitle(`💬 ${teamService.formatTeamName(challenge.initiatingTeam.lineup)} is challenging you`)
                         .setDescription(`Contact ${challenge.initiatingUser.mention} if you want to arrange further.`)
                 }
             }
         } else if (lineupQueue) {
-            lineupStatusEmbed.setTitle("🔎 Your are searching for a team to challenge ...")
+            lineupStatusEmbed.setTitle("🔎 You are searching for a team to challenge ...")
         } else {
-            lineupStatusEmbed.setTitle("😴 Your are not searching for a team")
+            lineupStatusEmbed.setTitle("😴 You are not searching for a team")
             lineupStatusEmbed.addField('Lineup size', `${lineup.size}v${lineup.size}`, true)
                 .addField('Lineup name', lineup.name ? lineup.name : '*none*', true)
                 .addField('Auto-search', `${lineup.autoSearch ? '**enabled**' : '*disabled*'}`, true)
