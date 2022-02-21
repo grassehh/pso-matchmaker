@@ -99,7 +99,10 @@ module.exports = {
                         description += `\nYour lineup is full, it is now searching for a **${lineup.size}v${lineup.size}** team !`
                     }
                     if (autoSearchResult.leftQueue) {
-                        description += `\nYour team has been removed from the **${lineup.size}v${lineup.size}** queue !`
+                        description += `\nYou are no longer searching for a team.`
+                    }
+                    if (autoSearchResult.cancelledChallenge) {
+                        description += `\nThe challenge request has been cancelled.`
                     }
 
                     await interaction.update({ components: [] })
@@ -366,7 +369,7 @@ module.exports = {
 
                     lineupQueue = await matchmakingService.joinQueue(interaction.client, interaction.user, lineup)
                     await interaction.message.edit({ components: [] })
-                    const embed = interactionUtils.createInformationEmbed(interaction.user, `🔎 Your team is now searching for a ${lineupQueue.lineup.size}v${lineupQueue.lineup.size} challenge`)
+                    const embed = interactionUtils.createInformationEmbed(interaction.user, `🔎 Your team is now searching for a team to challenge`)
                     await interaction.channel.send({ embeds: [embed], components: interactionUtils.createLineupComponents(lineup, lineupQueue, challenge) })
                     return
                 }
@@ -403,15 +406,15 @@ module.exports = {
                         return
                     }
                     const lineup = await teamService.retrieveLineup(interaction.channelId)
-                    // if (!matchmakingService.isUserAllowedToInteractWithMatchmaking(interaction.user.id, lineup)) {
-                    //     await interaction.reply({ content: `⛔ You must be in the lineup in order to accept a challenge`, ephemeral: true })
-                    //     return
-                    // }
+                    if (!matchmakingService.isUserAllowedToInteractWithMatchmaking(interaction.user.id, lineup)) {
+                        await interaction.reply({ content: `⛔ You must be in the lineup in order to accept a challenge`, ephemeral: true })
+                        return
+                    }
 
-                    // if (challenge.initiatingUser.id === interaction.user.id) {
-                    //     await interaction.reply({ content: "⛔ You cannot accept your own challenge request", ephemeral: true })
-                    //     return
-                    // }
+                    if (challenge.initiatingUser.id === interaction.user.id) {
+                        await interaction.reply({ content: "⛔ You cannot accept your own challenge request", ephemeral: true })
+                        return
+                    }
 
                     const secondLineup = await teamService.retrieveLineup(challenge.initiatingTeam.lineup.channelId === interaction.channelId ? challenge.challengedTeam.lineup.channelId : challenge.initiatingTeam.lineup.channelId)
                     if (await matchmakingService.checkForDuplicatedPlayers(interaction, lineup, secondLineup)) {
@@ -445,37 +448,16 @@ module.exports = {
 
                     let initiatingTeamChannel = await interaction.client.channels.fetch(challenge.initiatingTeam.lineup.channelId)
                     await initiatingTeamChannel.messages.edit(challenge.initiatingMessageId, { components: [] })
-                    await initiatingTeamChannel.send(`❌ The team '${teamService.formatTeamName(challenge.challengedTeam.lineup)}' has refused your challenge request`)
+                    await initiatingTeamChannel.send({ embeds: [interactionUtils.createInformationEmbed(interaction.user, `❌ **${teamService.formatTeamName(challenge.challengedTeam.lineup)}** has refused your challenge request`)] })
 
                     await interaction.message.edit({ components: [] })
-                    await interaction.channel.send(`❌ ${interaction.user} has refused to challenge the team '${teamService.formatTeamName(challenge.initiatingTeam.lineup)}''`)
+                    await interaction.channel.send({ embeds: [interactionUtils.createInformationEmbed(interaction.user, `❌ ${interaction.user} has refused to challenge **${teamService.formatTeamName(challenge.initiatingTeam.lineup)}**'`)] })
                     return
                 }
 
                 if (interaction.customId.startsWith('cancel_challenge_')) {
-                    let challengeId = interaction.customId.substring(17);
-                    let challenge = await matchmakingService.findChallengeById(challengeId)
-                    if (!challenge) {
-                        await interaction.reply({ content: "⛔ This challenge no longer exists", ephemeral: true })
-                        return
-                    }
-                    let lineup = await teamService.retrieveLineup(interaction.channelId)
-                    if (!matchmakingService.isUserAllowedToInteractWithMatchmaking(interaction.user.id, lineup)) {
-                        await interaction.reply({ content: `⛔ You must be in the lineup in order to cancel a challenge request`, ephemeral: true })
-                        return
-                    }
-
-                    await matchmakingService.deleteChallengeById(challenge.id)
-                    await matchmakingService.freeLineupQueuesByIds([challenge.challengedTeam.id, challenge.initiatingTeam.id])
-
-                    let challengedTeamChannel = await interaction.client.channels.fetch(challenge.challengedTeam.lineup.channelId)
-                    if (!challenge.challengedTeam.lineup.isMix()) {
-                        await challengedTeamChannel.messages.edit(challenge.challengedMessageId, { components: [] })
-                    }
-                    await challengedTeamChannel.send(`❌ **${teamService.formatTeamName(challenge.initiatingTeam.lineup)}** has cancelled the challenge request`)
-
-                    await interaction.message.edit({ components: [] })
-                    await interaction.channel.send(`❌ ${interaction.user} has cancelled your challenge request against **${teamService.formatTeamName(challenge.challengedTeam.lineup)}**`)
+                    const challengeId = interaction.customId.substring(17);
+                    await matchmakingService.cancelChallenge(interaction.client, interaction.user, challengeId)
                     return
                 }
 
@@ -689,7 +671,10 @@ module.exports = {
                             description += `\nYour lineup is full, it is now searching for a **${lineup.size}v${lineup.size}** team !`
                         }
                         if (autoSearchResult.leftQueue) {
-                            description += `\nYour team has been removed from the **${lineup.size}v${lineup.size}** queue !`
+                            description += `\nYou are no longer searching for a team.`
+                        }
+                        if (autoSearchResult.cancelledChallenge) {
+                            description += `\nThe challenge request has been cancelled.`
                         }
                         const embed = interactionUtils.createInformationEmbed(interaction.user, description)
                         if (await matchmakingService.isMixOrCaptainsReadyToStart(lineup)) {
@@ -735,7 +720,10 @@ module.exports = {
                     let description = `Player ${interaction.user} cleared the **${selectedRoleToClear}** position`
                     const autoSearchResult = await matchmakingService.checkIfAutoSearch(interaction.client, interaction.user, lineup)
                     if (autoSearchResult.leftQueue) {
-                        description += `\nYour team has been removed from the **${lineup.size}v${lineup.size}** queue !`
+                        description += `\nYou are no longer searching for a team.`
+                    }
+                    if (autoSearchResult.cancelledChallenge) {
+                        description += `\nThe challenge request has been cancelled.`
                     }
                     let reply = await interactionUtils.createReplyForLineup(interaction, lineup, autoSearchResult.updatedLineupQueue)
                     const embed = interactionUtils.createInformationEmbed(interaction.user, description)

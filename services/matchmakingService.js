@@ -54,10 +54,6 @@ exports.findChallengeById = async (id) => {
     return await Challenge.findById(id)
 }
 
-exports.findChallengeByGuildId = async (guildId) => {
-    return await Challenge.findOne({ $or: [{ 'initiatingTeam.team.guildId': guildId }, { 'challengedTeam.team.guildId': guildId }] })
-}
-
 exports.findChallengeByChannelId = async (channelId) => {
     return await Challenge.findOne({ $or: [{ 'initiatingTeam.lineup.channelId': channelId }, { 'challengedTeam.lineup.channelId': channelId }] })
 }
@@ -126,7 +122,7 @@ exports.joinQueue = async (client, user, lineup) => {
     await Promise.all(channelIds.map(async channelId => {
         const teamEmbed = new MessageEmbed()
             .setColor('#566573')
-            .setTitle(`A team is searching for a ${lineup.size}v${lineup.size} match`)
+            .setTitle(`A team is now searching for a match !`)
             .setTimestamp()
         let lineupFieldValue = lineup.roles.filter(role => role.user != null).length + ' players signed'
         if (!teamService.hasGkSigned(lineupQueue.lineup)) {
@@ -211,15 +207,6 @@ exports.challenge = async (interaction, lineupQueueIdToChallenge) => {
         return
     }
 
-    // if (lineupQueueToChallenge.lineup.isMix()) {
-    //     const numberOfSignedPlayers = lineupQueueToChallenge.lineup.roles.filter(role => role.user).map(role => role.user).length
-    //     const percentageOfSignedPlayers = (numberOfSignedPlayers / (lineupQueueToChallenge.lineup.size * 2 - 1)) * 100
-    //     if (percentageOfSignedPlayers >= 75) {
-    //         await interaction.reply({ content: 'This mix has too many players signed in both teams, you cannot challenge it right now', ephemeral: true })
-    //         return
-    //     }
-    // }
-
     if (await this.checkForDuplicatedPlayers(interaction, lineup, lineupQueueToChallenge.lineup)) {
         return
     }
@@ -256,6 +243,30 @@ exports.challenge = async (interaction, lineupQueueIdToChallenge) => {
     }
 }
 
+exports.cancelChallenge = async (client, user, challengeId) => {
+    const challenge = await this.findChallengeById(challengeId)
+    if (!challenge) {
+        return
+    }
+
+    await this.deleteChallengeById(challenge.id)
+    await this.freeLineupQueuesByIds([challenge.challengedTeam.id, challenge.initiatingTeam.id])
+
+    const [challengedTeamChannel] = await handle(client.channels.fetch(challenge.challengedTeam.lineup.channelId))
+    if (challengedTeamChannel) {
+        if (!challenge.challengedTeam.lineup.isMix()) {
+            await challengedTeamChannel.messages.edit(challenge.challengedMessageId, { components: [] })
+        }
+        await challengedTeamChannel.send({ embeds: [interactionUtils.createInformationEmbed(user, `❌ **${teamService.formatTeamName(challenge.initiatingTeam.lineup)}** has cancelled the challenge request`)] })
+    }
+
+    const [initiatingTeamChannel] = await handle(client.channels.fetch(challenge.initiatingTeam.lineup.channelId))
+    if (initiatingTeamChannel) {
+        await initiatingTeamChannel.messages.edit(challenge.initiatingMessageId, { components: [] })
+        await initiatingTeamChannel.send({ embeds: [interactionUtils.createInformationEmbed(user, `❌ ${user} has cancelled the challenge request against **${teamService.formatTeamName(challenge.challengedTeam.lineup)}**`)] })
+    }
+}
+
 exports.checkIfAutoSearch = async (client, user, lineup) => {
     let lineupQueue = await this.findLineupQueueByChannelId(lineup.channelId)
     let autoSearchResult = { joinedQueue: false, leftQueue: false, cancelledChallenge: false, updatedLineupQueue: lineupQueue }
@@ -271,11 +282,10 @@ exports.checkIfAutoSearch = async (client, user, lineup) => {
     }
 
     if (!isLineupAllowedToJoinQueue(lineup)) {
-        const challenge = await this.findChallengeByGuildId(lineup.team.guildId)
+        const challenge = await this.findChallengeByChannelId(lineup.channelId)
 
-        if (challenge && challenge.challengedTeam.lineup.isMix()) {
-            await this.freeLineupQueuesByIds([challenge.challengedTeam.id, challenge.initiatingTeam.id])
-            await this.deleteChallengeById(challenge.id)
+        if (challenge) {
+            await this.cancelChallenge(client, user, challenge.id)
             autoSearchResult.cancelledChallenge = true
         }
 

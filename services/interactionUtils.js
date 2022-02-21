@@ -72,8 +72,8 @@ exports.createDecideChallengeReply = (interaction, challenge) => {
     } else {
         const challengeEmbed = new MessageEmbed()
             .setColor('#566573')
-            .setTitle(`Team '${teamService.formatTeamName(challenge.initiatingTeam.lineup)}' is challenging you for a ${challenge.initiatingTeam.lineup.size}v${challenge.initiatingTeam.lineup.size} match !`)
-            .setDescription(`Contact ${challenge.initiatingUser.mention} if you want to arrange further.`)
+            .setTitle(`A team wants to play against you !`)
+            .setDescription(`**${teamService.formatTeamName(challenge.initiatingTeam.lineup)}**\nContact ${challenge.initiatingUser.mention} if you want to arrange further.`)
             .setTimestamp()
             .setFooter(`Author: ${interaction.user.username}`)
         let challengeActionRow = new MessageActionRow()

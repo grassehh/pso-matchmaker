@@ -205,7 +205,10 @@ exports.leaveLineup = async (interaction, channel, lineup) => {
     let description = `Player ${interaction.user} left the ${lineup.isMixOrCaptains() ? 'queue !' : `**${roleLeft.name}** position`}`
     const autoSearchResult = await matchmakingService.checkIfAutoSearch(interaction.client, interaction.user, lineup)
     if (autoSearchResult.leftQueue) {
-        description += `\nYour team has been removed from the **${lineup.size}v${lineup.size}** queue !`
+        description += `\nYou are no longer searching for a team.`
+    }
+    if (autoSearchResult.cancelledChallenge) {
+        description += `\nThe challenge request has been cancelled.`
     }
 
     let reply = await interactionUtils.createReplyForLineup(interaction, lineup, autoSearchResult.updatedLineupQueue)
@@ -221,7 +224,10 @@ exports.notifyChannelForUserLeaving = async (client, user, channelId, descriptio
 
         const autoSearchResult = await matchmakingService.checkIfAutoSearch(client, user, lineup)
         if (autoSearchResult.leftQueue) {
-            description += `\nYour team has been removed from the **${lineup.size}v${lineup.size}** queue !`
+            description += `\nYou are no longer searching for a team.`
+        }
+        if (autoSearchResult.cancelledChallenge) {
+            description += `\nThe challenge request has been cancelled.`
         }
 
         const embed = interactionUtils.createInformationEmbed(user, description)
