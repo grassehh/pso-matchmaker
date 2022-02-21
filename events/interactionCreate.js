@@ -5,6 +5,7 @@ const statsService = require("../services/statsService");
 const authorizationService = require("../services/authorizationService");
 const { MessageActionRow, MessageSelectMenu, InteractionCollector } = require("discord.js");
 const { handle } = require("../utils");
+const match = require("nodemon/lib/monitor/match");
 
 module.exports = {
     name: 'interactionCreate',
@@ -390,7 +391,7 @@ module.exports = {
 
                 if (interaction.customId.startsWith('challenge_')) {
                     let lineupQueueIdToChallenge = interaction.customId.substring(10);
-                    await interactionUtils.challenge(interaction, lineupQueueIdToChallenge)
+                    await matchmakingService.challenge(interaction, lineupQueueIdToChallenge)
                     return
                 }
 
@@ -402,15 +403,15 @@ module.exports = {
                         return
                     }
                     const lineup = await teamService.retrieveLineup(interaction.channelId)
-                    if (!matchmakingService.isUserAllowedToInteractWithMatchmaking(interaction.user.id, lineup)) {
-                        await interaction.reply({ content: `⛔ You must be in the lineup in order to accept a challenge`, ephemeral: true })
-                        return
-                    }
+                    // if (!matchmakingService.isUserAllowedToInteractWithMatchmaking(interaction.user.id, lineup)) {
+                    //     await interaction.reply({ content: `⛔ You must be in the lineup in order to accept a challenge`, ephemeral: true })
+                    //     return
+                    // }
 
-                    if (challenge.initiatingUser.id === interaction.user.id) {
-                        await interaction.reply({ content: "⛔ You cannot accept your own challenge request", ephemeral: true })
-                        return
-                    }
+                    // if (challenge.initiatingUser.id === interaction.user.id) {
+                    //     await interaction.reply({ content: "⛔ You cannot accept your own challenge request", ephemeral: true })
+                    //     return
+                    // }
 
                     const secondLineup = await teamService.retrieveLineup(challenge.initiatingTeam.lineup.channelId === interaction.channelId ? challenge.challengedTeam.lineup.channelId : challenge.initiatingTeam.lineup.channelId)
                     if (await matchmakingService.checkForDuplicatedPlayers(interaction, lineup, secondLineup)) {
@@ -745,7 +746,7 @@ module.exports = {
                 }
 
                 if (interaction.customId === 'challenge_select') {
-                    await interactionUtils.challenge(interaction, interaction.values[0])
+                    await matchmakingService.challenge(interaction, interaction.values[0])
                     return
                 }
             }
