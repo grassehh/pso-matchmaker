@@ -171,6 +171,91 @@ exports.leaveQueue = async (client, lineupQueue) => {
         .finally(() => this.deleteLineupQueuesByChannelId(lineupQueue.lineup.channelId))
 }
 
+exports.challenge = async (interaction, lineupQueueIdToChallenge) => {
+    let lineupQueueToChallenge = await this.findLineupQueueById(lineupQueueIdToChallenge)
+    if (!lineupQueueToChallenge) {
+        await interaction.reply({ content: "⛔ This team is no longer challenging", ephemeral: true })
+        return
+    }
+
+    let challenge = await this.findChallengeByChannelId(interaction.channelId)
+    if (challenge) {
+        await this.replyAlreadyChallenging(interaction, challenge)
+        return
+    }
+
+    challenge = await this.findChallengeByChannelId(lineupQueueToChallenge.lineup.channelId)
+    if (challenge) {
+        await interaction.reply({ content: "⛔ This team is negociating a challenge", ephemeral: true })
+        return
+    }
+
+    let lineup = await teamService.retrieveLineup(interaction.channelId)
+    if (!lineup) {
+        await this.replyLineupNotSetup(interaction)
+        return
+    }
+
+    if (!this.isUserAllowedToInteractWithMatchmaking(interaction.user.id, lineup)) {
+        await interaction.reply({ content: `⛔ You must be in the lineup in order to challenge a team`, ephemeral: true })
+        return
+    }
+
+    if (!this.isLineupAllowedToJoinQueue(lineup)) {
+        await interaction.reply({ content: '⛔ All outfield positions must be filled before challenging a team', ephemeral: true })
+        return
+    }
+
+    if (lineupQueueToChallenge.lineup.size !== lineup.size) {
+        await interaction.reply({ content: `⛔ Your team is configured for ${lineup.size}v${lineup.size} while the team you are trying to challenge is configured for ${lineupQueueToChallenge.lineup.size}v${lineupQueueToChallenge.lineup.size}. Both teams must have the same size to challenge.`, ephemeral: true })
+        return
+    }
+
+    // if (lineupQueueToChallenge.lineup.isMix()) {
+    //     const numberOfSignedPlayers = lineupQueueToChallenge.lineup.roles.filter(role => role.user).map(role => role.user).length
+    //     const percentageOfSignedPlayers = (numberOfSignedPlayers / (lineupQueueToChallenge.lineup.size * 2 - 1)) * 100
+    //     if (percentageOfSignedPlayers >= 75) {
+    //         await interaction.reply({ content: 'This mix has too many players signed in both teams, you cannot challenge it right now', ephemeral: true })
+    //         return
+    //     }
+    // }
+
+    if (await this.checkForDuplicatedPlayers(interaction, lineup, lineupQueueToChallenge.lineup)) {
+        return
+    }
+
+    let lineupQueue = await this.findLineupQueueByChannelId(interaction.channelId)
+    if (!lineupQueue) {
+        lineupQueue = new LineupQueue({ lineup })
+    }
+    challenge = new Challenge({
+        initiatingUser: {
+            id: interaction.user.id,
+            name: interaction.user.username,
+            mention: interaction.user.toString()
+        },
+        initiatingTeam: lineupQueue,
+        challengedTeam: lineupQueueToChallenge
+    })
+
+    let channel = await interaction.client.channels.fetch(challenge.challengedTeam.lineup.channelId)
+    let challengedMessage = await channel.send(interactionUtils.createDecideChallengeReply(interaction, challenge))
+    challenge.challengedMessageId = challengedMessage.id
+
+    await this.reserveLineupQueuesByIds([lineupQueueIdToChallenge, lineupQueue.id])
+    let initiatingMessage = await interaction.channel.send(interactionUtils.createCancelChallengeReply(interaction, challenge))
+    challenge.initiatingMessageId = initiatingMessage.id
+
+    await challenge.save()
+
+    await interaction.deferUpdate()
+
+    if (await this.isMixOrCaptainsReadyToStart(lineupQueueToChallenge.lineup)) {
+        await this.readyMatch(interaction, challenge, lineup)
+        return
+    }
+}
+
 exports.checkIfAutoSearch = async (client, user, lineup) => {
     let lineupQueue = await this.findLineupQueueByChannelId(lineup.channelId)
     let autoSearchResult = { joinedQueue: false, leftQueue: false, cancelledChallenge: false, updatedLineupQueue: lineupQueue }
