@@ -10,6 +10,5 @@ module.exports = {
 		await teamService.deleteLineupsByGuildId(guild.id)
 		await teamService.deleteBansByGuildId(guild.id)
 		await teamService.deleteTeam(guild.id)
-		await statsService.deleteStatsByGuildId(guild.id)
     }
 };
