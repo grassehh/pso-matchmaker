@@ -67,19 +67,19 @@ module.exports = {
                         return
                     }
 
-                    await teamService.removeUserFromLineup(interaction.channelId, interaction.user.id, lineupNumber)
+                    let description = `Player ${interaction.user} signed as **${selectedRoleName}**`
+                    if (roleLeft) {
+                        await teamService.removeUserFromLineup(interaction.channelId, interaction.user.id, lineupNumber)
+                        await matchmakingService.removeUserFromLineupQueue(interaction.channelId, interaction.user.id)
+                        description = `Player ${interaction.user} swapped **${roleLeft.name}** with **${selectedRoleName}**`
+                    }
+                    
                     let userToAdd = {
                         id: interaction.user.id,
                         name: interaction.user.username
                     }
                     lineup = await teamService.addUserToLineup(interaction.channelId, selectedRoleName, userToAdd, lineupNumber)
-                    await matchmakingService.removeUserFromLineupQueue(interaction.channelId, interaction.user.id)
                     await matchmakingService.addUserToLineupQueue(interaction.channelId, selectedRoleName, userToAdd, lineupNumber)
-
-                    let description = `Player ${interaction.user} signed as **${selectedRoleName}**`
-                    if (roleLeft) {
-                        description = `Player ${interaction.user} swapped **${roleLeft.name}** with **${selectedRoleName}**`
-                    }
 
                     if (await matchmakingService.isMixOrCaptainsReadyToStart(lineup)) {
                         const embed = interactionUtils.createInformationEmbed(interaction.user, description)
