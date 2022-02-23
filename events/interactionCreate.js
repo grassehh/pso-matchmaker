@@ -21,8 +21,7 @@ module.exports = {
 
         const ban = await teamService.findBanByUserIdAndGuildId(interaction.user.id, interaction.guildId)
         if (ban) {
-            let formattedDate = ban.expireAt ? new Date(ban.expireAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: '2-digit', hour: '2-digit', minute: 'numeric' }) : null
-            await interaction.reply({ content: `⛔ You are ${formattedDate ? `banned until ${formattedDate}` : 'permanently banned'}. You cannot use the bot on this server.`, ephemeral: true })
+            await interaction.reply({ content: `⛔ You are ${ban.expireAt ? `banned until ${ban.expireAt.toUTCString()}` : 'permanently banned'}. You cannot use the bot on this server.`, ephemeral: true })
             return
         }
 
@@ -58,9 +57,8 @@ module.exports = {
                     const split = interaction.customId.split('_')
                     const selectedRoleName = split[1]
                     const lineupNumber = lineup.isMix() ? parseInt(split[2]) : 1
-                    const roles = lineup.roles.filter(role => role.lineupNumber === lineupNumber)
-                    let selectedRole = roles.find(role => role.name == selectedRoleName)
-                    let roleLeft = roles.find(role => role.user?.id === interaction.user.id)
+                    const selectedRole = lineup.roles.filter(role => role.lineupNumber === lineupNumber).find(role => role.name == selectedRoleName)
+                    const roleLeft = lineup.roles.find(role => role.user?.id === interaction.user.id)
 
                     if (selectedRole.user) {
                         await interaction.reply({ content: 'A player is already signed at this position', ephemeral: true })
@@ -444,7 +442,7 @@ module.exports = {
                     }
 
                     await matchmakingService.deleteChallengeById(challengeId)
-                    await matchmakingService.freeLineupQueuesByIds([challenge.challengedTeam.id, challenge.initiatingTeam.id])
+                    await matchmakingService.freeLineupQueuesByChallengeId(challengeId)
 
                     let initiatingTeamChannel = await interaction.client.channels.fetch(challenge.initiatingTeam.lineup.channelId)
                     await initiatingTeamChannel.messages.edit(challenge.initiatingMessageId, { components: [] })

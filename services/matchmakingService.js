@@ -14,12 +14,12 @@ exports.findLineupQueueById = async (id) => {
     return await LineupQueue.findById(id)
 }
 
-exports.reserveLineupQueuesByIds = async (ids) => {
-    await LineupQueue.updateMany({ '_id': { $in: ids } }, { reserved: true })
+exports.reserveLineupQueuesByIds = async (ids, challengeId) => {
+    await LineupQueue.updateMany({ '_id': { $in: ids } }, { challengeId })
 }
 
-exports.freeLineupQueuesByIds = async (ids) => {
-    await LineupQueue.updateMany({ '_id': { $in: ids } }, { reserved: false })
+exports.freeLineupQueuesByChallengeId = async (challengeId) => {
+    await LineupQueue.updateMany({ challengeId }, { challengeId: null })
 }
 
 exports.deleteLineupQueuesByGuildId = async (guildId) => {
@@ -45,7 +45,7 @@ exports.findAvailableLineupQueues = async (region, channelId, lineupSize, guildI
                     ]
                 }
             ],
-            'reserved': false
+            'challengeId': null
         }
     )
 }
@@ -63,10 +63,14 @@ exports.deleteChallengeById = async (id) => {
 }
 
 exports.deleteChallengesByGuildId = async (guildId) => {
-    return await Challenge.deleteMany({ $or: [{ 'initiatingTeam.team.guildId': guildId }, { 'challengedTeam.team.guildId': guildId }] })
+    const challengeIds = (await Challenge.find({ $or: [{ 'initiatingTeam.lineup.team.guildId': guildId }, { 'challengedTeam.lineup.team.guildId': guildId }] }, { _id: 1 })).map(challenge => challenge._id.toString())
+    await freeLineupQueuesByChallengeIds(challengeIds)
+    return await Challenge.deleteMany({ $or: [{ 'initiatingTeam.lineup.team.guildId': guildId }, { 'challengedTeam.lineup.team.guildId': guildId }] })
 }
 
 exports.deleteChallengesByChannelId = async (channelId) => {
+    const challengeIds = (await Challenge.find({ $or: [{ 'initiatingTeam.lineup.channelId': channelId }, { 'challengedTeam.lineup.channelId': channelId }] }, { _id: 1 })).map(challenge => challenge._id.toString())
+    await freeLineupQueuesByChallengeIds(challengeIds)
     await Challenge.deleteMany({ $or: [{ 'initiatingTeam.lineup.channelId': channelId }, { 'challengedTeam.lineup.channelId': channelId }] })
 }
 
@@ -176,7 +180,7 @@ exports.challenge = async (interaction, lineupQueueIdToChallenge) => {
 
     let challenge = await this.findChallengeByChannelId(interaction.channelId)
     if (challenge) {
-        await this.replyAlreadyChallenging(interaction, challenge)
+        await interactionUtils.replyAlreadyChallenging(interaction, challenge)
         return
     }
 
@@ -229,7 +233,7 @@ exports.challenge = async (interaction, lineupQueueIdToChallenge) => {
     let challengedMessage = await channel.send(interactionUtils.createDecideChallengeReply(interaction, challenge))
     challenge.challengedMessageId = challengedMessage.id
 
-    await this.reserveLineupQueuesByIds([lineupQueueIdToChallenge, lineupQueue.id])
+    await this.reserveLineupQueuesByIds([lineupQueueIdToChallenge, lineupQueue.id], challenge.id)
     let initiatingMessage = await interaction.channel.send(interactionUtils.createCancelChallengeReply(interaction, challenge))
     challenge.initiatingMessageId = initiatingMessage.id
 
@@ -250,7 +254,7 @@ exports.cancelChallenge = async (client, user, challengeId) => {
     }
 
     await this.deleteChallengeById(challenge.id)
-    await this.freeLineupQueuesByIds([challenge.challengedTeam.id, challenge.initiatingTeam.id])
+    await this.freeLineupQueuesByChallengeId(challenge.id)
 
     const [challengedTeamChannel] = await handle(client.channels.fetch(challenge.challengedTeam.lineup.channelId))
     if (challengedTeamChannel) {
@@ -383,8 +387,9 @@ exports.readyMatch = async (interaction, challenge, mixLineup) => {
     const lobbyPassword = Math.random().toString(36).slice(-4)
 
     if (challenge) {
-        const lobbyName = `${teamService.formatTeamName(challenge.initiatingTeam.lineup)} vs. ${teamService.formatTeamName(challenge.challengedTeam.lineup)}`
         await this.deleteChallengeById(challenge.id)
+        await this.freeLineupQueuesByChallengeId(challenge.id)
+        const lobbyName = `${teamService.formatTeamName(challenge.initiatingTeam.lineup)} vs. ${teamService.formatTeamName(challenge.challengedTeam.lineup)}`
         let initiatingTeamLineup = await teamService.retrieveLineup(challenge.initiatingTeam.lineup.channelId)
         const initiatingTeamUsers = initiatingTeamLineup.roles.map(role => role.user).filter(user => user)
         let challengedTeamLineup = await teamService.retrieveLineup(challenge.challengedTeam.lineup.channelId)
@@ -404,7 +409,6 @@ exports.readyMatch = async (interaction, challenge, mixLineup) => {
         }))
         promises.push(new Promise(async (resolve, reject) => {
             if (challengedTeamLineup.isMix()) {
-                await this.freeLineupQueuesByIds([challenge.challengedTeam.id, challenge.initiatingTeam.id])
                 await teamService.clearLineup(challengedTeamLineup.channelId, [1, 2])
                 await this.clearLineupQueue(challenge.challengedTeam.lineup.channelId, [1, 2])
                 let lineupForNextMatchEmbeds = await interactionUtils.createLineupEmbedsForNextMatch(interaction, challengedTeamLineup, initiatingTeamLineup, lobbyName, lobbyPassword)
@@ -490,4 +494,10 @@ function isLineupAllowedToJoinQueue(lineup) {
     let numberOfMissingPlayers = lineupSize - numberOfPlayersSigned
     let missingRoleName = lineup.roles.find(role => role.user == null)?.name
     return numberOfMissingPlayers == 0 || (numberOfMissingPlayers == 1 && missingRoleName.includes('GK'))
+}
+
+async function freeLineupQueuesByChallengeIds(challengeIds) {
+    if (challengeIds.length > 0) {
+        await LineupQueue.updateMany({ 'challengeId': { $in: challengeIds } }, { challengeId: null })
+    }
 }
