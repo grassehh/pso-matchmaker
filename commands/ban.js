@@ -36,10 +36,10 @@ module.exports = {
                 await interaction.reply({ content: `⛔ You cannot ban the bot !`, ephemeral: true })
                 return
             }
-            if (userId === interaction.user.id) {
-                await interaction.reply({ content: `⛔ You surely don't want to ban yourself !`, ephemeral: true })
-                return
-            }
+            // if (userId === interaction.user.id) {
+            //     await interaction.reply({ content: `⛔ You surely don't want to ban yourself !`, ephemeral: true })
+            //     return
+            // }
 
             const now = Date.now()
             const duration = interaction.options.getInteger('duration')

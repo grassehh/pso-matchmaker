@@ -101,10 +101,9 @@ const lineupQueueSchema = new mongoose.Schema({
         type: lineupSchema,
         required: true
     },
-    reserved: {
-        type: Boolean,
-        required: true,
-        default: false
+    challengeId: {
+        type: String,
+        required: false
     },
     notificationMessages: {
         type: [{

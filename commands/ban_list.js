@@ -37,8 +37,7 @@ module.exports = {
                 username = user.username
                 let bansEmbedFieldValue = '*Permanent*'
                 if (ban.expireAt) {
-                    const banExpirationDate = new Date(ban.expireAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: '2-digit', hour: '2-digit', minute: 'numeric' })
-                    bansEmbedFieldValue = banExpirationDate
+                    bansEmbedFieldValue = ban.expireAt.toUTCString()
                 }
                 bansEmbed.addField(username, bansEmbedFieldValue)
             }
