@@ -44,7 +44,7 @@ module.exports = {
         const duplicatedTeam = await teamService.findTeamByRegionAndName(region, name)
         if (duplicatedTeam) {
             await interaction.reply({
-                content: `⛔ Another team is alraedy registered under the name **'${name}'**. Please chose another name.`,
+                content: `⛔ Another team is already registered under the name **'${name}'**. Please chose another name.`,
                 ephemeral: true
             })
             return

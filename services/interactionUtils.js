@@ -67,7 +67,7 @@ exports.createDecideChallengeReply = (interaction, challenge) => {
 
     if (challenge.challengedTeam.lineup.isMix()) {
         reply = createReplyForMixLineup(challenge.challengedTeam.lineup, challenge.initiatingTeam.lineup)
-        reply.embeds = reply.embeds.concat(this.createInformationEmbed(interaction.user, `${teamService.formatTeamName(challenge.initiatingTeam.lineup)} is challenging the mix`))
+        reply.embeds = reply.embeds.concat(this.createInformationEmbed(interaction.user, `**${teamService.formatTeamName(challenge.initiatingTeam.lineup)}** is challenging the mix`))
         return reply
     } else {
         const challengeEmbed = new MessageEmbed()
