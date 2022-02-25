@@ -25,12 +25,9 @@ module.exports = {
                 .addChoice('10', 10)
                 .addChoice('11', 11)
             )
-            .addStringOption(option => option.setName('name')
-                .setRequired(false)
-                .setDescription('Sets a name for this lineup. Useful if you have multiple lineups inside your team'))
             .addBooleanOption(option => option.setName('auto_search')
                 .setRequired(false)
-                .setDescription('Indicates if this lineup should automatically sign into the matchmaking once it is filled')),
+                .setDescription('Indicates if this lineup should automatically search for a team once it is filled')),
     authorizedRoles: [authorizationService.BOT_ADMIN_ROLE],
     async execute(interaction) {
         let team = await teamService.findTeamByGuildId(interaction.guildId)
@@ -45,18 +42,9 @@ module.exports = {
             return
         }
 
-        let lineupName = interaction.options.getString("name")
-        if (!teamService.validateLineupName(lineupName)) {
-            await interaction.reply({
-                content: `⛔ Please choose a name with less than ${constants.MAX_LINEUP_NAME_LENGTH} characters.`,
-                ephemeral: true
-            })
-            return
-        }
-
         const lineupSize = interaction.options.getInteger("size")
         const autoSearch = interaction.options.getBoolean("auto_search")
-        let lineup = teamService.createLineup(interaction.channelId, lineupSize, lineupName, autoSearch, team, teamService.LINEUP_TYPE_TEAM, teamService.LINEUP_VISIBILITY_PUBLIC)
+        let lineup = teamService.createLineup(interaction.channelId, lineupSize, null, autoSearch, team, teamService.LINEUP_TYPE_TEAM, teamService.LINEUP_VISIBILITY_PUBLIC)
         await teamService.upsertLineup(lineup)
 
         let reply = await interactionUtils.createReplyForLineup(interaction, lineup, lineupQueue)
