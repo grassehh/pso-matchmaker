@@ -45,10 +45,23 @@ module.exports = {
                 lineupStatusEmbed.setTitle(`💬 You are challenging the mix ${teamService.formatTeamName(challenge.challengedTeam.lineup)}`)
             } else {
                 if (challenge.initiatingTeam.lineup.channelId === lineup.channelId) {
-                    lineupStatusEmbed.setTitle(`💬 You are challenging ${teamService.formatTeamName(challenge.challengedTeam.lineup)}`)
+                    let description = `**${teamService.formatTeamName(challenge.challengedTeam.lineup)}**`
+                    description += `\n${challenge.challengedTeam.lineup.roles.filter(role => role.user != null).length} players signed`
+                    if (!teamService.hasGkSigned(challenge.challengedTeam.lineup)) {
+                        description += ' **(no GK)**'
+                    }
+                    lineupStatusEmbed.setTitle(`💬 You are challenging a team`)
+                        .setDescription(description)
+
                 } else {
-                    lineupStatusEmbed.setTitle(`💬 ${teamService.formatTeamName(challenge.initiatingTeam.lineup)} is challenging you`)
-                        .setDescription(`Contact ${challenge.initiatingUser.mention} if you want to arrange further.`)
+                    let description = `**${teamService.formatTeamName(challenge.initiatingTeam.lineup)}**`
+                    description += `\n${challenge.initiatingTeam.lineup.roles.filter(role => role.user != null).length} players signed`
+                    if (!teamService.hasGkSigned(challenge.initiatingTeam.lineup)) {
+                        description += ' **(no GK)**'
+                    }
+                    description += `\n\n*Contact ${challenge.initiatingUser.mention} for more information*`
+                    lineupStatusEmbed.setTitle(`🤝 A team wants to play against you`)
+                        .setDescription(description)
                 }
             }
         } else if (lineupQueue) {

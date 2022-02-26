@@ -70,12 +70,18 @@ exports.createDecideChallengeReply = (interaction, challenge) => {
         reply.embeds = reply.embeds.concat(this.createInformationEmbed(interaction.user, `**${teamService.formatTeamName(challenge.initiatingTeam.lineup)}** is challenging the mix`))
         return reply
     } else {
+        let description = `**${teamService.formatTeamName(challenge.initiatingTeam.lineup)}**`
         const challengeEmbed = new MessageEmbed()
             .setColor('#566573')
             .setTitle(`A team wants to play against you !`)
-            .setDescription(`**${teamService.formatTeamName(challenge.initiatingTeam.lineup)}**\nContact ${challenge.initiatingUser.mention} if you want to arrange further.`)
             .setTimestamp()
             .setFooter(`Author: ${interaction.user.username}`)
+        description += `\n${challenge.initiatingTeam.lineup.roles.filter(role => role.user != null).length} players signed`
+        if (!teamService.hasGkSigned(challenge.initiatingTeam.lineup)) {
+            description += ' **(no GK)**'
+        }
+        description += `\n\n*Contact ${challenge.initiatingUser.mention} for more information*`
+        challengeEmbed.setDescription(description)
         let challengeActionRow = new MessageActionRow()
             .addComponents(
                 new MessageButton()
@@ -282,7 +288,7 @@ async function createLineupEmbed(interaction, lineup, opponentLineup, lobbyName,
                 await matchmakingService.removeUserFromAllLineupQueues(role.user.id)
                 await teamService.removeUserFromLineupsByChannelIds(role.user.id, channelIds)
                 await Promise.all(channelIds.map(async channelId => {
-                    await teamService.notifyChannelForUserLeaving(interaction.client, discordUser, channelId, `⚠ Player ${discordUser} went to play another match with **${teamService.formatTeamName(lineup)}**`)
+                    await teamService.notifyChannelForUserLeaving(interaction.client, discordUser, channelId, `⚠ ${discordUser} went to play another match with **${teamService.formatTeamName(lineup)}**`)
                 }))
             }
             let playerDmEmbed = new MessageEmbed()
@@ -392,11 +398,11 @@ function createLineupComponents(lineup, lineupQueue, challenge, selectedLineupNu
                 lineupActionsRow.addComponents(
                     new MessageButton()
                         .setCustomId(`accept_challenge_${challenge.id}`)
-                        .setLabel(`Accept Challenge`)
+                        .setLabel(`Accept`)
                         .setStyle('SUCCESS'),
                     new MessageButton()
                         .setCustomId(`refuse_challenge_${challenge.id}`)
-                        .setLabel(`Refuse Challenge`)
+                        .setLabel(`Refuse`)
                         .setStyle('DANGER')
                 )
             }
@@ -519,7 +525,7 @@ function createReplyForMixLineup(lineup, challengingLineup) {
     if (challengingLineup) {
         secondLineupEmbed = new MessageEmbed()
             .setColor('#0099ff')
-            .setTitle(`VS`)
+            .setTitle(`:vs:`)
         let fieldValue = challengingLineup.roles.filter(role => role.user != null).length + ' players signed'
         if (!teamService.hasGkSigned(challengingLineup)) {
             fieldValue += ' **(no GK)**'

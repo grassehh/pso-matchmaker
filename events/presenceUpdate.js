@@ -24,7 +24,7 @@ module.exports = {
 				await Promise.all(channelIds.map(async channelId => {
 					const [channel] = await handle(newPresence.client.channels.fetch(channelId))
 					if (channel) {
-						await handle(channel.send(`⚠ Player ${newPresence.user} might be AFK ...`))
+						await handle(channel.send(`⚠ ${newPresence.user} might be AFK ...`))
 					}
 				}))
 			}

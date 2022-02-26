@@ -65,11 +65,11 @@ module.exports = {
                         return
                     }
 
-                    let description = `Player ${interaction.user} signed as **${selectedRoleName}**`
+                    let description = `:inbox_tray: ${interaction.user} signed as **${selectedRoleName}**`
                     if (roleLeft) {
                         await teamService.removeUserFromLineup(interaction.channelId, interaction.user.id, lineupNumber)
                         await matchmakingService.removeUserFromLineupQueue(interaction.channelId, interaction.user.id)
-                        description = `Player ${interaction.user} swapped **${roleLeft.name}** with **${selectedRoleName}**`
+                        description = `:outbox_tray::inbox_tray: ${interaction.user} swapped **${roleLeft.name}** with **${selectedRoleName}**`
                     }
                     
                     let userToAdd = {
@@ -145,7 +145,7 @@ module.exports = {
 
                     lineup = await teamService.addUserToLineup(interaction.channelId, roleToSign.name, userToAdd, roleToSign.lineupNumber)
 
-                    let description = `Player ${interaction.user} has joined the queue !`
+                    let description = `:inbox_tray: ${interaction.user} has joined the queue !`
 
                     if (await matchmakingService.isMixOrCaptainsReadyToStart(lineup)) {
                         lineup = await teamService.startPicking(lineup.channelId)
@@ -288,7 +288,7 @@ module.exports = {
                         return
                     }
                     await interaction.update({ components: [] })
-                    const embed = interactionUtils.createInformationEmbed(interaction.user, `Player ${interaction.user} has left the queue !`)
+                    const embed = interactionUtils.createInformationEmbed(interaction.user, `:outbox_tray: ${interaction.user} has left the queue !`)
                     let reply = await interactionUtils.createReplyForLineup(interaction, lineup)
                     reply.embeds = reply.embeds.concat(embed)
                     interaction.channel.send(reply)
@@ -385,7 +385,7 @@ module.exports = {
                     }
                     await matchmakingService.leaveQueue(interaction.client, lineupQueue)
                     await interaction.message.edit({ components: [] })
-                    const embed = interactionUtils.createInformationEmbed(interaction.user, `Your team is no longer searching for a challenge`)
+                    const embed = interactionUtils.createInformationEmbed(interaction.user, `😴 Your team is no longer searching for a challenge`)
                     await interaction.channel.send({ embeds: [embed], components: interactionUtils.createLineupComponents(lineupQueue.lineup, null, challenge) })
                     return
                 }
@@ -663,7 +663,7 @@ module.exports = {
                         lineup = await teamService.addUserToLineup(interaction.channelId, selectedMercRole, userToAdd, selectedLineupNumber)
                         await matchmakingService.addUserToLineupQueue(interaction.channelId, selectedMercRole, userToAdd, selectedLineupNumber)
 
-                        let description = `Player ${interaction.user} manually signed **${addedPlayerName}** as **${selectedMercRole}**`
+                        let description = `:inbox_tray: ${interaction.user} manually signed **${addedPlayerName}** as **${selectedMercRole}**`
                         const autoSearchResult = await matchmakingService.checkIfAutoSearch(interaction.client, interaction.user, lineup)
                         if (autoSearchResult.joinedQueue) {
                             description += `\nYour lineup is full, it is now searching for a **${lineup.size}v${lineup.size}** team !`
@@ -715,7 +715,7 @@ module.exports = {
 
                     lineup = await teamService.clearRoleFromLineup(interaction.channelId, selectedRoleToClear, selectedLineupNumber)
 
-                    let description = `Player ${interaction.user} cleared the **${selectedRoleToClear}** position`
+                    let description = `:outbox_tray: ${interaction.user} cleared the **${selectedRoleToClear}** position`
                     const autoSearchResult = await matchmakingService.checkIfAutoSearch(interaction.client, interaction.user, lineup)
                     if (autoSearchResult.leftQueue) {
                         description += `\nYou are no longer searching for a team.`
