@@ -202,7 +202,7 @@ exports.leaveLineup = async (interaction, channel, lineup) => {
     lineup = await this.removeUserFromLineup(lineup.channelId, interaction.user.id)
     await matchmakingService.removeUserFromLineupQueue(lineup.channelId, interaction.user.id)
 
-    let description = `Player ${interaction.user} left the ${lineup.isMixOrCaptains() ? 'queue !' : `**${roleLeft.name}** position`}`
+    let description = `:outbox_tray: ${interaction.user} left the ${lineup.isMixOrCaptains() ? 'queue !' : `**${roleLeft.name}** position`}`
     const autoSearchResult = await matchmakingService.checkIfAutoSearch(interaction.client, interaction.user, lineup)
     if (autoSearchResult.leftQueue) {
         description += `\nYou are no longer searching for a team.`

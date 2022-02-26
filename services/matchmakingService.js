@@ -124,16 +124,17 @@ exports.joinQueue = async (client, user, lineup) => {
     const channelIds = await teamService.findAllChannelIdToNotify(lineup.team.region, lineup.channelId, lineup.size)
 
     await Promise.all(channelIds.map(async channelId => {
+        let description = `**${teamService.formatTeamName(lineup)}**`
         const teamEmbed = new MessageEmbed()
             .setColor('#566573')
-            .setTitle(`A team is now searching for a match !`)
+            .setTitle('A team is looking for a match !')
             .setTimestamp()
-        let lineupFieldValue = lineup.roles.filter(role => role.user != null).length + ' players signed'
+        description += `\n${lineup.roles.filter(role => role.user != null).length} players signed`
         if (!teamService.hasGkSigned(lineupQueue.lineup)) {
-            lineupFieldValue += ' **(no GK)**'
+            description += ' **(no GK)**'
         }
-        lineupFieldValue += `\n\n*Contact ${user} for more information*`
-        teamEmbed.addField(teamService.formatTeamName(lineup), lineupFieldValue)
+        description += `\n\n*Contact ${user} for more information*`
+        teamEmbed.setDescription(description)
 
         const challengeTeamRow = new MessageActionRow().addComponents(
             new MessageButton()

@@ -35,6 +35,6 @@ module.exports = {
         }
 
         await matchmakingService.leaveQueue(interaction.client, lineupQueue)
-        await interaction.reply(`Your team is no longer searching for a challenge`)
+        await interaction.reply(`😴 Your team is no longer searching for a challenge`)
     }
 };
