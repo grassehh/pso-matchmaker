@@ -400,7 +400,7 @@ exports.readyMatch = async (interaction, challenge, mixLineup) => {
         promises.push(new Promise(async (resolve, reject) => {
             await this.leaveQueue(interaction.client, challenge.initiatingTeam)
             const newInitiatingTeamLineup = await teamService.clearLineup(initiatingTeamLineup.channelId)
-            let lineupForNextMatchEmbeds = await interactionUtils.createLineupEmbedsForNextMatch(interaction, initiatingTeamLineup, challenge.challengedTeam.lineup, lobbyName, lobbyPassword)
+            let lineupForNextMatchEmbeds = await interactionUtils.createLineupEmbedsForNextMatch(interaction, initiatingTeamLineup, challenge.challengedTeam.lineup, lobbyName, lobbyPassword, responsibleUser)
             const reply = await interactionUtils.createReplyForLineup(interaction, newInitiatingTeamLineup)
             reply.embeds = lineupForNextMatchEmbeds.concat(lobbyCreationEmbed)
             let initiatingTeamChannel = await interaction.client.channels.fetch(challenge.initiatingTeam.lineup.channelId)
@@ -412,7 +412,7 @@ exports.readyMatch = async (interaction, challenge, mixLineup) => {
             if (challengedTeamLineup.isMix()) {
                 await teamService.clearLineup(challengedTeamLineup.channelId, [1, 2])
                 await this.clearLineupQueue(challenge.challengedTeam.lineup.channelId, [1, 2])
-                let lineupForNextMatchEmbeds = await interactionUtils.createLineupEmbedsForNextMatch(interaction, challengedTeamLineup, initiatingTeamLineup, lobbyName, lobbyPassword)
+                let lineupForNextMatchEmbeds = await interactionUtils.createLineupEmbedsForNextMatch(interaction, challengedTeamLineup, initiatingTeamLineup, lobbyName, lobbyPassword, responsibleUser)
                 let rolesInFirstLineup = challengedTeamLineup.roles.filter(role => role.lineupNumber === 1)
                 let rolesInSecondLineup = challengedTeamLineup.roles.filter(role => role.lineupNumber === 2)
                 rolesInFirstLineup.forEach(role => { role.user = null; role.lineupNumber = 2 })
@@ -427,7 +427,7 @@ exports.readyMatch = async (interaction, challenge, mixLineup) => {
             } else {
                 await this.leaveQueue(interaction.client, challenge.challengedTeam)
                 const newChallengedTeamLineup = await teamService.clearLineup(challengedTeamLineup.channelId)
-                let lineupForNextMatchEmbeds = await interactionUtils.createLineupEmbedsForNextMatch(interaction, challengedTeamLineup, initiatingTeamLineup, lobbyName, lobbyPassword)
+                let lineupForNextMatchEmbeds = await interactionUtils.createLineupEmbedsForNextMatch(interaction, challengedTeamLineup, initiatingTeamLineup, lobbyName, lobbyPassword, responsibleUser)
                 const reply = await interactionUtils.createReplyForLineup(interaction, newChallengedTeamLineup)
                 reply.embeds = lineupForNextMatchEmbeds.concat(lobbyCreationEmbed)
                 await interaction.editReply(reply)
@@ -445,7 +445,7 @@ exports.readyMatch = async (interaction, challenge, mixLineup) => {
         const lobbyName = `${teamService.formatTeamName(mixLineup, true)} #${Math.floor(Math.random() * 10000).toString().padStart(4, '0')}`
         await teamService.clearLineup(mixLineup.channelId, [1, 2])
         const allUsers = mixLineup.roles.map(role => role.user).filter(user => user)
-        let mixNextMatchEmbeds = await interactionUtils.createLineupEmbedsForNextMatch(interaction, mixLineup, null, lobbyName, lobbyPassword)
+        let mixNextMatchEmbeds = await interactionUtils.createLineupEmbedsForNextMatch(interaction, mixLineup, null, lobbyName, lobbyPassword, responsibleUser)
         let newMixLineup = teamService.createLineup(interaction.channelId, mixLineup.size, mixLineup.name, mixLineup.autoSearch, mixLineup.team, mixLineup.type, mixLineup.visibility)
         const reply = await interactionUtils.createReplyForLineup(interaction, newMixLineup)
         reply.embeds = mixNextMatchEmbeds.concat(lobbyCreationEmbed).concat(reply.embeds)
