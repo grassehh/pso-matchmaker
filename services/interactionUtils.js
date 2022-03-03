@@ -254,20 +254,20 @@ exports.createLeaderBoardPaginationComponent = (searchOptions = {}, numberOfPage
     return paginationActionsRow
 }
 
-exports.createLineupEmbedsForNextMatch = async (interaction, lineup, opponentLineup, lobbyName, lobbyPassword) => {
+exports.createLineupEmbedsForNextMatch = async (interaction, lineup, opponentLineup, lobbyName, lobbyPassword, responsibleUser) => {
     const lineupEmbedsForNextMatch = []
-    const firstLineupEmbed = await createLineupEmbed(interaction, lineup, opponentLineup, lobbyName, lobbyPassword, 1)
+    const firstLineupEmbed = await createLineupEmbed(interaction, lineup, opponentLineup, lobbyName, lobbyPassword, responsibleUser, 1)
     lineupEmbedsForNextMatch.push(firstLineupEmbed)
 
     if (!opponentLineup && lineup.isMixOrCaptains()) {
-        const secondLineupEmbed = await createLineupEmbed(interaction, lineup, opponentLineup, lobbyName, lobbyPassword, 2)
+        const secondLineupEmbed = await createLineupEmbed(interaction, lineup, opponentLineup, lobbyName, lobbyPassword, responsibleUser, 2)
         lineupEmbedsForNextMatch.push(secondLineupEmbed)
     }
 
     return lineupEmbedsForNextMatch
 }
 
-async function createLineupEmbed(interaction, lineup, opponentLineup, lobbyName, lobbyPassword, lineupNumber = 1) {
+async function createLineupEmbed(interaction, lineup, opponentLineup, lobbyName, lobbyPassword, responsibleUser, lineupNumber = 1) {
     const roles = lineup.roles.filter(role => role.lineupNumber === lineupNumber)
 
     const opponentTeamName = opponentLineup ? teamService.formatTeamName(opponentLineup) : `${lineupNumber === 1 ? 'Blue' : 'Red'} Team`
@@ -295,8 +295,9 @@ async function createLineupEmbed(interaction, lineup, opponentLineup, lobbyName,
                 .setColor('#6aa84f')
                 .setTitle(`⚽ PSO Match ready ⚽`)
                 .setDescription(`You are playing${lineup.isCaptains() && !role.name.includes('GK') ? ' ' : ` **${role.name}** `}against **${opponentTeamName}**`)
-                .addField('Lobby name', `${lobbyName}`)
-                .addField('Lobby password', `${lobbyPassword}`)
+                .addField('Lobby Name', `${lobbyName}`)
+                .addField('Lobby Password', `${lobbyPassword}`)
+                .addField('Lobby Host', `${responsibleUser}`)
                 .setTimestamp()
             await handle(discordUser.send({ embeds: [playerDmEmbed] }))
             playerName = discordUser
