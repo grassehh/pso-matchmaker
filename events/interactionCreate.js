@@ -470,7 +470,6 @@ module.exports = {
                     await teamService.deleteLineupsByGuildId(interaction.guildId)
                     await teamService.deleteBansByGuildId(interaction.guildId)
                     await teamService.deleteTeam(interaction.guildId)
-                    await statsService.deleteStatsByGuildId(interaction.guildId)
                     await interaction.reply({ content: '✅ Your team has been deleted', ephemeral: true })
                     return
                 }

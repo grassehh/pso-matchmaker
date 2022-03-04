@@ -4,18 +4,18 @@ const { handle } = require("../utils")
 
 exports.DEFAULT_LEADERBOARD_PAGE_SIZE = 10
 
-function getLevelingRoleIdsFromStats(userStats) {
-    let roles = []
-    if (userStats.numberOfGames >= 50) {
-        roles.push(process.env.PSO_EU_DISCORD_CONFIRMED_ROLE_ID)
+function getLevelingRoleIdFromStats(userStats) {
+    if (userStats.numberOfGames >= 800) {
+        return process.env.PSO_EU_DISCORD_VETERAN_ROLE_ID
     }
     if (userStats.numberOfGames >= 250) {
-        roles.push(process.env.PSO_EU_DISCORD_ADVANCED_ROLE_ID)
+        return process.env.PSO_EU_DISCORD_EXPERT_ROLE_ID
     }
-    if (userStats.numberOfGames >= 800) {
-        roles.push(process.env.PSO_EU_DISCORD_VETERAN_ROLE_ID)
+    if (userStats.numberOfGames >= 50) {
+        return process.env.PSO_EU_DISCORD_CHALLENGER_ROLE_ID
     }
-    return roles
+
+    return process.env.PSO_EU_DISCORD_BEGINNER_ROLE_ID
 }
 
 async function findElligibleStatsForLevelling(userIds) {
@@ -140,14 +140,21 @@ exports.updateStats = async (interaction, region, guildId, lineupSize, users) =>
     await Stats.bulkWrite(bulks)
 
     if (interaction.guildId === process.env.PSO_EU_DISCORD_GUILD_ID && lineupSize >= PSO_EU_MINIMUM_LINEUP_SIZE_LEVELING) {
+        const psoEuGuild = await interaction.client.guilds.fetch(process.env.PSO_EU_DISCORD_GUILD_ID)
         const allElligibleStats = await findElligibleStatsForLevelling(notMercUsers.map(user => user.id))
 
         await Promise.all(allElligibleStats.map(async elligibleStats => {
-            const [psoEuGuild] = await handle(interaction.client.guilds.fetch(process.env.PSO_EU_DISCORD_GUILD_ID))
-            const levelingRoleIds = getLevelingRoleIdsFromStats(elligibleStats)
+            const levelingRoleId = getLevelingRoleIdFromStats(elligibleStats)
             const [member] = await handle(psoEuGuild.members.fetch(elligibleStats._id))
             if (member) {
-                await handle(member.roles.add(levelingRoleIds))
+                await handle(member.roles.add(levelingRoleId))
+                if (levelingRoleId === process.env.PSO_EU_DISCORD_CHALLENGER_ROLE_ID) {
+                    await handle(member.roles.remove(process.env.PSO_EU_DISCORD_BEGINNER_ROLE_ID))
+                } else if (levelingRoleId === process.env.PSO_EU_DISCORD_EXPERT_ROLE_ID) {
+                    await handle(member.roles.remove(process.env.PSO_EU_DISCORD_CHALLENGER_ROLE_ID))
+                } else if (levelingRoleId === process.env.PSO_EU_DISCORD_VETERAN_ROLE_ID) {
+                    await handle(member.roles.remove(process.env.PSO_EU_DISCORD_EXPERT_ROLE_ID))
+                }
             }
         }))
     }
