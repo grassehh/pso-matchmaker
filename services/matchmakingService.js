@@ -326,7 +326,7 @@ exports.isMixOrCaptainsReadyToStart = async (lineup) => {
         const missingRolesForMix = mixTeamLineup.roles.filter(role => role.lineupNumber === 1).filter(role => role.user == null)
         const allMissingRoles = missingRolesForMix.concat(missingRolesForTeam)
 
-        return allMissingRoles.length == 0 || (allMissingRoles.length == 1 && allMissingRoles[0].name.includes('GK'))
+        return allMissingRoles.length == 0 || (lineup.size > 3 && (allMissingRoles.length == 1 && allMissingRoles[0].name.includes('GK')))
     }
 
     if (!challenge && lineup.isMix()) {
@@ -494,7 +494,7 @@ function isLineupAllowedToJoinQueue(lineup) {
     let lineupSize = lineup.isMixOrCaptains() ? lineup.size * 2 : lineup.size
     let numberOfMissingPlayers = lineupSize - numberOfPlayersSigned
     let missingRoleName = lineup.roles.find(role => role.user == null)?.name
-    return numberOfMissingPlayers == 0 || (numberOfMissingPlayers == 1 && missingRoleName.includes('GK'))
+    return numberOfMissingPlayers == 0 || (lineup.size > 3 && (numberOfMissingPlayers == 1 && missingRoleName.includes('GK')))
 }
 
 async function freeLineupQueuesByChallengeIds(challengeIds) {
