@@ -1,6 +1,6 @@
 const dotenv = require('dotenv');
 const mongoose = require('mongoose');
-const { Client, Intents, MessageEmbed } = require('discord.js');
+const { Client, Intents } = require('discord.js');
 dotenv.config()
 
 const client = new Client({
@@ -18,6 +18,7 @@ async function sendMessage() {
 sendMessage().then(async res => {
     console.log("Message sent")
     await mongoose.disconnect()
+    client.destroy()
     process.exit()
 })
 
