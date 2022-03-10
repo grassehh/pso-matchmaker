@@ -33,6 +33,7 @@ async function notifyUpdate() {
 notifyUpdate().then(async res => {
     console.log("Notify update finished")
     await mongoose.disconnect()
+    client.destroy()
     process.exit()
 })
 
