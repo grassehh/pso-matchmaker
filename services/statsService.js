@@ -139,7 +139,7 @@ exports.updateStats = async (interaction, region, guildId, lineupSize, users) =>
     }))
     await Stats.bulkWrite(bulks)
 
-    if (interaction.guildId === process.env.PSO_EU_DISCORD_GUILD_ID && lineupSize >= PSO_EU_MINIMUM_LINEUP_SIZE_LEVELING) {
+    if (region === 'EU' && lineupSize >= PSO_EU_MINIMUM_LINEUP_SIZE_LEVELING) {
         const psoEuGuild = await interaction.client.guilds.fetch(process.env.PSO_EU_DISCORD_GUILD_ID)
         const allElligibleStats = await findElligibleStatsForLevelling(notMercUsers.map(user => user.id))
 
