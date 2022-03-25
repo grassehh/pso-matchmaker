@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const { v4 } = require('uuid');
 
 const teamSchema = new mongoose.Schema({
     guildId: {
@@ -142,6 +143,55 @@ const challengeSchema = new mongoose.Schema({
     }
 })
 exports.Challenge = mongoose.model('Challenge', challengeSchema, 'challenges')
+
+const matchSchema = new mongoose.Schema({
+    matchId: {
+        type: String,
+        required: true
+    },
+    schedule: {
+        type: Date,
+        required: true
+    },
+    firstLineup: {
+        type: lineupSchema,
+        required: true
+    },
+    secondLineup: {
+        type: lineupSchema,
+        required: false
+    },
+    lobbyName: {
+        type: String,
+        required: true
+    },
+    lobbyPassword: {
+        type: String,
+        required: true
+    },
+    subs: {
+        type: [
+            {
+                user: {
+                    type: Object,
+                    required: true
+                }
+            }
+        ],
+        required: true
+    },
+})
+matchSchema.index({ schedule: 1 }, { expireAfterSeconds: 4 * 60 * 60 });
+matchSchema.methods.findUserRole = function (user) {
+    const existingUserInSubs = this.subs.filter(role => role.user).find(role => role.user.id === user.id)
+    const existingUserInFirstLineup = this.firstLineup.roles.filter(role => role.user).find(role => role.user.id === user.id)
+    let existingUserInSecondLineup
+    if (this.secondLineup) {
+        existingUserInSecondLineup = this.secondLineup.roles.filter(role => role.user).find(role => role.user.id === user.id)
+    }
+    return [existingUserInSubs, existingUserInFirstLineup, existingUserInSecondLineup].find(user => user)
+}
+exports.Match = mongoose.model('Match', matchSchema, 'matches')
 
 const statsSchema = new mongoose.Schema({
     region: {
