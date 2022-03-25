@@ -2,7 +2,6 @@ const { SlashCommandBuilder } = require('@discordjs/builders');
 const interactionUtils = require("../services/interactionUtils");
 const teamService = require("../services/teamService");
 const authorizationService = require("../services/authorizationService");
-const { Bans } = require('../mongoSchema');
 const { handle } = require('../utils');
 const { MessageEmbed } = require('discord.js');
 

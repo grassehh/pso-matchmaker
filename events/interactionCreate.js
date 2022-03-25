@@ -3,9 +3,8 @@ const matchmakingService = require("../services/matchmakingService");
 const teamService = require("../services/teamService");
 const statsService = require("../services/statsService");
 const authorizationService = require("../services/authorizationService");
-const { MessageActionRow, MessageSelectMenu, InteractionCollector } = require("discord.js");
+const { MessageActionRow, MessageSelectMenu, MessageButton, MessageEmbed } = require("discord.js");
 const { handle } = require("../utils");
-const match = require("nodemon/lib/monitor/match");
 
 module.exports = {
     name: 'interactionCreate',
@@ -71,7 +70,7 @@ module.exports = {
                         await matchmakingService.removeUserFromLineupQueue(interaction.channelId, interaction.user.id)
                         description = `:outbox_tray::inbox_tray: ${interaction.user} swapped **${roleLeft.name}** with **${selectedRoleName}**`
                     }
-                    
+
                     let userToAdd = {
                         id: interaction.user.id,
                         name: interaction.user.username
@@ -298,7 +297,7 @@ module.exports = {
                 if (interaction.customId.startsWith('addMerc_')) {
                     const selectedLineupNumber = parseInt(interaction.customId.split('_')[1])
                     const lineup = await teamService.retrieveLineup(interaction.channelId)
-                    
+
                     if (lineup.isMix() && !authorizationService.isMatchmakingAdmin(interaction.member)) {
                         await interaction.reply({ content: "⛔ You are not allowed to use this action", ephemeral: true })
                         return
@@ -522,7 +521,6 @@ module.exports = {
                     return
                 }
 
-
                 if (interaction.customId.startsWith('leaderboard_last_page_')) {
                     let split = interaction.customId.split('_')
                     let statsType = split[3]
@@ -550,6 +548,69 @@ module.exports = {
                     let lineup = await teamService.retrieveLineup(interaction.channelId)
                     const components = interactionUtils.createLineupComponents(lineup, null, null, selectedLineup)
                     await interaction.reply({ content: `What do you want to do in the **${selectedLineup === 1 ? 'Red' : 'Blue'} Team** ?`, components, ephemeral: true })
+                }
+
+                if (interaction.customId.startsWith('accept_sub_request_')) {
+                    const matchId = interaction.customId.split('_')[3]
+                    const position = interaction.customId.split('_')[4]
+                    const match = await matchmakingService.findMatchByMatchId(matchId)
+
+                    if (!match) {
+                        await interactionUtils.replyMatchDoesntExist(interaction)
+                        return
+                    }
+
+                    const userRole = match.findUserRole(interaction.user)
+                    if (userRole) {
+                        await interaction.reply({ content: '⛔ You are already playing in this match', ephemeral: true })
+                        return
+                    }
+
+                    await matchmakingService.addSubToMatch(matchId, {
+                        user: {
+                            id: interaction.user.id,
+                            name: interaction.user.username
+                        }
+                    })
+
+                    const embed = interaction.message.embeds[0]
+                    embed.title = `~~${embed.title}~~`
+                    embed.description = `~~${embed.description}~~\n${interaction.user} accepted the request`
+                    await interaction.message.edit({ components: [], embeds: [embed] })
+
+                    const playerDmEmbed = new MessageEmbed()
+                        .setColor('#6aa84f')
+                        .setTitle(`⚽ Sub Request Accepted ⚽`)
+                        .setDescription(`You are playing **${position}**\n*If you need a sub, please type **/request_sub** followed by the match id **${matchId}***`)
+                        .addField('Lobby Name', `${match.lobbyName}`)
+                        .addField('Lobby Password', `${match.lobbyPassword}`)
+                        .setTimestamp()
+                    await interaction.user.send({ embeds: [playerDmEmbed] })
+
+                    statsService.updateStats(interaction, match.firstLineup.team.region, match.firstLineup.team.guildId, match.firstLineup.size, [interaction.user])
+                    return
+                }
+                
+                if (interaction.customId.startsWith('cancel_sub_request_')) {
+                    const matchId = interaction.customId.split('_')[3]
+                    const match = await matchmakingService.findMatchByMatchId(matchId)
+
+                    if (!match) {
+                        await interactionUtils.replyMatchDoesntExist(interaction)
+                        return
+                    }
+
+                    const userRole = match.findUserRole(interaction.user)
+                    if (!userRole) {
+                        await interaction.reply({ content: '⛔ You must be in the match to cancel the sub request', ephemeral: true })
+                        return
+                    }
+
+                    const embed = interaction.message.embeds[0]
+                    embed.title = `~~${embed.title}~~`
+                    embed.description = `~~${embed.description}~~\n${interaction.user} cancelled the request`
+                    await interaction.message.edit({ components: [], embeds: [embed] })
+                    return
                 }
             }
 
@@ -732,6 +793,33 @@ module.exports = {
                     reply.embeds = (reply.embeds || []).concat(embed)
                     await interaction.channel.send(reply)
                     await interaction.update({ components: [], ephemeral: true })
+                    return
+                }
+
+                if (interaction.customId.startsWith('subRequest_select_')) {
+                    const matchId = interaction.customId.split('_')[2]
+                    const position = interaction.values[0]
+
+                    const subRequestEmbed = new MessageEmbed()
+                        .setColor('#6aa84f')
+                        .setTitle("📣 A sub is required !")
+                        .setDescription(`Position: **${position}**\n*Accepting a sub request commits you to play. Doing otherwise can result in warns/bans.*`)
+                        .setTimestamp()
+                        .setFooter(`Author: ${interaction.user.username}`)
+                    const subActionRow = new MessageActionRow()
+
+                    subActionRow.addComponents(
+                        new MessageButton()
+                            .setCustomId(`accept_sub_request_${matchId}_${position}`)
+                            .setLabel('Accept')
+                            .setStyle('PRIMARY'),
+                        new MessageButton()
+                            .setCustomId(`cancel_sub_request_${matchId}`)
+                            .setLabel('Cancel')
+                            .setStyle('DANGER')
+                    )
+
+                    await interaction.reply({ components: [subActionRow], embeds: [subRequestEmbed] })
                     return
                 }
 

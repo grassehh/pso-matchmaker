@@ -26,6 +26,13 @@ exports.replyTeamNotRegistered = async (interaction) => {
     })
 }
 
+exports.replyMatchDoesntExist = async (interaction) => {
+    await interaction.reply({
+        content: '⛔ This match does not exist',
+        ephemeral: true
+    })
+}
+
 exports.replyAlreadyChallenging = async (interaction, challenge) => {
     await interaction.reply({
         content: `⛔ Your team is negotiating a challenge between the teams '${teamService.formatTeamName(challenge.initiatingTeam.lineup)}' and '${teamService.formatTeamName(challenge.challengedTeam.lineup)}'`,
@@ -254,20 +261,20 @@ exports.createLeaderBoardPaginationComponent = (searchOptions = {}, numberOfPage
     return paginationActionsRow
 }
 
-exports.createLineupEmbedsForNextMatch = async (interaction, lineup, opponentLineup, lobbyName, lobbyPassword, responsibleUser) => {
+exports.createLineupEmbedsForNextMatch = async (interaction, lineup, opponentLineup, lobbyName, lobbyPassword, responsibleUser, matchId) => {
     const lineupEmbedsForNextMatch = []
-    const firstLineupEmbed = await createLineupEmbed(interaction, lineup, opponentLineup, lobbyName, lobbyPassword, responsibleUser, 1)
+    const firstLineupEmbed = await createLineupEmbed(interaction, lineup, opponentLineup, lobbyName, lobbyPassword, responsibleUser, matchId, 1)
     lineupEmbedsForNextMatch.push(firstLineupEmbed)
 
     if (!opponentLineup && lineup.isMixOrCaptains()) {
-        const secondLineupEmbed = await createLineupEmbed(interaction, lineup, opponentLineup, lobbyName, lobbyPassword, responsibleUser, 2)
+        const secondLineupEmbed = await createLineupEmbed(interaction, lineup, opponentLineup, lobbyName, lobbyPassword, responsibleUser, matchId, 2)
         lineupEmbedsForNextMatch.push(secondLineupEmbed)
     }
 
     return lineupEmbedsForNextMatch
 }
 
-async function createLineupEmbed(interaction, lineup, opponentLineup, lobbyName, lobbyPassword, responsibleUser, lineupNumber = 1) {
+async function createLineupEmbed(interaction, lineup, opponentLineup, lobbyName, lobbyPassword, responsibleUser, matchId, lineupNumber = 1) {
     const roles = lineup.roles.filter(role => role.lineupNumber === lineupNumber)
 
     const opponentTeamName = opponentLineup ? teamService.formatTeamName(opponentLineup) : `${lineupNumber === 1 ? 'Blue' : 'Red'} Team`
@@ -293,8 +300,8 @@ async function createLineupEmbed(interaction, lineup, opponentLineup, lobbyName,
             }
             let playerDmEmbed = new MessageEmbed()
                 .setColor('#6aa84f')
-                .setTitle(`⚽ PSO Match ready ⚽`)
-                .setDescription(`You are playing${lineup.isCaptains() && !role.name.includes('GK') ? ' ' : ` **${role.name}** `}against **${opponentTeamName}**`)
+                .setTitle(`⚽ Match Ready ⚽`)
+                .setDescription(`You are playing${lineup.isCaptains() && !role.name.includes('GK') ? ' ' : ` **${role.name}** `}against **${opponentTeamName}**\n*If you need a sub, please type **/request_sub** followed by the match id **${matchId}***`)
                 .addField('Lobby Name', `${lobbyName}`)
                 .addField('Lobby Password', `${lobbyPassword}`)
                 .addField('Lobby Host', `${responsibleUser}`)
