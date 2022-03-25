@@ -1,10 +1,12 @@
 const { MessageEmbed, MessageActionRow, MessageButton } = require("discord.js");
-const { LineupQueue, Challenge, Stats } = require("../mongoSchema")
+const { LineupQueue, Challenge, Stats, Match } = require("../mongoSchema")
 const teamService = require("../services/teamService");
 const statsService = require("../services/statsService");
 const interactionUtils = require("../services/interactionUtils");
 const { handle } = require("../utils");
 const { MERC_USER_ID } = require("../constants");
+const match = require("nodemon/lib/monitor/match");
+const { v4 } = require("uuid");
 
 exports.findLineupQueueByChannelId = async (channelId) => {
     return await LineupQueue.findOne({ 'lineup.channelId': channelId })
@@ -377,15 +379,20 @@ exports.checkForDuplicatedPlayers = async (interaction, firstLineup, secondLineu
 }
 
 exports.readyMatch = async (interaction, challenge, mixLineup) => {
+    const lobbyPassword = Math.random().toString(36).slice(-4)
+    const matchId = v4().substring(0, 8)
+    let match = new Match({
+        matchId,
+        schedule: Date.now(),
+        lobbyPassword
+    })
     let responsibleUser = await interaction.client.users.fetch(challenge ? challenge.initiatingUser.id : interaction.user)
-    let lobbyCreationEmbedFieldValue = `${responsibleUser} is responsible of creating the lobby`
+    const lobbyCreationEmbedDescription = `**${responsibleUser} is responsible of creating the lobby**\nEach player received the lobby information in private message\n\n*If you need a sub, please type **/request_sub** followed by the match id **${matchId}***`
     let lobbyCreationEmbed = new MessageEmbed()
         .setColor('#6aa84f')
         .setTitle(`${challenge ? '⚽ Challenge Accepted ⚽' : '⚽ Match Ready ⚽'}`)
         .setTimestamp()
-        .addField('Each player has received the lobby information in private message', lobbyCreationEmbedFieldValue)
-
-    const lobbyPassword = Math.random().toString(36).slice(-4)
+        .setDescription(lobbyCreationEmbedDescription)
 
     if (challenge) {
         await this.deleteChallengeById(challenge.id)
@@ -395,12 +402,15 @@ exports.readyMatch = async (interaction, challenge, mixLineup) => {
         const initiatingTeamUsers = initiatingTeamLineup.roles.map(role => role.user).filter(user => user)
         let challengedTeamLineup = await teamService.retrieveLineup(challenge.challengedTeam.lineup.channelId)
         const challengedTeamUsers = challengedTeamLineup.roles.filter(role => role.lineupNumber === 1).map(role => role.user).filter(user => user)
+        match.firstLineup = initiatingTeamLineup
+        match.secondLineup = challengedTeamLineup
+        match.lobbyName = lobbyName
 
         let promises = []
         promises.push(new Promise(async (resolve, reject) => {
             await this.leaveQueue(interaction.client, challenge.initiatingTeam)
             const newInitiatingTeamLineup = await teamService.clearLineup(initiatingTeamLineup.channelId)
-            let lineupForNextMatchEmbeds = await interactionUtils.createLineupEmbedsForNextMatch(interaction, initiatingTeamLineup, challenge.challengedTeam.lineup, lobbyName, lobbyPassword, responsibleUser)
+            let lineupForNextMatchEmbeds = await interactionUtils.createLineupEmbedsForNextMatch(interaction, initiatingTeamLineup, challenge.challengedTeam.lineup, lobbyName, lobbyPassword, responsibleUser, matchId)
             const reply = await interactionUtils.createReplyForLineup(interaction, newInitiatingTeamLineup)
             reply.embeds = lineupForNextMatchEmbeds.concat(lobbyCreationEmbed)
             let initiatingTeamChannel = await interaction.client.channels.fetch(challenge.initiatingTeam.lineup.channelId)
@@ -412,7 +422,7 @@ exports.readyMatch = async (interaction, challenge, mixLineup) => {
             if (challengedTeamLineup.isMix()) {
                 await teamService.clearLineup(challengedTeamLineup.channelId, [1, 2])
                 await this.clearLineupQueue(challenge.challengedTeam.lineup.channelId, [1, 2])
-                let lineupForNextMatchEmbeds = await interactionUtils.createLineupEmbedsForNextMatch(interaction, challengedTeamLineup, initiatingTeamLineup, lobbyName, lobbyPassword, responsibleUser)
+                let lineupForNextMatchEmbeds = await interactionUtils.createLineupEmbedsForNextMatch(interaction, challengedTeamLineup, initiatingTeamLineup, lobbyName, lobbyPassword, responsibleUser, matchId)
                 let rolesInFirstLineup = challengedTeamLineup.roles.filter(role => role.lineupNumber === 1)
                 let rolesInSecondLineup = challengedTeamLineup.roles.filter(role => role.lineupNumber === 2)
                 rolesInFirstLineup.forEach(role => { role.user = null; role.lineupNumber = 2 })
@@ -427,7 +437,7 @@ exports.readyMatch = async (interaction, challenge, mixLineup) => {
             } else {
                 await this.leaveQueue(interaction.client, challenge.challengedTeam)
                 const newChallengedTeamLineup = await teamService.clearLineup(challengedTeamLineup.channelId)
-                let lineupForNextMatchEmbeds = await interactionUtils.createLineupEmbedsForNextMatch(interaction, challengedTeamLineup, initiatingTeamLineup, lobbyName, lobbyPassword, responsibleUser)
+                let lineupForNextMatchEmbeds = await interactionUtils.createLineupEmbedsForNextMatch(interaction, challengedTeamLineup, initiatingTeamLineup, lobbyName, lobbyPassword, responsibleUser, matchId)
                 const reply = await interactionUtils.createReplyForLineup(interaction, newChallengedTeamLineup)
                 reply.embeds = lineupForNextMatchEmbeds.concat(lobbyCreationEmbed)
                 await interaction.editReply(reply)
@@ -441,11 +451,13 @@ exports.readyMatch = async (interaction, challenge, mixLineup) => {
         await statsService.updateStats(interaction, challenge.initiatingTeam.lineup.team.region, challenge.initiatingTeam.lineup.team.guildId, challenge.initiatingTeam.lineup.size, initiatingTeamUsers)
         await statsService.updateStats(interaction, challenge.challengedTeam.lineup.team.region, challenge.challengedTeam.lineup.team.guildId, challenge.challengedTeam.lineup.size, challengedTeamUsers)
     }
-    else { //This is a mix vs mix match     
+    else { //This is a mix vs mix match  
         const lobbyName = `${teamService.formatTeamName(mixLineup, true)} #${Math.floor(Math.random() * 10000).toString().padStart(4, '0')}`
+        match.firstLineup = mixLineup
+        match.lobbyName = lobbyName
         await teamService.clearLineup(mixLineup.channelId, [1, 2])
         const allUsers = mixLineup.roles.map(role => role.user).filter(user => user)
-        let mixNextMatchEmbeds = await interactionUtils.createLineupEmbedsForNextMatch(interaction, mixLineup, null, lobbyName, lobbyPassword, responsibleUser)
+        let mixNextMatchEmbeds = await interactionUtils.createLineupEmbedsForNextMatch(interaction, mixLineup, null, lobbyName, lobbyPassword, responsibleUser, matchId)
         let newMixLineup = teamService.createLineup(interaction.channelId, mixLineup.size, mixLineup.name, mixLineup.autoSearch, mixLineup.team, mixLineup.type, mixLineup.visibility)
         const reply = await interactionUtils.createReplyForLineup(interaction, newMixLineup)
         reply.embeds = mixNextMatchEmbeds.concat(lobbyCreationEmbed).concat(reply.embeds)
@@ -454,6 +466,8 @@ exports.readyMatch = async (interaction, challenge, mixLineup) => {
         const team = await teamService.findTeamByGuildId(interaction.guildId)
         await statsService.updateStats(interaction, team.region, team.guildId, newMixLineup.size, allUsers)
     }
+
+    await match.save()
 }
 
 exports.findTwoMostRelevantCaptainsIds = async (userIds) => {
@@ -487,6 +501,21 @@ exports.findTwoMostRelevantCaptainsIds = async (userIds) => {
     ])
 
     return await Stats.aggregate(pipeline)
+}
+
+exports.findMatchByMatchId = async (matchId) => {
+    return await Match.findOne({ matchId })
+}
+
+exports.addSubToMatch = async (matchId, role) => {
+    await Match.updateOne(
+        { matchId },
+        {
+            "$push": {
+                "subs": role
+            }
+        }
+    )
 }
 
 function isLineupAllowedToJoinQueue(lineup) {
