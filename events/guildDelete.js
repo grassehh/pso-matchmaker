@@ -1,6 +1,5 @@
 const matchmakingService = require('../services/matchmakingService');
 const teamService = require('../services/teamService');
-const statsService = require('../services/statsService');
 
 module.exports = {
 	name: 'guildDelete',
