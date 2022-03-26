@@ -2,6 +2,7 @@
     "scripts": {
         "dev": "nodemon index.js",
         "start": "node index.js",
+        "test": "jest",
         "deploy-commands": "node scripts/deploy-commands.js"
     },
     "dependencies": {
@@ -15,5 +16,8 @@
         "mongoose": "^6.2.3",
         "nodemon": "^2.0.15",
         "uuid": "^8.3.2"
+    },
+    "devDependencies": {
+        "jest": "^27.5.1"
     }
 }
