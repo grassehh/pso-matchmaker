@@ -587,10 +587,19 @@ module.exports = {
                         .setTimestamp()
                     await interaction.user.send({ embeds: [playerDmEmbed] })
 
+                    const channelIds = await teamService.findAllLineupChannelIdsByUserId(interaction.user.id)
+                    if (channelIds.length > 0) {
+                        await matchmakingService.removeUserFromAllLineupQueues(interaction.user.id)
+                        await teamService.removeUserFromLineupsByChannelIds(interaction.user.id, channelIds)
+                        await Promise.all(channelIds.map(async channelId => {
+                            await teamService.notifyChannelForUserLeaving(interaction.client, interaction.user, channelId, `⚠ ${interaction.user} went to sub in another match`)
+                        }))
+                    }
+
                     statsService.updateStats(interaction, match.firstLineup.team.region, match.firstLineup.team.guildId, match.firstLineup.size, [interaction.user])
                     return
                 }
-                
+
                 if (interaction.customId.startsWith('cancel_sub_request_')) {
                     const matchId = interaction.customId.split('_')[3]
                     const match = await matchmakingService.findMatchByMatchId(matchId)
