@@ -24,10 +24,23 @@ const client = new Client({
 
 //Fetch and push commands into the client
 client.commands = new Collection()
-const commandFiles = fs.readdirSync('./commands').filter(file => file.endsWith('.js'))
+const commandFiles = fs.readdirSync('./interactions/commands').filter(file => file.endsWith('.js'))
 for (const file of commandFiles) {
-	const command = require(`./commands/${file}`);
+	const command = require(`./interactions/commands/${file}`);
 	client.commands.set(command.data.name, command);
+}
+
+//Fetch and push component interaction handlers into the client
+client.componentInteractions = []
+const buttonFiles = fs.readdirSync('./interactions/buttons').filter(file => file.endsWith('.js'))
+for (const file of buttonFiles) {
+	const button = require(`./interactions/buttons/${file}`);
+	client.componentInteractions.push(button)
+}
+const selectMenuFiles = fs.readdirSync('./interactions/selectMenus').filter(file => file.endsWith('.js'))
+for (const file of selectMenuFiles) {
+	const selectMenu = require(`./interactions/selectMenus/${file}`);
+	client.componentInteractions.push(selectMenu)
 }
 
 //Fetch and registers all event handlers
