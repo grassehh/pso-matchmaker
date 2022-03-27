@@ -5,7 +5,6 @@ const statsService = require("../services/statsService");
 const interactionUtils = require("../services/interactionUtils");
 const { handle } = require("../utils");
 const { MERC_USER_ID } = require("../constants");
-const match = require("nodemon/lib/monitor/match");
 const { v4 } = require("uuid");
 
 exports.findLineupQueueByChannelId = async (channelId) => {
