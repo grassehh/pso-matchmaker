@@ -41,6 +41,23 @@ async function findElligibleStatsForLevelling(userIds) {
     ])
 }
 
+exports.getLevelEmojiFromMember = (member) => {        
+    if (member.roles.cache.some(role => role.id === process.env.PSO_EU_DISCORD_VETERAN_ROLE_ID)) {
+        return '🔴 '
+    }    
+    if (member.roles.cache.some(role => role.id === process.env.PSO_EU_DISCORD_EXPERT_ROLE_ID)) {
+        return '🟣 '
+    }    
+    if (member.roles.cache.some(role => role.id === process.env.PSO_EU_DISCORD_CHALLENGER_ROLE_ID)) {
+        return '🟠 '
+    }    
+    if (member.roles.cache.some(role => role.id === process.env.PSO_EU_DISCORD_BEGINNER_ROLE_ID)) {
+        return '🟡 '
+    }
+
+    return ''
+}
+
 exports.countNumberOfPlayers = async (region, guildId, lineupSizes = []) => {
     let match = {}
     if (region) {

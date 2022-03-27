@@ -1,6 +1,7 @@
 const interactionUtils = require("../../services/interactionUtils");
 const matchmakingService = require("../../services/matchmakingService");
 const teamService = require("../../services/teamService");
+const statsService = require("../../services/statsService");
 
 module.exports = {
     customId: 'role_',
@@ -31,7 +32,8 @@ module.exports = {
 
         let userToAdd = {
             id: interaction.user.id,
-            name: interaction.user.username
+            name: interaction.user.username,
+            emoji: statsService.getLevelEmojiFromMember(interaction.member)
         }
         lineup = await teamService.addUserToLineup(interaction.channelId, selectedRoleName, userToAdd, lineupNumber)
         await matchmakingService.addUserToLineupQueue(interaction.channelId, selectedRoleName, userToAdd, lineupNumber)

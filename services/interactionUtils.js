@@ -307,7 +307,7 @@ async function createLineupEmbed(interaction, lineup, opponentLineup, lobbyName,
                 .addField('Lobby Host', `${responsibleUser}`)
                 .setTimestamp()
             await handle(discordUser.send({ embeds: [playerDmEmbed] }))
-            playerName = discordUser
+            playerName = `${role.user.emoji ? role.user.emoji : ''}${discordUser}`
         }
 
         return { role, playerName }
@@ -603,9 +603,12 @@ function createReplyForCaptainsLineup(lineup) {
 function fillLineupEmbedWithRoles(lineupEmbed, roles) {
     let description = ''
     roles.map(role => {
-        let playerName
+        let playerName = ''
         if (role.user) {
-            playerName = `${role.user.name}`
+            if (role.user.emoji) {
+                playerName += role.user.emoji
+            }
+            playerName += role.user.name
         } else {
             playerName = '\u200b'
         }
