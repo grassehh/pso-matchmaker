@@ -1,5 +1,4 @@
 const mongoose = require('mongoose');
-const { v4 } = require('uuid');
 
 const teamSchema = new mongoose.Schema({
     guildId: {

@@ -2,7 +2,7 @@ const { MessageActionRow, MessageButton, MessageEmbed, MessageSelectMenu } = req
 const teamService = require("../services/teamService");
 const statsService = require("../services/statsService");
 const matchmakingService = require("../services/matchmakingService");
-const { Stats, LineupQueue, Challenge } = require("../mongoSchema");
+const { Stats } = require("../mongoSchema");
 const { handle } = require("../utils");
 
 exports.replyAlreadyQueued = async (interaction, lineupSize) => {
