@@ -235,10 +235,11 @@ exports.notifyChannelForUserLeaving = async (client, user, channelId, descriptio
     }
 }
 
-exports.findAllLineupChannelIdsByUserId = async (userId) => {
+exports.findAllLineupChannelIdsByUserId = async (userId, excludedChannelIds = []) => {
     let res = await Lineup.aggregate([
         {
             $match: {
+                channelId: { $nin: excludedChannelIds },
                 roles: {
                     $elemMatch: { 'user.id': userId }
                 }
@@ -327,11 +328,11 @@ exports.createLineup = (channelId, size, name, autoSearch, team, type, visibilit
         roles = []
         let i = 1
         while (i < size) {
-            roles.push({ name: i, lineupNumber: 1 })
+            roles.push({ name: i, lineupNumber: 1, type: ROLE_ATTACKER })
             i++
         }
         while (i < (size * 2) - 1) {
-            roles.push({ name: i, lineupNumber: 2 })
+            roles.push({ name: i, lineupNumber: 2, type: ROLE_ATTACKER })
             i++
         }
         roles.push({ ...GK, lineupNumber: 1 })
