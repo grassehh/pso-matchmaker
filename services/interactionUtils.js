@@ -261,62 +261,25 @@ exports.createLeaderBoardPaginationComponent = (searchOptions = {}, numberOfPage
     return paginationActionsRow
 }
 
-exports.createLineupEmbedsForNextMatch = async (interaction, lineup, opponentLineup, lobbyName, lobbyPassword, responsibleUser, matchId) => {
-    const lineupEmbedsForNextMatch = []
-    const firstLineupEmbed = await createLineupEmbed(interaction, lineup, opponentLineup, lobbyName, lobbyPassword, responsibleUser, matchId, 1)
-    lineupEmbedsForNextMatch.push(firstLineupEmbed)
-
-    if (!opponentLineup && lineup.isMixOrCaptains()) {
-        const secondLineupEmbed = await createLineupEmbed(interaction, lineup, opponentLineup, lobbyName, lobbyPassword, responsibleUser, matchId, 2)
-        lineupEmbedsForNextMatch.push(secondLineupEmbed)
-    }
-
-    return lineupEmbedsForNextMatch
-}
-
-async function createLineupEmbed(interaction, lineup, opponentLineup, lobbyName, lobbyPassword, responsibleUser, matchId, lineupNumber = 1) {
-    const roles = lineup.roles.filter(role => role.lineupNumber === lineupNumber)
-
-    const opponentTeamName = opponentLineup ? teamService.formatTeamName(opponentLineup) : `${lineupNumber === 1 ? 'Blue' : 'Red'} Team`
-
+exports.createLineupEmbed = (rolesWithDiscordUsers, opponentLineup) => {
     let lineupEmbed = new MessageEmbed()
         .setColor('#6aa84f')
-        .setTitle(opponentLineup ? `Lineup against ${opponentTeamName}` : `${lineupNumber === 1 ? 'Red' : 'Blue'} Team lineup`)
-    const promises = roles.map(async (role) => {
-        if (!role.user) {
-            return { role, playerName: '\u200b' }
-        }
+        .setTitle(opponentLineup ? `Lineup against ${teamService.formatTeamName(opponentLineup)}` : `${rolesWithDiscordUsers[0].lineupNumber === 1 ? 'Red' : 'Blue'} Team lineup`)
 
-        let playerName = `${role.user.name}`
-        let [discordUser] = await handle(interaction.client.users.fetch(role.user.id))
-        if (discordUser) {
-            let channelIds = await teamService.findAllLineupChannelIdsByUserId(role.user.id)
-            if (channelIds.length > 0) {
-                await matchmakingService.removeUserFromAllLineupQueues(role.user.id)
-                await teamService.removeUserFromLineupsByChannelIds(role.user.id, channelIds)
-                await Promise.all(channelIds.map(async channelId => {
-                    await teamService.notifyChannelForUserLeaving(interaction.client, discordUser, channelId, `⚠ ${discordUser} went to play another match with **${teamService.formatTeamName(lineup)}**`)
-                }))
-            }
-            let playerDmEmbed = new MessageEmbed()
-                .setColor('#6aa84f')
-                .setTitle(`⚽ Match Ready ⚽`)
-                .setDescription(`You are playing${lineup.isCaptains() && !role.name.includes('GK') ? ' ' : ` **${role.name}** `}against **${opponentTeamName}**\n*If you need a sub, please type **/request_sub** followed by the match id **${matchId}***`)
-                .addField('Lobby Name', `${lobbyName}`)
-                .addField('Lobby Password', `${lobbyPassword}`)
-                .addField('Lobby Host', `${responsibleUser}`)
-                .setTimestamp()
-            await handle(discordUser.send({ embeds: [playerDmEmbed] }))
-            playerName = `${role.user.emoji ? role.user.emoji : ''}${discordUser}`
-        }
-
-        return { role, playerName }
-    })
-
-    const rolesWithPlayer = await Promise.all(promises)
     let description = ''
-    rolesWithPlayer.map(roleWithPlayer => {
-        description += `**${roleWithPlayer.role.name}:** ${roleWithPlayer.playerName}\n`
+    rolesWithDiscordUsers.map(roleWithDiscordUser => {
+        description += `**${roleWithDiscordUser.name}:** `
+        if (roleWithDiscordUser.user) {
+            if (roleWithDiscordUser.user.emoji) {
+                description += `${roleWithDiscordUser.user.emoji} `
+            }
+            if (roleWithDiscordUser.user.discordUser) {
+                description += `${roleWithDiscordUser.discordUser}`
+            } else {
+                description += roleWithDiscordUser.user.name
+            }
+        }
+        description += '\n'
     })
     lineupEmbed.setDescription(description)
 

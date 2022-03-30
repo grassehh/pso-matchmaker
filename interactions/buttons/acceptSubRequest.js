@@ -2,6 +2,7 @@ const interactionUtils = require("../../services/interactionUtils");
 const matchmakingService = require("../../services/matchmakingService");
 const teamService = require("../../services/teamService");
 const statsService = require("../../services/statsService");
+const { MessageEmbed } = require("discord.js");
 
 module.exports = {
     customId: 'accept_sub_request_',

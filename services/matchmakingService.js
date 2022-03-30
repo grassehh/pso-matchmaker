@@ -7,6 +7,114 @@ const { handle } = require("../utils");
 const { MERC_USER_ID } = require("../constants");
 const { v4 } = require("uuid");
 
+function isLineupAllowedToJoinQueue(lineup) {
+    let numberOfPlayersSigned = lineup.roles.filter(role => role.user != null).length
+    let lineupSize = lineup.isMixOrCaptains() ? lineup.size * 2 : lineup.size
+    let numberOfMissingPlayers = lineupSize - numberOfPlayersSigned
+    let missingRoleName = lineup.roles.find(role => role.user == null)?.name
+    return numberOfMissingPlayers == 0 || (lineup.size > 3 && (numberOfMissingPlayers == 1 && missingRoleName.includes('GK')))
+}
+
+async function freeLineupQueuesByChallengeIds(challengeIds) {
+    if (challengeIds.length > 0) {
+        await LineupQueue.updateMany({ 'challengeId': { $in: challengeIds } }, { challengeId: null })
+    }
+}
+
+async function removeUserFromAllLineupQueues(userId) {
+    await LineupQueue.updateMany({ 'lineup.roles.user.id': userId }, { $set: { "lineup.roles.$.user": null } })
+}
+
+async function enhanceWithDiscordUsers(client, roles) {
+    const promises = roles.map(async (role) => {
+        if (!role.user) {
+            return role
+        }
+
+        const [discordUser] = await handle(client.users.fetch(role.user.id))
+        role.discordUser = discordUser
+
+        return role
+    })
+
+    return Promise.all(promises)
+}
+
+async function notifyUsersForMatchReady(match, lobbyHost, rolesWithDiscordUsers, lineup, opponentLineup) {
+    const promises = rolesWithDiscordUsers.map(async (role) => {
+        if (!role.discordUser) {
+            return
+        }
+
+        const opponentTeamName = opponentLineup ? teamService.formatTeamName(opponentLineup) : `${role.lineupNumber === 1 ? 'Blue Team' : 'Red Team'}`
+
+        const playerDmEmbed = new MessageEmbed()
+            .setColor('#6aa84f')
+            .setTitle(`⚽ Match Ready ⚽`)
+            .setDescription(`You are playing${lineup.isCaptains() && !role.name.includes('GK') ? ' ' : ` **${role.name}** `}against **${opponentTeamName}**\n*If you need a sub, please type **/request_sub** followed by the match id **${match.matchId}***`)
+            .addField('Lobby Name', `${match.lobbyName}`)
+            .addField('Lobby Password', `${match.lobbyPassword}`)
+            .addField('Lobby Host', `${lobbyHost}`)
+            .setTimestamp()
+        await handle(role.discordUser.send({ embeds: [playerDmEmbed] }))
+    })
+
+    return Promise.all(promises)
+}
+
+async function notifyLineupsForUsersLeaving(interaction, rolesWithDiscordUsers, lineup) {
+    const promises = rolesWithDiscordUsers.map(async (role) => {
+        if (!role.discordUser) {
+            return
+        }
+
+        let channelIds = await teamService.findAllLineupChannelIdsByUserId(role.discordUser.id, [lineup.channelId])
+        if (channelIds.length > 0) {
+            await removeUserFromAllLineupQueues(role.discordUser.id)
+            await teamService.removeUserFromLineupsByChannelIds(role.discordUser.id, channelIds)
+            await Promise.all(channelIds.map(async channelId => {
+                await teamService.notifyChannelForUserLeaving(interaction.client, role.discordUser, channelId, `⚠ ${role.discordUser} went to play another match with **${teamService.formatTeamName(lineup)}**`)
+            }))
+        }
+    })
+
+    return Promise.all(promises)
+}
+
+async function notifyLineupChannelForMatchReady(interaction, match, lobbyHost, rolesWithDiscordUsers, lineup, opponentLineup) {
+    let embeds = []
+    if (opponentLineup) {
+        embeds.push(interactionUtils.createLineupEmbed(rolesWithDiscordUsers.filter(role => role.lineupNumber === 1), opponentLineup))
+    } else {
+        embeds.push(interactionUtils.createLineupEmbed(rolesWithDiscordUsers.filter(role => role.lineupNumber === 1), opponentLineup))
+        embeds.push(interactionUtils.createLineupEmbed(rolesWithDiscordUsers.filter(role => role.lineupNumber === 2), opponentLineup))
+    }
+
+    const matchReadyEmbed = new MessageEmbed()
+        .setColor('#6aa84f')
+        .setTitle(`${opponentLineup ? '⚽ Challenge Accepted ⚽' : '⚽ Match Ready ⚽'}`)
+        .setTimestamp()
+        .setDescription(`**${lobbyHost} is responsible of creating the lobby**\nEach player received the lobby information in private message\n\n*If you need a sub, please type **/request_sub** followed by the match id **${match.matchId}***`)
+    embeds.push(matchReadyEmbed)
+
+    const channel = await interaction.client.channels.fetch(lineup.channelId)
+    await channel.send({ embeds })
+}
+
+async function notifyLineupForMatchReady(interaction, match, lobbyHost, lineup, opponentLineup) {
+    if (!lineup) {
+        return
+    }
+
+    const rolesWithDiscordUsers = await enhanceWithDiscordUsers(interaction.client, lineup.roles)
+
+    let promises = []
+    promises.push(notifyUsersForMatchReady(match, lobbyHost, rolesWithDiscordUsers, lineup, opponentLineup))
+    promises.push(notifyLineupsForUsersLeaving(interaction, rolesWithDiscordUsers, lineup))
+    promises.push(notifyLineupChannelForMatchReady(interaction, match, lobbyHost, rolesWithDiscordUsers, lineup, opponentLineup))
+    return Promise.all(promises)
+}
+
 exports.findLineupQueueByChannelId = async (channelId) => {
     return await LineupQueue.findOne({ 'lineup.channelId': channelId })
 }
@@ -96,10 +204,6 @@ exports.removeUserFromLineupQueue = async (channelId, userId) => {
     return await LineupQueue.findOneAndUpdate({ 'lineup.channelId': channelId, 'lineup.roles.user.id': userId }, { $set: { "lineup.roles.$.user": null } }, { new: true })
 }
 
-exports.removeUserFromAllLineupQueues = async (userId) => {
-    await LineupQueue.updateMany({ 'lineup.roles.user.id': userId }, { $set: { "lineup.roles.$.user": null } })
-}
-
 exports.clearLineupQueue = async (channelId, selectedLineups = [1]) => {
     return await LineupQueue.findOneAndUpdate(
         {
@@ -124,26 +228,27 @@ exports.joinQueue = async (client, user, lineup) => {
     const lineupQueue = new LineupQueue({ lineup })
     const channelIds = await teamService.findAllChannelIdToNotify(lineup.team.region, lineup.channelId, lineup.size)
 
-    await Promise.all(channelIds.map(async channelId => {
-        let description = `**${teamService.formatTeamName(lineup)}**`
-        const teamEmbed = new MessageEmbed()
-            .setColor('#566573')
-            .setTitle('A team is looking for a match !')
-            .setTimestamp()
-        description += `\n${lineup.roles.filter(role => role.user != null).length} players signed`
-        if (!teamService.hasGkSigned(lineupQueue.lineup)) {
-            description += ' **(no GK)**'
-        }
-        description += `\n\n*Contact ${user} for more information*`
-        teamEmbed.setDescription(description)
+    let description = `**${teamService.formatTeamName(lineup)}**`
+    const teamEmbed = new MessageEmbed()
+        .setColor('#566573')
+        .setTitle('A team is looking for a match !')
+        .setTimestamp()
+    description += `\n${lineup.roles.filter(role => role.user != null).length} players signed`
+    if (!teamService.hasGkSigned(lineupQueue.lineup)) {
+        description += ' **(no GK)**'
+    }
+    description += `\n\n*Contact ${user} for more information*`
+    teamEmbed.setDescription(description)
 
-        const challengeTeamRow = new MessageActionRow().addComponents(
-            new MessageButton()
-                .setCustomId(`challenge_${lineupQueue.id}`)
-                .setLabel('Challenge them !')
-                .setEmoji('⚽')
-                .setStyle('PRIMARY')
-        )
+    const challengeTeamRow = new MessageActionRow().addComponents(
+        new MessageButton()
+            .setCustomId(`challenge_${lineupQueue.id}`)
+            .setLabel('Challenge them !')
+            .setEmoji('⚽')
+            .setStyle('PRIMARY')
+    )
+
+    await Promise.all(channelIds.map(async channelId => {
         const [channel] = await handle(client.channels.fetch(channelId))
         if (!channel) {
             return null
@@ -377,96 +482,90 @@ exports.checkForDuplicatedPlayers = async (interaction, firstLineup, secondLineu
     return false
 }
 
+exports.removeUserFromAllLineupQueues = removeUserFromAllLineupQueues
+
 exports.readyMatch = async (interaction, challenge, mixLineup) => {
+    const firstLineup = challenge ? await teamService.retrieveLineup(challenge.initiatingTeam.lineup.channelId) : mixLineup
+    const secondLineup = challenge ? await teamService.retrieveLineup(challenge.challengedTeam.lineup.channelId) : undefined
+    const lobbyHost = await interaction.client.users.fetch(challenge ? challenge.initiatingUser.id : interaction.user)
+    const lobbyName = challenge
+        ? `${teamService.formatTeamName(challenge.initiatingTeam.lineup)} vs. ${teamService.formatTeamName(challenge.challengedTeam.lineup)}`
+        : `${teamService.formatTeamName(mixLineup, true)} #${Math.floor(Math.random() * 10000).toString().padStart(4, '0')}`
     const lobbyPassword = Math.random().toString(36).slice(-4)
-    const matchId = v4().substring(0, 8)
-    let match = new Match({
-        matchId,
+    const match = await new Match({
+        matchId: v4().substring(0, 8),
         schedule: Date.now(),
-        lobbyPassword
-    })
-    let responsibleUser = await interaction.client.users.fetch(challenge ? challenge.initiatingUser.id : interaction.user)
-    const lobbyCreationEmbedDescription = `**${responsibleUser} is responsible of creating the lobby**\nEach player received the lobby information in private message\n\n*If you need a sub, please type **/request_sub** followed by the match id **${matchId}***`
-    let lobbyCreationEmbed = new MessageEmbed()
-        .setColor('#6aa84f')
-        .setTitle(`${challenge ? '⚽ Challenge Accepted ⚽' : '⚽ Match Ready ⚽'}`)
-        .setTimestamp()
-        .setDescription(lobbyCreationEmbedDescription)
+        lobbyName,
+        lobbyPassword,
+        firstLineup,
+        secondLineup
+    }).save()
 
     if (challenge) {
         await this.deleteChallengeById(challenge.id)
         await this.freeLineupQueuesByChallengeId(challenge.id)
-        const lobbyName = `${teamService.formatTeamName(challenge.initiatingTeam.lineup)} vs. ${teamService.formatTeamName(challenge.challengedTeam.lineup)}`
-        let initiatingTeamLineup = await teamService.retrieveLineup(challenge.initiatingTeam.lineup.channelId)
-        const initiatingTeamUsers = initiatingTeamLineup.roles.map(role => role.user).filter(user => user)
-        let challengedTeamLineup = await teamService.retrieveLineup(challenge.challengedTeam.lineup.channelId)
-        const challengedTeamUsers = challengedTeamLineup.roles.filter(role => role.lineupNumber === 1).map(role => role.user).filter(user => user)
-        match.firstLineup = initiatingTeamLineup
-        match.secondLineup = challengedTeamLineup
-        match.lobbyName = lobbyName
+    }
+
+    let matchReadyPromises = []
+    matchReadyPromises.push(notifyLineupForMatchReady(interaction, match, lobbyHost, firstLineup, secondLineup))
+    matchReadyPromises.push(notifyLineupForMatchReady(interaction, match, lobbyHost, secondLineup, firstLineup))
+    await Promise.all(matchReadyPromises)
+
+    if (challenge) {
+        const initiatingTeamUsers = firstLineup.roles.map(role => role.user).filter(user => user)
+        const challengedTeamUsers = secondLineup.roles.filter(role => role.lineupNumber === 1).map(role => role.user).filter(user => user)
 
         let promises = []
         promises.push(new Promise(async (resolve, reject) => {
             await this.leaveQueue(interaction.client, challenge.initiatingTeam)
-            const newInitiatingTeamLineup = await teamService.clearLineup(initiatingTeamLineup.channelId)
-            let lineupForNextMatchEmbeds = await interactionUtils.createLineupEmbedsForNextMatch(interaction, initiatingTeamLineup, challenge.challengedTeam.lineup, lobbyName, lobbyPassword, responsibleUser, matchId)
+            const newInitiatingTeamLineup = await teamService.clearLineup(firstLineup.channelId)
             const reply = await interactionUtils.createReplyForLineup(interaction, newInitiatingTeamLineup)
-            reply.embeds = lineupForNextMatchEmbeds.concat(lobbyCreationEmbed)
-            let initiatingTeamChannel = await interaction.client.channels.fetch(challenge.initiatingTeam.lineup.channelId)
+            reply.embeds = [interactionUtils.createInformationEmbed(lobbyHost, "Lineup cleared")]
+            const initiatingTeamChannel = await interaction.client.channels.fetch(challenge.initiatingTeam.lineup.channelId)
             await initiatingTeamChannel.send(reply)
             await initiatingTeamChannel.messages.edit(challenge.initiatingMessageId, { components: [] })
             resolve()
         }))
         promises.push(new Promise(async (resolve, reject) => {
-            if (challengedTeamLineup.isMix()) {
-                await teamService.clearLineup(challengedTeamLineup.channelId, [1, 2])
+            if (secondLineup.isMix()) {
+                await teamService.clearLineup(secondLineup.channelId, [1, 2])
                 await this.clearLineupQueue(challenge.challengedTeam.lineup.channelId, [1, 2])
-                let lineupForNextMatchEmbeds = await interactionUtils.createLineupEmbedsForNextMatch(interaction, challengedTeamLineup, initiatingTeamLineup, lobbyName, lobbyPassword, responsibleUser, matchId)
-                let rolesInFirstLineup = challengedTeamLineup.roles.filter(role => role.lineupNumber === 1)
-                let rolesInSecondLineup = challengedTeamLineup.roles.filter(role => role.lineupNumber === 2)
+                let rolesInFirstLineup = secondLineup.roles.filter(role => role.lineupNumber === 1)
+                let rolesInSecondLineup = secondLineup.roles.filter(role => role.lineupNumber === 2)
                 rolesInFirstLineup.forEach(role => { role.user = null; role.lineupNumber = 2 })
                 rolesInSecondLineup.forEach(role => role.lineupNumber = 1)
                 const newRoles = rolesInFirstLineup.concat(rolesInSecondLineup)
-                const newChallengedTeamLineup = await teamService.updateLineupRoles(challengedTeamLineup.channelId, newRoles)
-                await this.updateLineupQueueRoles(challengedTeamLineup.channelId, newRoles)
+                const newChallengedTeamLineup = await teamService.updateLineupRoles(secondLineup.channelId, newRoles)
+                await this.updateLineupQueueRoles(secondLineup.channelId, newRoles)
                 const reply = await interactionUtils.createReplyForLineup(interaction, newChallengedTeamLineup)
-                reply.embeds = lineupForNextMatchEmbeds.concat(lobbyCreationEmbed).concat(reply.embeds)
-                let challengedTeamChannel = await interaction.client.channels.fetch(challenge.challengedTeam.lineup.channelId)
+                const challengedTeamChannel = await interaction.client.channels.fetch(challenge.challengedTeam.lineup.channelId)
                 await challengedTeamChannel.send(reply)
             } else {
                 await this.leaveQueue(interaction.client, challenge.challengedTeam)
-                const newChallengedTeamLineup = await teamService.clearLineup(challengedTeamLineup.channelId)
-                let lineupForNextMatchEmbeds = await interactionUtils.createLineupEmbedsForNextMatch(interaction, challengedTeamLineup, initiatingTeamLineup, lobbyName, lobbyPassword, responsibleUser, matchId)
+                const newChallengedTeamLineup = await teamService.clearLineup(secondLineup.channelId)
+                await interaction.editReply(`${interaction.user} accepted the challenge request`)
                 const reply = await interactionUtils.createReplyForLineup(interaction, newChallengedTeamLineup)
-                reply.embeds = lineupForNextMatchEmbeds.concat(lobbyCreationEmbed)
-                await interaction.editReply(reply)
+                reply.embeds = [interactionUtils.createInformationEmbed(interaction.user, "Lineup cleared")]
                 await interaction.message.edit({ components: [] })
+                await interaction.channel.send(reply)
             }
 
             resolve()
         }))
-
         await Promise.all(promises)
+
         await statsService.updateStats(interaction, challenge.initiatingTeam.lineup.team.region, challenge.initiatingTeam.lineup.team.guildId, challenge.initiatingTeam.lineup.size, initiatingTeamUsers)
         await statsService.updateStats(interaction, challenge.challengedTeam.lineup.team.region, challenge.challengedTeam.lineup.team.guildId, challenge.challengedTeam.lineup.size, challengedTeamUsers)
     }
     else { //This is a mix vs mix match  
-        const lobbyName = `${teamService.formatTeamName(mixLineup, true)} #${Math.floor(Math.random() * 10000).toString().padStart(4, '0')}`
-        match.firstLineup = mixLineup
-        match.lobbyName = lobbyName
         await teamService.clearLineup(mixLineup.channelId, [1, 2])
         const allUsers = mixLineup.roles.map(role => role.user).filter(user => user)
-        let mixNextMatchEmbeds = await interactionUtils.createLineupEmbedsForNextMatch(interaction, mixLineup, null, lobbyName, lobbyPassword, responsibleUser, matchId)
-        let newMixLineup = teamService.createLineup(interaction.channelId, mixLineup.size, mixLineup.name, mixLineup.autoSearch, mixLineup.team, mixLineup.type, mixLineup.visibility)
+        const newMixLineup = teamService.createLineup(interaction.channelId, mixLineup.size, mixLineup.name, mixLineup.autoSearch, mixLineup.team, mixLineup.type, mixLineup.visibility)
         const reply = await interactionUtils.createReplyForLineup(interaction, newMixLineup)
-        reply.embeds = mixNextMatchEmbeds.concat(lobbyCreationEmbed).concat(reply.embeds)
         await interaction.channel.send(reply)
         await this.clearLineupQueue(mixLineup.channelId, [1, 2])
-        const team = await teamService.findTeamByGuildId(interaction.guildId)
-        await statsService.updateStats(interaction, team.region, team.guildId, newMixLineup.size, allUsers)
+        await statsService.updateStats(interaction, mixLineup.team.region, interaction.guildId, mixLineup.size, allUsers)
     }
-
-    await match.save()
 }
 
 exports.findTwoMostRelevantCaptainsIds = async (userIds) => {
@@ -515,18 +614,4 @@ exports.addSubToMatch = async (matchId, role) => {
             }
         }
     )
-}
-
-function isLineupAllowedToJoinQueue(lineup) {
-    let numberOfPlayersSigned = lineup.roles.filter(role => role.user != null).length
-    let lineupSize = lineup.isMixOrCaptains() ? lineup.size * 2 : lineup.size
-    let numberOfMissingPlayers = lineupSize - numberOfPlayersSigned
-    let missingRoleName = lineup.roles.find(role => role.user == null)?.name
-    return numberOfMissingPlayers == 0 || (lineup.size > 3 && (numberOfMissingPlayers == 1 && missingRoleName.includes('GK')))
-}
-
-async function freeLineupQueuesByChallengeIds(challengeIds) {
-    if (challengeIds.length > 0) {
-        await LineupQueue.updateMany({ 'challengeId': { $in: challengeIds } }, { challengeId: null })
-    }
 }
