@@ -106,7 +106,11 @@ async function notifyLineupForMatchReady(interaction, match, lobbyHost, lineup, 
         return
     }
 
-    const rolesWithDiscordUsers = await enhanceWithDiscordUsers(interaction.client, lineup.roles)
+    const rolesWithDiscordUsers = await enhanceWithDiscordUsers(
+        interaction.client,
+        opponentLineup
+            ? lineup.roles.filter(role => role.lineupNumber === 1)
+            : lineup.roles)
 
     let promises = []
     promises.push(notifyUsersForMatchReady(match, lobbyHost, rolesWithDiscordUsers, lineup, opponentLineup))
@@ -303,10 +307,10 @@ exports.challenge = async (interaction, lineupQueueIdToChallenge) => {
         return
     }
 
-    if (!this.isUserAllowedToInteractWithMatchmaking(interaction.user.id, lineup)) {
-        await interaction.reply({ content: `⛔ You must be in the lineup in order to challenge a team`, ephemeral: true })
-        return
-    }
+    // if (!this.isUserAllowedToInteractWithMatchmaking(interaction.user.id, lineup)) {
+    //     await interaction.reply({ content: `⛔ You must be in the lineup in order to challenge a team`, ephemeral: true })
+    //     return
+    // }
 
     if (!this.isLineupAllowedToJoinQueue(lineup)) {
         await interaction.reply({ content: '⛔ All outfield positions must be filled before challenging a team', ephemeral: true })
