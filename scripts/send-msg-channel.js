@@ -15,7 +15,7 @@ async function sendMessage() {
     await channel.send('Hello world')
 }
 
-sendMessage().then(async res => {
+sendMessage().finally(async res => {
     console.log("Message sent")
     await mongoose.disconnect()
     client.destroy()

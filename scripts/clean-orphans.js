@@ -112,7 +112,7 @@ async function cleanOrphanStats() {
   console.log(`Orphan stats deleted`)
 }
 
-cleanOrphans().then(async res => {
+cleanOrphans().finally(async res => {
   await mongoose.disconnect()
   client.destroy()
   process.exit()

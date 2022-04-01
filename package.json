@@ -2,7 +2,8 @@
     "scripts": {
         "dev": "nodemon index.js",
         "start": "node index.js",
-        "deploy-commands": "node scripts/deploy-commands.js"
+        "deploy-commands": "node scripts/deploy-commands.js",
+        "update-ban-list": "node scripts/update-ban-list.js"
     },
     "dependencies": {
         "@discordjs/builders": "^0.8.2",
