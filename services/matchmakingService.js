@@ -119,6 +119,19 @@ async function notifyLineupForMatchReady(interaction, match, lobbyHost, lineup, 
     return Promise.all(promises)
 }
 
+exports.updateBanList = async (client) => {
+    const banListEmbed = await interactionUtils.createBanListEmbed(client, process.env.PSO_EU_DISCORD_GUILD_ID)
+    const channel = await client.channels.fetch(process.env.PSO_EU_DISCORD_BANS_CHANNEL_ID)
+    const messages = await channel.messages.fetch({ limit: 1 })
+    if (messages.size === 0) {
+        await channel.send({ embeds: [banListEmbed] })
+    } else {
+        await messages.at(0).edit({ embeds: [banListEmbed] }).catch(
+            async (e) => { await channel.send({ embeds: [banListEmbed] }) }
+        )
+    }
+}
+
 exports.findLineupQueueByChannelId = async (channelId) => {
     return await LineupQueue.findOne({ 'lineup.channelId': channelId })
 }

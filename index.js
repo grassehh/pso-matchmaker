@@ -2,6 +2,8 @@ const fs = require('fs')
 const path = require('path')
 const { Client, Collection, Intents } = require('discord.js');
 const dotenv = require('dotenv');
+const cron = require('node-cron');
+const matchmakingService = require('./services/matchmakingService.js');
 __dirname = path.resolve();
 
 dotenv.config()
@@ -11,13 +13,13 @@ process.on('unhandledRejection', error => {
 });
 
 const client = new Client({
-    intents: [
-        Intents.FLAGS.GUILDS,
-        Intents.FLAGS.GUILD_MESSAGES,
+	intents: [
+		Intents.FLAGS.GUILDS,
+		Intents.FLAGS.GUILD_MESSAGES,
 		Intents.FLAGS.GUILD_PRESENCES
-    ],
+	],
 	allowedMentions: {
-		parse:  ['roles', 'users', 'everyone'],
+		parse: ['roles', 'users', 'everyone'],
 		repliedUser: false
 	}
 })
@@ -53,5 +55,7 @@ for (const file of eventFiles) {
 		client.on(event.name, (...args) => event.execute(...args));
 	}
 }
+
+cron.schedule('*/5 * * * * *', () => matchmakingService.updateBanList(client).catch(console.error));
 
 client.login(process.env.TOKEN)
