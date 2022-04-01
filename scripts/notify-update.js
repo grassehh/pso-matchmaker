@@ -30,7 +30,7 @@ async function notifyUpdate() {
     }))
 }
 
-notifyUpdate().then(async res => {
+notifyUpdate().finally(async res => {
     console.log("Notify update finished")
     await mongoose.disconnect()
     client.destroy()

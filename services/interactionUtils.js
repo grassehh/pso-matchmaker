@@ -350,6 +350,34 @@ exports.createInformationEmbed = (author, description) => {
         .setFooter(`Author: ${author.username}`)
 }
 
+exports.createBanListEmbed = async (client, guildId) => {
+    const banListEmbed = new MessageEmbed()
+        .setColor('#566573')
+        .setTitle(`Matchmaking Bans`)
+        .setTimestamp()
+    const bans = await teamService.findBansByGuildId(guildId)
+
+    if (bans.length === 0) {
+        banListEmbed.setDescription("✅ No user is banned")
+    } else {
+        for (let ban of bans) {
+            const [user] = await handle(client.users.fetch(ban.userId))
+            let username
+            if (!user) {
+                continue
+            }
+            username = user.username
+            let bansEmbedFieldValue = '*Permanent*'
+            if (ban.expireAt) {
+                bansEmbedFieldValue = ban.expireAt.toUTCString()
+            }
+            banListEmbed.addField(username, bansEmbedFieldValue)
+        }
+    }
+
+    return banListEmbed
+}
+
 exports.createLineupComponents = createLineupComponents
 
 function createLineupComponents(lineup, lineupQueue, challenge, selectedLineupNumber = 1) {
