@@ -271,9 +271,9 @@ exports.createLineupEmbed = (rolesWithDiscordUsers, opponentLineup) => {
         description += `**${roleWithDiscordUser.name}:** `
         if (roleWithDiscordUser.user) {
             if (roleWithDiscordUser.user.emoji) {
-                description += `${roleWithDiscordUser.user.emoji} `
+                description += roleWithDiscordUser.user.emoji
             }
-            if (roleWithDiscordUser.user.discordUser) {
+            if (roleWithDiscordUser.discordUser) {
                 description += `${roleWithDiscordUser.discordUser}`
             } else {
                 description += roleWithDiscordUser.user.name
