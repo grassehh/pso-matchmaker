@@ -320,10 +320,10 @@ exports.challenge = async (interaction, lineupQueueIdToChallenge) => {
         return
     }
 
-    // if (!this.isUserAllowedToInteractWithMatchmaking(interaction.user.id, lineup)) {
-    //     await interaction.reply({ content: `⛔ You must be in the lineup in order to challenge a team`, ephemeral: true })
-    //     return
-    // }
+    if (!this.isUserAllowedToInteractWithMatchmaking(interaction.user.id, lineup)) {
+        await interaction.reply({ content: `⛔ You must be in the lineup in order to challenge a team`, ephemeral: true })
+        return
+    }
 
     if (!this.isLineupAllowedToJoinQueue(lineup)) {
         await interaction.reply({ content: '⛔ All outfield positions must be filled before challenging a team', ephemeral: true })

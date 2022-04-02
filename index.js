@@ -56,6 +56,6 @@ for (const file of eventFiles) {
 	}
 }
 
-cron.schedule('*/5 * * * * *', () => matchmakingService.updateBanList(client).catch(console.error));
+cron.schedule('*/5 * * * *', () => matchmakingService.updateBanList(client).catch(console.error));
 
 client.login(process.env.TOKEN)
