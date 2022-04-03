@@ -83,10 +83,9 @@ async function notifyLineupsForUsersLeaving(interaction, rolesWithDiscordUsers, 
 
 async function notifyLineupChannelForMatchReady(interaction, match, lobbyHost, rolesWithDiscordUsers, lineup, opponentLineup) {
     let embeds = []
-    if (opponentLineup) {
-        embeds.push(interactionUtils.createLineupEmbed(rolesWithDiscordUsers.filter(role => role.lineupNumber === 1), opponentLineup))
-    } else {
-        embeds.push(interactionUtils.createLineupEmbed(rolesWithDiscordUsers.filter(role => role.lineupNumber === 1), opponentLineup))
+
+    embeds.push(interactionUtils.createLineupEmbed(rolesWithDiscordUsers.filter(role => role.lineupNumber === 1), opponentLineup))
+    if (!opponentLineup) {
         embeds.push(interactionUtils.createLineupEmbed(rolesWithDiscordUsers.filter(role => role.lineupNumber === 2), opponentLineup))
     }
 
@@ -460,41 +459,41 @@ exports.isMixOrCaptainsReadyToStart = async (lineup) => {
 }
 
 exports.checkForDuplicatedPlayers = async (interaction, firstLineup, secondLineup) => {
-    let firstLineupUsers
-    let secondLineupUsers
-    if (secondLineup) {
-        firstLineupUsers = firstLineup.roles.filter(role => role.lineupNumber === 1).map(role => role.user).filter(user => user)
-        secondLineupUsers = secondLineup.roles.map(role => role.user).filter(user => user)
-    } else {
-        firstLineupUsers = firstLineup.roles.filter(role => role.lineupNumber === 1).map(role => role.user).filter(user => user)
-        secondLineupUsers = firstLineup.roles.filter(role => role.lineupNumber === 2).map(role => role.user).filter(user => user)
-    }
+    // let firstLineupUsers
+    // let secondLineupUsers
+    // if (secondLineup) {
+    //     firstLineupUsers = firstLineup.roles.filter(role => role.lineupNumber === 1).map(role => role.user).filter(user => user)
+    //     secondLineupUsers = secondLineup.roles.map(role => role.user).filter(user => user)
+    // } else {
+    //     firstLineupUsers = firstLineup.roles.filter(role => role.lineupNumber === 1).map(role => role.user).filter(user => user)
+    //     secondLineupUsers = firstLineup.roles.filter(role => role.lineupNumber === 2).map(role => role.user).filter(user => user)
+    // }
 
-    let duplicatedUsers = firstLineupUsers.filter((user, index, self) =>
-        user.id !== MERC_USER_ID &&
-        secondLineupUsers.some((t) => (
-            t.id === user.id
-        ))
-    )
-    if (duplicatedUsers.length > 0) {
-        let description = 'The following players are signed in both teams. Please arrange with them before challenging: '
-        for (let duplicatedUser of duplicatedUsers) {
-            let discordUser = await interaction.client.users.fetch(duplicatedUser.id)
-            description += discordUser.toString() + ', '
-        }
-        description = description.substring(0, description.length - 2)
+    // let duplicatedUsers = firstLineupUsers.filter((user, index, self) =>
+    //     user.id !== MERC_USER_ID &&
+    //     secondLineupUsers.some((t) => (
+    //         t.id === user.id
+    //     ))
+    // )
+    // if (duplicatedUsers.length > 0) {
+    //     let description = 'The following players are signed in both teams. Please arrange with them before challenging: '
+    //     for (let duplicatedUser of duplicatedUsers) {
+    //         let discordUser = await interaction.client.users.fetch(duplicatedUser.id)
+    //         description += discordUser.toString() + ', '
+    //     }
+    //     description = description.substring(0, description.length - 2)
 
-        const duplicatedUsersEmbed = new MessageEmbed()
-            .setColor('#566573')
-            .setTitle(`⛔ Some players are signed in both teams !`)
-            .setDescription(description)
-            .setTimestamp()
-            .setFooter(`Author: ${interaction.user.username}`)
+    //     const duplicatedUsersEmbed = new MessageEmbed()
+    //         .setColor('#566573')
+    //         .setTitle(`⛔ Some players are signed in both teams !`)
+    //         .setDescription(description)
+    //         .setTimestamp()
+    //         .setFooter(`Author: ${interaction.user.username}`)
 
-        await interaction.channel.send({ embeds: [duplicatedUsersEmbed] })
-        await interaction.deferUpdate()
-        return true
-    }
+    //     await interaction.channel.send({ embeds: [duplicatedUsersEmbed] })
+    //     await interaction.deferUpdate()
+    //     return true
+    // }
 
     return false
 }

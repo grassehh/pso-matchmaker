@@ -354,7 +354,6 @@ exports.createBanListEmbed = async (client, guildId) => {
     const banListEmbed = new MessageEmbed()
         .setColor('#566573')
         .setTitle(`Matchmaking Bans`)
-        .setTimestamp()
     const bans = await teamService.findBansByGuildId(guildId)
 
     if (bans.length === 0) {
@@ -486,7 +485,7 @@ function createRolesComponent(lineup, selectedLineupNumber = 1) {
         let playerName = role.user ? role.user.name.substring(0, 60) : null
         actionRow.addComponents(
             new MessageButton()
-                .setCustomId(`role_${role.name}${selectedLineupNumber ? `_${selectedLineupNumber}` : ''}`)
+                .setCustomId(`role_${role.name}_${selectedLineupNumber}`)
                 .setLabel(role.user == null ? role.name : `${role.name}: ${playerName}`)
                 .setStyle('PRIMARY')
                 .setDisabled(role.user != null)
