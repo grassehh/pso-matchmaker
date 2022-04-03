@@ -14,7 +14,7 @@ module.exports = {
 
         const split = interaction.customId.split('_')
         const selectedRoleName = split[1]
-        const lineupNumber = lineup.isMix() ? parseInt(split[2]) : 1
+        const lineupNumber = parseInt(split[2])
         const selectedRole = lineup.roles.filter(role => role.lineupNumber === lineupNumber).find(role => role.name == selectedRoleName)
         const roleLeft = lineup.roles.find(role => role.user?.id === interaction.user.id)
 

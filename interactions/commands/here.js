@@ -26,8 +26,11 @@ module.exports = {
             return
         }
 
+        const reply = await interactionUtils.createReplyForLineup(interaction, lineup)
+        reply.content = "Wake up @everyone ! It's time to sign !"
+
         await teamService.updateLastNotificationTime(interaction.channelId, now)
-        await interaction.channel.send("Wake up @everyone ! It's time to sign !")
+        await interaction.channel.send(reply)
         await interaction.reply({ content: 'You notified everyone', ephemeral: true })
     }
 }
