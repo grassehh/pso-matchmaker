@@ -216,8 +216,9 @@ const statsSchema = new mongoose.Schema({
     }
 })
 exports.Stats = mongoose.model('Stats', statsSchema, 'stats')
-statsSchema.index({ userId: 1 }, { lineupSize: 1 });
-statsSchema.index({ region: 1 }, { guildId: 1 }, { lineupSize: 1 }, { userId: 1 });
+statsSchema.index({ userId: 1, lineupSize: 1 });
+statsSchema.index({ region: 1, lineupSize: 1 });
+statsSchema.index({ guildId: 1, lineupSize: 1 });
 
 const bansSchema = new mongoose.Schema({
     userId: {
