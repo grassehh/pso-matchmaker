@@ -95,6 +95,7 @@ module.exports = {
             }
         })
 
-        await interaction.reply({ content: `Type the name of the player you want to sign to the **${selectedMercRole}** position`, components: [], ephemeral: true })
+        await interaction.update({ components: [] })
+        await interaction.followUp({ content: `Type the name of the player you want to sign to the **${selectedMercRole}** position`, components: [], ephemeral: true })
     }
 }

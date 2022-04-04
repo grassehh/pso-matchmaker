@@ -28,7 +28,7 @@ module.exports = {
         let reply = await interactionUtils.createReplyForLineup(interaction, lineup, autoSearchResult.updatedLineupQueue)
         const embed = interactionUtils.createInformationEmbed(interaction.user, description)
         reply.embeds = (reply.embeds || []).concat(embed)
+        await interaction.update({ components: [] })
         await interaction.channel.send(reply)
-        await interaction.update({ components: [], ephemeral: true })
     }
 }
