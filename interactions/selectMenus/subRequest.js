@@ -25,6 +25,7 @@ module.exports = {
                 .setStyle('DANGER')
         )
 
-        await interaction.reply({ components: [subActionRow], embeds: [subRequestEmbed] })
+        await interaction.update({ content: 'Sub request sent !', components: [] })
+        await interaction.channel.send({ components: [subActionRow], embeds: [subRequestEmbed] })
     }
 }
