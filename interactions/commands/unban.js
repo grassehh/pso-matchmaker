@@ -8,9 +8,9 @@ module.exports = {
     data: new SlashCommandBuilder()
         .setName('unban')
         .setDescription('Unban a player from using the bot in this team')
-        .addStringOption(option => option.setName('player_mention')
+        .addStringOption(option => option.setName('player')
             .setRequired(true)
-            .setDescription('The mention of the player to unban. For example: @Player')),
+            .setDescription('The mention (@...) or the id of the player to ban. For example: @Player or 123456789012345678')),
     authorizedRoles: [authorizationService.BOT_ADMIN_ROLE],
     async execute(interaction) {
         let team = await teamService.findTeamByGuildId(interaction.guildId)
@@ -18,18 +18,22 @@ module.exports = {
             await interactionUtils.replyTeamNotRegistered(interaction)
             return
         }
-        const playerMention = interaction.options.getString('player_mention')
-        const userId = getUserIdFromMention(playerMention)
-        if (userId) {
-            const res = await teamService.deleteBanByUserIdAndGuildId(userId, team.guildId)
-            if (res.deletedCount === 0) {
-                await interaction.reply({ content: `⛔ User '${playerMention}' is not banned`, ephemeral: true })
-                return
-            }
-            await interaction.reply({ content: `✅ Player ${playerMention} is now unbanned`, ephemeral: true })
+
+        const player = interaction.options.getString('player')
+        let userId = player.includes('@') ? getUserIdFromMention(player) : player
+
+        const user = await interaction.client.users.resolve(userId)
+        if (!user) {
+            await interaction.reply({ content: `⛔ User '${player}' not found`, ephemeral: true })
             return
         }
 
-        await interaction.reply({ content: `⛔ User '${playerMention}' not found`, ephemeral: true })
+        const res = await teamService.deleteBanByUserIdAndGuildId(user.id, team.guildId)
+        if (res.deletedCount === 0) {
+            await interaction.reply({ content: `⛔ User **${user.username}** is not banned`, ephemeral: true })
+            return
+        }
+        await interaction.reply({ content: `✅ Player **${user.username}** is now unbanned`, ephemeral: true })
+        return
     }
 }
