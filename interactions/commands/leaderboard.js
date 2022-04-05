@@ -28,11 +28,7 @@ module.exports = {
                     {
                         label: '⛺ Region Stats',
                         value: `region,${team.region}`
-                    },
-                    {
-                        label: '👕 Team Stats',
-                        value: 'team',
-                    },
+                    }
                 ])
         )
 
@@ -40,8 +36,7 @@ module.exports = {
         const numberOfPlayers = await statsService.countNumberOfPlayers(team.region)
         const numberOfPages = Math.ceil(numberOfPlayers / statsService.DEFAULT_LEADERBOARD_PAGE_SIZE)
         const leaderboardEmbeds = await interactionUtils.createLeaderBoardEmbeds(interaction, numberOfPages, { region: team.region })
-        const leaderboardPaginationComponent = interactionUtils.createLeaderBoardPaginationComponent({ statsType: `region,${team.region}`, page: 0, lineupSizes: [] }, numberOfPages)
-        const lineupSizeComponent = interactionUtils.createLeaderBoardLineupSizeComponent(`region,${team.region}`)
-        await interaction.reply({ embeds: leaderboardEmbeds, components: [leaderboardPaginationComponent, globalLeaderboardComponent, lineupSizeComponent], ephemeral: true })
+        const leaderboardPaginationComponent = interactionUtils.createLeaderBoardPaginationComponent({ statsType: `region,${team.region}`, page: 0 }, numberOfPages)
+        await interaction.reply({ embeds: leaderboardEmbeds, components: [leaderboardPaginationComponent, globalLeaderboardComponent], ephemeral: true })
     }
 };

@@ -45,15 +45,11 @@ module.exports = {
                     {
                         label: '⛺ Region Stats',
                         value: `region,${team.region}`
-                    },
-                    {
-                        label: '👕 Team Stats',
-                        value: 'team',
                     }
                 ])
         )
 
-        let statsEmbeds = await interactionUtils.createStatsEmbeds(interaction, user.id)
+        let statsEmbeds = await interactionUtils.createStatsEmbeds(interaction, user.id, team.region)
         await interaction.reply({ embeds: statsEmbeds, components: [statsTypeComponent], ephemeral: true })
     }
 };
