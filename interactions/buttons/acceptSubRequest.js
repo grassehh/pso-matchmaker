@@ -52,6 +52,6 @@ module.exports = {
             }))
         }
 
-        statsService.updateStats(interaction, match.firstLineup.team.region, match.firstLineup.team.guildId, match.firstLineup.size, [interaction.user])
+        statsService.updateStats(interaction, match.firstLineup.team.region, match.firstLineup.size, [interaction.user])
     }
 }
