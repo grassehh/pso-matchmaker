@@ -459,41 +459,41 @@ exports.isMixOrCaptainsReadyToStart = async (lineup) => {
 }
 
 exports.checkForDuplicatedPlayers = async (interaction, firstLineup, secondLineup) => {
-    // let firstLineupUsers
-    // let secondLineupUsers
-    // if (secondLineup) {
-    //     firstLineupUsers = firstLineup.roles.filter(role => role.lineupNumber === 1).map(role => role.user).filter(user => user)
-    //     secondLineupUsers = secondLineup.roles.map(role => role.user).filter(user => user)
-    // } else {
-    //     firstLineupUsers = firstLineup.roles.filter(role => role.lineupNumber === 1).map(role => role.user).filter(user => user)
-    //     secondLineupUsers = firstLineup.roles.filter(role => role.lineupNumber === 2).map(role => role.user).filter(user => user)
-    // }
+    let firstLineupUsers
+    let secondLineupUsers
+    if (secondLineup) {
+        firstLineupUsers = firstLineup.roles.filter(role => role.lineupNumber === 1).map(role => role.user).filter(user => user)
+        secondLineupUsers = secondLineup.roles.map(role => role.user).filter(user => user)
+    } else {
+        firstLineupUsers = firstLineup.roles.filter(role => role.lineupNumber === 1).map(role => role.user).filter(user => user)
+        secondLineupUsers = firstLineup.roles.filter(role => role.lineupNumber === 2).map(role => role.user).filter(user => user)
+    }
 
-    // let duplicatedUsers = firstLineupUsers.filter((user, index, self) =>
-    //     user.id !== MERC_USER_ID &&
-    //     secondLineupUsers.some((t) => (
-    //         t.id === user.id
-    //     ))
-    // )
-    // if (duplicatedUsers.length > 0) {
-    //     let description = 'The following players are signed in both teams. Please arrange with them before challenging: '
-    //     for (let duplicatedUser of duplicatedUsers) {
-    //         let discordUser = await interaction.client.users.fetch(duplicatedUser.id)
-    //         description += discordUser.toString() + ', '
-    //     }
-    //     description = description.substring(0, description.length - 2)
+    let duplicatedUsers = firstLineupUsers.filter((user, index, self) =>
+        user.id !== MERC_USER_ID &&
+        secondLineupUsers.some((t) => (
+            t.id === user.id
+        ))
+    )
+    if (duplicatedUsers.length > 0) {
+        let description = 'The following players are signed in both teams. Please arrange with them before challenging: '
+        for (let duplicatedUser of duplicatedUsers) {
+            let discordUser = await interaction.client.users.fetch(duplicatedUser.id)
+            description += discordUser.toString() + ', '
+        }
+        description = description.substring(0, description.length - 2)
 
-    //     const duplicatedUsersEmbed = new MessageEmbed()
-    //         .setColor('#566573')
-    //         .setTitle(`⛔ Some players are signed in both teams !`)
-    //         .setDescription(description)
-    //         .setTimestamp()
-    //         .setFooter(`Author: ${interaction.user.username}`)
+        const duplicatedUsersEmbed = new MessageEmbed()
+            .setColor('#566573')
+            .setTitle(`⛔ Some players are signed in both teams !`)
+            .setDescription(description)
+            .setTimestamp()
+            .setFooter(`Author: ${interaction.user.username}`)
 
-    //     await interaction.channel.send({ embeds: [duplicatedUsersEmbed] })
-    //     await interaction.deferUpdate()
-    //     return true
-    // }
+        await interaction.channel.send({ embeds: [duplicatedUsersEmbed] })
+        await interaction.deferUpdate()
+        return true
+    }
 
     return false
 }
@@ -570,8 +570,8 @@ exports.readyMatch = async (interaction, challenge, mixLineup) => {
         }))
         await Promise.all(promises)
 
-        await statsService.updateStats(interaction, challenge.initiatingTeam.lineup.team.region, challenge.initiatingTeam.lineup.team.guildId, challenge.initiatingTeam.lineup.size, initiatingTeamUsers)
-        await statsService.updateStats(interaction, challenge.challengedTeam.lineup.team.region, challenge.challengedTeam.lineup.team.guildId, challenge.challengedTeam.lineup.size, challengedTeamUsers)
+        await statsService.updateStats(interaction, challenge.initiatingTeam.lineup.team.region, challenge.initiatingTeam.lineup.size, initiatingTeamUsers)
+        await statsService.updateStats(interaction, challenge.challengedTeam.lineup.team.region, challenge.challengedTeam.lineup.size, challengedTeamUsers)
     }
     else { //This is a mix vs mix match  
         await teamService.clearLineup(mixLineup.channelId, [1, 2])
@@ -580,7 +580,7 @@ exports.readyMatch = async (interaction, challenge, mixLineup) => {
         const reply = await interactionUtils.createReplyForLineup(interaction, newMixLineup)
         await interaction.channel.send(reply)
         await this.clearLineupQueue(mixLineup.channelId, [1, 2])
-        await statsService.updateStats(interaction, mixLineup.team.region, interaction.guildId, mixLineup.size, allUsers)
+        await statsService.updateStats(interaction, mixLineup.team.region, mixLineup.size, allUsers)
     }
 }
 
