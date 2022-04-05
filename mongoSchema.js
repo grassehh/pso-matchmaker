@@ -193,32 +193,26 @@ matchSchema.methods.findUserRole = function (user) {
 exports.Match = mongoose.model('Match', matchSchema, 'matches')
 
 const statsSchema = new mongoose.Schema({
-    region: {
-        type: String,
-        required: true
-    },
-    guildId: {
-        type: String,
-        required: true
-    },
-    lineupSize: {
-        type: Number,
-        required: true
-    },
     userId: {
+        type: String,
+        required: true
+    },
+    region: {
         type: String,
         required: true
     },
     numberOfGames: {
         type: Number,
-        required: true,
-        default: 0
+        required: true
+    },
+    numberOfRankedGames: {
+        type: Number,
+        required: true
     }
 })
 exports.Stats = mongoose.model('Stats', statsSchema, 'stats')
-statsSchema.index({ userId: 1, lineupSize: 1 });
-statsSchema.index({ region: 1, lineupSize: 1 });
-statsSchema.index({ guildId: 1, lineupSize: 1 });
+statsSchema.index({ userId: 1, region: 1 });
+statsSchema.index({ region: 1 });
 
 const bansSchema = new mongoose.Schema({
     userId: {

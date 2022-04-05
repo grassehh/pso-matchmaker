@@ -1,32 +1,29 @@
-const { PSO_EU_MINIMUM_LINEUP_SIZE_LEVELING, MERC_USER_ID } = require("../constants")
+const { MINIMUM_LINEUP_SIZE_FOR_RANKED, MERC_USER_ID } = require("../constants")
 const { Stats } = require("../mongoSchema")
 const { handle } = require("../utils")
 
 exports.DEFAULT_LEADERBOARD_PAGE_SIZE = 10
 
 function getLevelingRoleIdFromStats(userStats) {
-    if (userStats.numberOfGames >= 800) {
+    if (userStats.numberOfRankedGames >= 800) {
         return process.env.PSO_EU_DISCORD_VETERAN_ROLE_ID
     }
-    if (userStats.numberOfGames >= 250) {
+    if (userStats.numberOfRankedGames >= 250) {
         return process.env.PSO_EU_DISCORD_EXPERT_ROLE_ID
     }
-    if (userStats.numberOfGames >= 50) {
+    if (userStats.numberOfRankedGames >= 50) {
         return process.env.PSO_EU_DISCORD_CHALLENGER_ROLE_ID
     }
 
     return process.env.PSO_EU_DISCORD_BEGINNER_ROLE_ID
 }
 
-async function findElligibleStatsForLevelling(userIds) {
+async function findUsersStats(userIds) {
     return await Stats.aggregate([
         {
             $match: {
                 userId: {
                     $in: userIds
-                },
-                lineupSize: {
-                    $gte: PSO_EU_MINIMUM_LINEUP_SIZE_LEVELING
                 }
             }
         },
@@ -35,22 +32,25 @@ async function findElligibleStatsForLevelling(userIds) {
                 _id: '$userId',
                 numberOfGames: {
                     $sum: '$numberOfGames',
+                },
+                numberOfRankedGames: {
+                    $sum: '$numberOfRankedGames',
                 }
             }
         }
     ])
 }
 
-exports.getLevelEmojiFromMember = (member) => {        
+exports.getLevelEmojiFromMember = (member) => {
     if (member.roles.cache.some(role => role.id === process.env.PSO_EU_DISCORD_VETERAN_ROLE_ID)) {
         return '🔴 '
-    }    
+    }
     if (member.roles.cache.some(role => role.id === process.env.PSO_EU_DISCORD_EXPERT_ROLE_ID)) {
         return '🟣 '
-    }    
+    }
     if (member.roles.cache.some(role => role.id === process.env.PSO_EU_DISCORD_CHALLENGER_ROLE_ID)) {
         return '🟠 '
-    }    
+    }
     if (member.roles.cache.some(role => role.id === process.env.PSO_EU_DISCORD_BEGINNER_ROLE_ID)) {
         return '🟡 '
     }
@@ -58,21 +58,11 @@ exports.getLevelEmojiFromMember = (member) => {
     return ''
 }
 
-exports.countNumberOfPlayers = async (region, guildId, lineupSizes = []) => {
-    let match = {}
-    if (region) {
-        match.region = region
-    }
-    if (guildId) {
-        match.guildId = guildId
-    }
-    if (lineupSizes.length > 0) {
-        match.lineupSize = { $in: lineupSizes.map(size => parseInt(size)) }
-    }
-    return (await Stats.distinct('userId', match)).length
+exports.countNumberOfPlayers = async (region) => {
+    return (await Stats.distinct('userId', region ? { region } : {})).length
 }
 
-exports.findStats = async (userId, region, guildId, page, size, lineupSizes = []) => {
+exports.findStats = async (userId, region, page, size) => {
     let skip = page * size
     let pipeline = []
 
@@ -85,14 +75,6 @@ exports.findStats = async (userId, region, guildId, page, size, lineupSizes = []
         match.region = region
     }
 
-    if (guildId) {
-        match.guildId = guildId
-    }
-
-    if (lineupSizes.length > 0) {
-        match.lineupSize = { $in: lineupSizes.map(size => parseInt(size)) }
-    }
-
     pipeline.push({ $match: match })
 
     if (userId) {
@@ -101,7 +83,10 @@ exports.findStats = async (userId, region, guildId, page, size, lineupSizes = []
                 $group: {
                     _id: null,
                     numberOfGames: {
-                        $sum: '$numberOfGames',
+                        $sum: '$numberOfGames'
+                    },
+                    numberOfRankedGames: {
+                        $sum: '$numberOfRankedGames'
                     }
                 }
             })
@@ -111,12 +96,15 @@ exports.findStats = async (userId, region, guildId, page, size, lineupSizes = []
                 $group: {
                     _id: '$userId',
                     numberOfGames: {
-                        $sum: '$numberOfGames',
+                        $sum: '$numberOfGames'
+                    },
+                    numberOfRankedGames: {
+                        $sum: '$numberOfRankedGames'
                     }
                 }
             },
             {
-                $sort: { 'numberOfGames': -1 },
+                $sort: { 'numberOfRankedGames': -1 },
             },
             {
                 $skip: skip
@@ -129,26 +117,26 @@ exports.findStats = async (userId, region, guildId, page, size, lineupSizes = []
     return await Stats.aggregate(pipeline)
 }
 
-exports.updateStats = async (interaction, region, guildId, lineupSize, users) => {
-    notMercUsers = users.filter(user => user?.id !== MERC_USER_ID)
+exports.updateStats = async (interaction, region, lineupSize, users) => {
+    const notMercUsers = users.filter(user => user?.id !== MERC_USER_ID)
     if (notMercUsers.length === 0) {
         return
     }
 
-    let bulks = notMercUsers.map((user) => ({
+    const bulks = notMercUsers.map((user) => ({
         updateOne: {
             filter: {
                 region,
-                guildId,
-                lineupSize,
                 'userId': user.id
             },
             update: {
-                $inc: { numberOfGames: 1 },
+                $inc: {
+                    numberOfGames: 1,
+                    numberOfRankedGames: lineupSize >= MINIMUM_LINEUP_SIZE_FOR_RANKED ? 1 : 0
+                },
                 $setOnInsert: {
-                    region,
-                    guildId,
-                    userId: user.id
+                    userId: user.id,
+                    region
                 },
             },
             upsert: true
@@ -156,13 +144,13 @@ exports.updateStats = async (interaction, region, guildId, lineupSize, users) =>
     }))
     await Stats.bulkWrite(bulks)
 
-    if (region === 'EU' && lineupSize >= PSO_EU_MINIMUM_LINEUP_SIZE_LEVELING) {
+    if (region === 'EU' && lineupSize >= MINIMUM_LINEUP_SIZE_FOR_RANKED) {
         const psoEuGuild = await interaction.client.guilds.fetch(process.env.PSO_EU_DISCORD_GUILD_ID)
-        const allElligibleStats = await findElligibleStatsForLevelling(notMercUsers.map(user => user.id))
+        const usersStats = await findUsersStats(notMercUsers.map(user => user.id))
 
-        await Promise.all(allElligibleStats.map(async elligibleStats => {
-            const levelingRoleId = getLevelingRoleIdFromStats(elligibleStats)
-            const [member] = await handle(psoEuGuild.members.fetch(elligibleStats._id))
+        await Promise.all(usersStats.map(async userStats => {
+            const levelingRoleId = getLevelingRoleIdFromStats(userStats)
+            const [member] = await handle(psoEuGuild.members.fetch(userStats._id))
             if (member) {
                 await handle(member.roles.add(levelingRoleId))
                 if (levelingRoleId === process.env.PSO_EU_DISCORD_CHALLENGER_ROLE_ID) {
