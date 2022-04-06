@@ -1,4 +1,5 @@
 const { MessageActionRow, MessageButton, MessageEmbed } = require("discord.js");
+const matchmakingService = require("../../services/matchmakingService");
 
 module.exports = {
     customId: 'subRequest_select_',
@@ -6,10 +7,14 @@ module.exports = {
         const matchId = interaction.customId.split('_')[2]
         const position = interaction.values[0]
 
+        const match = await matchmakingService.findMatchByMatchId(matchId)
+
         const subRequestEmbed = new MessageEmbed()
             .setColor('#6aa84f')
             .setTitle("📣 A sub is required !")
-            .setDescription(`Position: **${position}**\n*Accepting a sub request commits you to play. Doing otherwise can result in warns/bans.*`)
+            .addField('Format', `${match.firstLineup.size}v${match.firstLineup.size}`, true)
+            .addField('Position', position, true)
+            .setDescription('*Accepting a sub request commits you to play. Doing otherwise can result in warns/bans*')
             .setTimestamp()
             .setFooter(`Author: ${interaction.user.username}`)
         const subActionRow = new MessageActionRow()
