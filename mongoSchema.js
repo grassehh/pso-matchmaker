@@ -183,11 +183,14 @@ const matchSchema = new mongoose.Schema({
 matchSchema.index({ schedule: 1 }, { expireAfterSeconds: 4 * 60 * 60 });
 matchSchema.methods.findUserRole = function (user) {
     const existingUserInSubs = this.subs.filter(role => role.user).find(role => role.user.id === user.id)
-    const existingUserInFirstLineup = this.firstLineup.roles.filter(role => role.user).find(role => role.user.id === user.id)
+    let existingUserInFirstLineup
     let existingUserInSecondLineup
     if (this.secondLineup) {
-        existingUserInSecondLineup = this.secondLineup.roles.filter(role => role.user).find(role => role.user.id === user.id)
-    }
+        existingUserInFirstLineup = this.firstLineup.roles.filter(role => role.lineupNumber === 1).filter(role => role.user).find(role => role.user.id === user.id)
+        existingUserInSecondLineup = this.secondLineup.roles.filter(role => role.lineupNumber === 1).filter(role => role.user).find(role => role.user.id === user.id)
+    } else {
+        existingUserInFirstLineup = this.firstLineup.roles.filter(role => role.user).find(role => role.user.id === user.id)
+    }    
     return [existingUserInSubs, existingUserInFirstLineup, existingUserInSecondLineup].find(user => user)
 }
 exports.Match = mongoose.model('Match', matchSchema, 'matches')
