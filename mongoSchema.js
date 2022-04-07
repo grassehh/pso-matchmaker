@@ -48,6 +48,25 @@ const lineupSchema = new mongoose.Schema({
         ],
         required: true
     },
+    benchRoles: {
+        type: [
+            {
+                name: {
+                    type: String,
+                    required: true
+                },
+                user: {
+                    type: Object,
+                    required: false
+                },
+                lineupNumber: {
+                    type: Number,
+                    required: true
+                }
+            }
+        ],
+        required: true
+    },
     name: {
         type: String,
         required: false,
@@ -190,7 +209,7 @@ matchSchema.methods.findUserRole = function (user) {
         existingUserInSecondLineup = this.secondLineup.roles.filter(role => role.lineupNumber === 1).filter(role => role.user).find(role => role.user.id === user.id)
     } else {
         existingUserInFirstLineup = this.firstLineup.roles.filter(role => role.user).find(role => role.user.id === user.id)
-    }    
+    }
     return [existingUserInSubs, existingUserInFirstLineup, existingUserInSecondLineup].find(user => user)
 }
 exports.Match = mongoose.model('Match', matchSchema, 'matches')

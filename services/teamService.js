@@ -157,6 +157,21 @@ exports.removeUserFromLineup = async (channelId, userId) => {
     return await Lineup.findOneAndUpdate({ channelId, 'roles.user.id': userId, }, { "$set": { "roles.$.user": null } }, { new: true })
 }
 
+exports.addUserToBench = async (channelId, roleName, user, selectedLineup = 1) => {
+    return await Lineup.updateOne(
+        {
+            channelId
+        },
+        {
+            "$push": {
+                name: roleName,
+                user,
+                lineupNumber: selectedLineup
+            }
+        }
+    )
+}
+
 exports.addUserToLineup = async (channelId, roleName, user, selectedLineup = 1) => {
     return await Lineup.findOneAndUpdate(
         {

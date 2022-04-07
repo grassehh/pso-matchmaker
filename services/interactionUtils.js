@@ -377,6 +377,15 @@ function createLineupComponents(lineup, lineupQueue, challenge, selectedLineupNu
             .setDisabled(numberOfMissingPlayers === 0)
             .setStyle('SECONDARY')
     )
+    if (!challenge) {
+        lineupActionsRow.addComponents(
+            new MessageButton()
+                .setCustomId(`bench_${selectedLineupNumber}`)
+                .setLabel('Bench a position')
+                .setDisabled(numberOfSignedPlayers === 0)
+                .setStyle('SECONDARY')
+        )
+    }
     components.push(lineupActionsRow)
 
     return components
