@@ -40,7 +40,7 @@ async function enhanceWithDiscordUsers(client, roles) {
     return Promise.all(promises)
 }
 
-async function notifyUsersForMatchReady(match, lobbyHost, rolesWithDiscordUsers, lineup, opponentLineup) {
+async function notifyUsersForMatchReady(match, lobbyHost, rolesWithDiscordUsers, opponentLineup) {
     const promises = rolesWithDiscordUsers.map(async (role) => {
         if (!role.discordUser) {
             return
@@ -117,7 +117,7 @@ async function notifyLineupForMatchReady(interaction, match, lobbyHost, lineup, 
             : lineup.roles)
 
     let promises = []
-    promises.push(notifyUsersForMatchReady(match, lobbyHost, rolesWithDiscordUsers, lineup, opponentLineup))
+    promises.push(notifyUsersForMatchReady(match, lobbyHost, rolesWithDiscordUsers, opponentLineup))
     promises.push(notifyLineupsForUsersLeaving(interaction, rolesWithDiscordUsers, lineup))
     promises.push(notifyLineupChannelForMatchReady(interaction, match, lobbyHost, rolesWithDiscordUsers, lineup, opponentLineup))
     return Promise.all(promises)
