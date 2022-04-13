@@ -166,7 +166,9 @@ exports.createStatsEmbeds = async (interaction, userId, region) => {
         .setColor('#566573')
         .setTitle(`${region ? '⛺ Region' : '🌎 Global'} Stats`)
         .setTimestamp()
-        .setDescription(user.toString())
+        .setDescription(`Stats are displayed in the following way: 'Player - RankedGames *(TotalGames)*'
+                        Ranked Games are matches played with a format of 5v5 or more.
+                        ${user.toString()}`)
         .setFooter(`Author: ${interaction.user.username}`)
     statsEmbed.addField('🏆 Ranked Games Played', stats.numberOfRankedGames.toString())
     statsEmbed.addField('⚽ Total Games Played', stats.numberOfGames.toString())
@@ -259,10 +261,10 @@ exports.createLineupEmbed = (rolesWithDiscordUsers, opponentLineup) => {
             if (roleWithDiscordUser.user.emoji) {
                 description += roleWithDiscordUser.user.emoji
             }
+            
+            description += roleWithDiscordUser.user.name
             if (roleWithDiscordUser.discordUser) {
-                description += `${roleWithDiscordUser.discordUser}`
-            } else {
-                description += roleWithDiscordUser.user.name
+                description += ` *(${roleWithDiscordUser.discordUser})*`
             }
         }
         description += '\n'

@@ -46,17 +46,22 @@ async function notifyUsersForMatchReady(match, lobbyHost, rolesWithDiscordUsers,
             return
         }
 
-        const opponentTeamName = opponentLineup ? teamService.formatTeamName(opponentLineup) : `${role.lineupNumber === 1 ? 'Blue Team' : 'Red Team'}`
-
-        const playerDmEmbed = new MessageEmbed()
+        let embeds = []
+        embeds.push(new MessageEmbed()
             .setColor('#6aa84f')
             .setTitle(`⚽ Match Ready ⚽`)
-            .setDescription(`You are playing${lineup.isCaptains() && !role.name.includes('GK') ? ' ' : ` **${role.name}** `}against **${opponentTeamName}**\n*If you need a sub, please type **/request_sub** followed by the match id **${match.matchId}***`)
-            .addField('Lobby Name', `${match.lobbyName}`)
-            .addField('Lobby Password', `${match.lobbyPassword}`)
-            .addField('Lobby Host', `${lobbyHost}`)
-            .setTimestamp()
-        await handle(role.discordUser.send({ embeds: [playerDmEmbed] }))
+            .setDescription(`**Please join the match as soon as possible**\nThe lobby can be found in the **"Custom Lobbies"** menu of the game\n\n*If you need a sub, please type **/request_sub** followed by the match id **${match.matchId}***`)
+            .addField('Lobby Name', `${match.lobbyName}`, true)
+            .addField('Lobby Password', `${match.lobbyPassword}`, true)
+            .addField('Lobby Host', `${lobbyHost.username}`, true)
+            .setTimestamp())
+
+        embeds.push(interactionUtils.createLineupEmbed(rolesWithDiscordUsers.filter(role => role.lineupNumber === 1), opponentLineup))
+        if (!opponentLineup) {
+            embeds.push(interactionUtils.createLineupEmbed(rolesWithDiscordUsers.filter(role => role.lineupNumber === 2), opponentLineup))
+        }
+
+        await handle(role.discordUser.send({ embeds }))
     })
 
     return Promise.all(promises)
@@ -93,7 +98,7 @@ async function notifyLineupChannelForMatchReady(interaction, match, lobbyHost, r
         .setColor('#6aa84f')
         .setTitle(`${opponentLineup ? '⚽ Challenge Accepted ⚽' : '⚽ Match Ready ⚽'}`)
         .setTimestamp()
-        .setDescription(`**${lobbyHost} is responsible of creating the lobby**\nEach player received the lobby information in private message\n\n*If you need a sub, please type **/request_sub** followed by the match id **${match.matchId}***`)
+        .setDescription(`**${lobbyHost.username}** is responsible of creating the lobby\nPlease check your direct messages to find the lobby information\n\n*If you need a sub, please type **/request_sub** followed by the match id **${match.matchId}***`)
     embeds.push(matchReadyEmbed)
 
     const channel = await interaction.client.channels.fetch(lineup.channelId)
@@ -503,7 +508,7 @@ exports.removeUserFromAllLineupQueues = removeUserFromAllLineupQueues
 exports.readyMatch = async (interaction, challenge, mixLineup) => {
     const firstLineup = challenge ? await teamService.retrieveLineup(challenge.initiatingTeam.lineup.channelId) : mixLineup
     const secondLineup = challenge ? await teamService.retrieveLineup(challenge.challengedTeam.lineup.channelId) : undefined
-    const lobbyHost = await interaction.client.users.fetch(challenge ? challenge.initiatingUser.id : interaction.user)
+    const lobbyHost = challenge ? await interaction.client.users.fetch(challenge.initiatingUser.id) : interaction.user
     const lobbyName = challenge
         ? `${teamService.formatTeamName(challenge.initiatingTeam.lineup)} vs. ${teamService.formatTeamName(challenge.challengedTeam.lineup)}`
         : `${teamService.formatTeamName(mixLineup, true)} #${Math.floor(Math.random() * 10000).toString().padStart(4, '0')}`
