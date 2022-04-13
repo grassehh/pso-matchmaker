@@ -38,9 +38,9 @@ module.exports = {
         const playerDmEmbed = new MessageEmbed()
             .setColor('#6aa84f')
             .setTitle(`⚽ Sub Request Accepted ⚽`)
-            .setDescription(`You are playing **${position}**\n*If you need a sub, please type **/request_sub** followed by the match id **${matchId}***`)
-            .addField('Lobby Name', `${match.lobbyName}`)
-            .addField('Lobby Password', `${match.lobbyPassword}`)
+            .setDescription(`You are playing **${position}**\n\n*If you need a sub, please type **/request_sub** followed by the match id **${matchId}***`)
+            .addField('Lobby Name', `${match.lobbyName}`, true)
+            .addField('Lobby Password', `${match.lobbyPassword}`, true)
             .setTimestamp()
         await interaction.user.send({ embeds: [playerDmEmbed] })
 
