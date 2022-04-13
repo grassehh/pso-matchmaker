@@ -50,7 +50,7 @@ async function notifyUsersForMatchReady(match, lobbyHost, rolesWithDiscordUsers,
         embeds.push(new MessageEmbed()
             .setColor('#6aa84f')
             .setTitle(`⚽ Match Ready ⚽`)
-            .setDescription(`**Please join the match as soon as possible**\nThe lobby can be found in the **"Custom Lobbies"** menu of the game\n\n*If you need a sub, please type **/request_sub** followed by the match id **${match.matchId}***`)
+            .setDescription(`**Please join the match as soon as possible**\nThe lobby can be found in the **"Custom Lobbies"** menu of the game\n*If you need a sub, please type **/request_sub** followed by the match id **${match.matchId}***\n\n`)
             .addField('Lobby Name', `${match.lobbyName}`, true)
             .addField('Lobby Password', `${match.lobbyPassword}`, true)
             .addField('Lobby Host', `${lobbyHost.username}`, true)

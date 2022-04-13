@@ -166,9 +166,7 @@ exports.createStatsEmbeds = async (interaction, userId, region) => {
         .setColor('#566573')
         .setTitle(`${region ? '⛺ Region' : '🌎 Global'} Stats`)
         .setTimestamp()
-        .setDescription(`Stats are displayed in the following way: 'Player - RankedGames *(TotalGames)*'
-                        Ranked Games are matches played with a format of 5v5 or more.
-                        ${user.toString()}`)
+        .setDescription(`Ranked Games are matches played with a format of 5v5 or more\n${user.toString()}`)
         .setFooter(`Author: ${interaction.user.username}`)
     statsEmbed.addField('🏆 Ranked Games Played', stats.numberOfRankedGames.toString())
     statsEmbed.addField('⚽ Total Games Played', stats.numberOfGames.toString())
