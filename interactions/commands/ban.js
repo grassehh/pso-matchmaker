@@ -12,6 +12,9 @@ module.exports = {
         .addStringOption(option => option.setName('player')
             .setRequired(true)
             .setDescription('The mention (@...) or the id of the player to ban. For example: @Player or 123456789012345678'))
+        .addStringOption(option => option.setName('reason')
+            .setRequired(false)
+            .setDescription('The reason of the ban'))
         .addIntegerOption(option => option.setName('duration')
             .setRequired(false)
             .setDescription('The duration of the ban in days. A value of -1 means unlimited ban. (Default value is 1)')),
@@ -47,6 +50,7 @@ module.exports = {
             return
         }
 
+        const reason = interaction.options.getString('reason');
         const now = Date.now()
         let expireAt = null
         if (duration > 0) {
@@ -54,7 +58,7 @@ module.exports = {
         } else if (duration != -1) {
             expireAt = now + 24 * 60 * 60 * 1000
         }
-        await Bans.updateOne({ userId: user.id, guildId: team.guildId }, { userId: user.id, expireAt }, { upsert: true })
+        await Bans.updateOne({ userId: user.id, guildId: team.guildId }, { userId: user.id, reason, expireAt }, { upsert: true })
 
         let formattedDate
         if (expireAt) {

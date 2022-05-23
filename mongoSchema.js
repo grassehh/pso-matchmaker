@@ -226,6 +226,10 @@ const bansSchema = new mongoose.Schema({
         type: String,
         required: true
     },
+    reason: {
+        type: String,
+        required: false
+    },
     expireAt: {
         type: Date,
         required: false
