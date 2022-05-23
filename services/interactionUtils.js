@@ -300,6 +300,9 @@ exports.createBanListEmbed = async (client, guildId) => {
             if (ban.expireAt) {
                 bansEmbedFieldValue = ban.expireAt.toUTCString()
             }
+            if (ban.reason) {
+                bansEmbedFieldValue += `***(Reason: ${ban.reason})***`
+            }
             banListEmbed.addField(username, bansEmbedFieldValue)
         }
     }
