@@ -9,13 +9,13 @@ function getLevelingRoleIdFromStats(userStats) {
         return process.env.PSO_EU_DISCORD_VETERAN_ROLE_ID
     }
     if (userStats.numberOfRankedGames >= 250) {
-        return process.env.PSO_EU_DISCORD_EXPERT_ROLE_ID
+        return process.env.PSO_EU_DISCORD_SENIOR_ROLE_ID
     }
-    if (userStats.numberOfRankedGames >= 50) {
-        return process.env.PSO_EU_DISCORD_CHALLENGER_ROLE_ID
+    if (userStats.numberOfRankedGames >= 25) {
+        return process.env.PSO_EU_DISCORD_REGULAR_ROLE_ID
     }
 
-    return process.env.PSO_EU_DISCORD_BEGINNER_ROLE_ID
+    return process.env.PSO_EU_DISCORD_CASUAL_ROLE_ID
 }
 
 async function findUsersStats(userIds) {
@@ -45,13 +45,13 @@ exports.getLevelEmojiFromMember = (member) => {
     if (member.roles.cache.some(role => role.id === process.env.PSO_EU_DISCORD_VETERAN_ROLE_ID)) {
         return '🔴 '
     }
-    if (member.roles.cache.some(role => role.id === process.env.PSO_EU_DISCORD_EXPERT_ROLE_ID)) {
+    if (member.roles.cache.some(role => role.id === process.env.PSO_EU_DISCORD_SENIOR_ROLE_ID)) {
         return '🟣 '
     }
-    if (member.roles.cache.some(role => role.id === process.env.PSO_EU_DISCORD_CHALLENGER_ROLE_ID)) {
+    if (member.roles.cache.some(role => role.id === process.env.PSO_EU_DISCORD_REGULAR_ROLE_ID)) {
         return '🟠 '
     }
-    if (member.roles.cache.some(role => role.id === process.env.PSO_EU_DISCORD_BEGINNER_ROLE_ID)) {
+    if (member.roles.cache.some(role => role.id === process.env.PSO_EU_DISCORD_CASUAL_ROLE_ID)) {
         return '🟡 '
     }
 
@@ -153,12 +153,12 @@ exports.updateStats = async (interaction, region, lineupSize, users) => {
             const [member] = await handle(psoEuGuild.members.fetch(userStats._id))
             if (member) {
                 await handle(member.roles.add(levelingRoleId))
-                if (levelingRoleId === process.env.PSO_EU_DISCORD_CHALLENGER_ROLE_ID) {
-                    await handle(member.roles.remove(process.env.PSO_EU_DISCORD_BEGINNER_ROLE_ID))
-                } else if (levelingRoleId === process.env.PSO_EU_DISCORD_EXPERT_ROLE_ID) {
-                    await handle(member.roles.remove(process.env.PSO_EU_DISCORD_CHALLENGER_ROLE_ID))
+                if (levelingRoleId === process.env.PSO_EU_DISCORD_REGULAR_ROLE_ID) {
+                    await handle(member.roles.remove(process.env.PSO_EU_DISCORD_CASUAL_ROLE_ID))
+                } else if (levelingRoleId === process.env.PSO_EU_DISCORD_SENIOR_ROLE_ID) {
+                    await handle(member.roles.remove(process.env.PSO_EU_DISCORD_REGULAR_ROLE_ID))
                 } else if (levelingRoleId === process.env.PSO_EU_DISCORD_VETERAN_ROLE_ID) {
-                    await handle(member.roles.remove(process.env.PSO_EU_DISCORD_EXPERT_ROLE_ID))
+                    await handle(member.roles.remove(process.env.PSO_EU_DISCORD_SENIOR_ROLE_ID))
                 }
             }
         }))
