@@ -10,10 +10,12 @@ module.exports = {
         .addStringOption(option => option.setName('region')
             .setRequired(true)
             .setDescription('The region of your team')
-            .addChoice('Europe', 'EU')
-            .addChoice('North America', 'NA')
-            .addChoice('South America', 'SA')
-            .addChoice('East Asia', 'AS')
+            .addChoices(
+                { name: 'Europe', value: 'EU' },
+                { name: 'North America', value: 'NA' },
+                { name: 'South America', value: 'SA' },
+                { name: 'East Asia', value: 'AS' }
+            )
         ),
     authorizedRoles: [authorizationService.BOT_ADMIN_ROLE],
     async execute(interaction) {

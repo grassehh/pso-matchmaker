@@ -10,7 +10,7 @@ module.exports = {
         const match = await matchmakingService.findMatchByMatchId(matchId)
 
         const subRequestEmbed = new MessageEmbed()
-            .setColor('#6aa84f')
+            .setColor('#566573')
             .setTitle("📣 A sub is required !")
             .addField('Format', `${match.firstLineup.size}v${match.firstLineup.size}`, true)
             .addField('Position', position, true)

@@ -30,7 +30,7 @@ module.exports = {
         })
 
         const embed = interaction.message.embeds[0]
-        embed.color = '#ed4245'
+        embed.color = '#6aa84f'
         embed.title = `~~${embed.title}~~`
         embed.description = `~~${embed.description}~~\n${interaction.user} accepted the request`
         await interaction.message.edit({ components: [], embeds: [embed] })
