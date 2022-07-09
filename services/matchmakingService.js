@@ -493,7 +493,7 @@ exports.checkForDuplicatedPlayers = async (interaction, firstLineup, secondLineu
             .setTitle(`⛔ Some players are signed in both teams !`)
             .setDescription(description)
             .setTimestamp()
-            .setFooter(`Author: ${interaction.user.username}`)
+            .setFooter({ text: `Author: ${interaction.user.username}` })
 
         await interaction.channel.send({ embeds: [duplicatedUsersEmbed] })
         await interaction.deferUpdate()
