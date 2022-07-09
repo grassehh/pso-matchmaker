@@ -15,10 +15,12 @@ module.exports = {
         .addStringOption(option => option.setName('team_region')
             .setRequired(true)
             .setDescription('The region of your team')
-            .addChoice('Europe', 'EU')
-            .addChoice('North America', 'NA')
-            .addChoice('South America', 'SA')
-            .addChoice('East Asia', 'AS')
+            .addChoices(
+                { name: 'Europe', value: 'EU' },
+                { name: 'North America', value: 'NA' },
+                { name: 'South America', value: 'SA' },
+                { name: 'East Asia', value: 'AS' }
+            )
         ),
     authorizedRoles: [authorizationService.BOT_ADMIN_ROLE],
     async execute(interaction) {
@@ -30,7 +32,7 @@ module.exports = {
             })
             return
         }
-        
+
         const name = interaction.options.getString('team_name')
         if (!teamService.validateTeamName(name)) {
             await interaction.reply({

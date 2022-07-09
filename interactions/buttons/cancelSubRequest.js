@@ -19,8 +19,9 @@ module.exports = {
         }
 
         const embed = interaction.message.embeds[0]
+        embed.color = '#ed4245'
         embed.title = `~~${embed.title}~~`
         embed.description = `~~${embed.description}~~\n${interaction.user} cancelled the request`
-        await interaction.message.delete()
+        await interaction.message.edit({ components: [], embeds: [embed] })
     }
 }
