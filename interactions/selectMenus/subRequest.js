@@ -16,7 +16,7 @@ module.exports = {
             .addField('Position', position, true)
             .setDescription('*Accepting a sub request commits you to play. Doing otherwise can result in warns/bans*')
             .setTimestamp()
-            .setFooter(`Author: ${interaction.user.username}`)
+            .setFooter({ text: `Author: ${interaction.user.username}` })
         const subActionRow = new MessageActionRow()
 
         subActionRow.addComponents(

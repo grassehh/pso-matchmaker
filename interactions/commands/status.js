@@ -38,7 +38,7 @@ module.exports = {
         let lineupStatusEmbed = new MessageEmbed()
             .setColor('#566573')
             .setTimestamp()
-            .setFooter(`Author: ${interaction.user.username}`)
+            .setFooter({ text: `Author: ${interaction.user.username}` })
 
         if (challenge) {
             if (challenge.challengedTeam.lineup.isMix()) {

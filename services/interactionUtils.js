@@ -50,7 +50,7 @@ exports.replyLineupNotSetup = async (interaction) => {
 exports.createCancelChallengeReply = (interaction, challenge) => {
     let embed = new MessageEmbed()
         .setColor('#566573')
-        .setFooter(`Author: ${interaction.user.username}`)
+        .setFooter({ text: `Author: ${interaction.user.username}` })
         .setTimestamp()
 
     if (challenge.challengedTeam.lineup.isMix()) {
@@ -82,7 +82,7 @@ exports.createDecideChallengeReply = (interaction, challenge) => {
             .setColor('#566573')
             .setTitle(`A team wants to play against you !`)
             .setTimestamp()
-            .setFooter(`Author: ${interaction.user.username}`)
+            .setFooter({ text: `Author: ${interaction.user.username}` })
         description += `\n${challenge.initiatingTeam.lineup.roles.filter(role => role.user != null).length} players signed`
         if (!teamService.hasGkSigned(challenge.initiatingTeam.lineup)) {
             description += ' **(no GK)**'
@@ -165,9 +165,7 @@ exports.createStatsEmbeds = async (interaction, userId, region) => {
     const statsEmbed = new MessageEmbed()
         .setColor('#566573')
         .setTitle(`${region ? '⛺ Region' : '🌎 Global'} Stats`)
-        .setTimestamp()
         .setDescription(`Ranked Games are matches played with a format of 5v5 or more\n${user.toString()}`)
-        .setFooter(`Author: ${interaction.user.username}`)
     statsEmbed.addField('🏆 Ranked Games Played', stats.numberOfRankedGames.toString())
     statsEmbed.addField('⚽ Total Games Played', stats.numberOfGames.toString())
 
@@ -259,7 +257,7 @@ exports.createLineupEmbed = (rolesWithDiscordUsers, opponentLineup) => {
             if (roleWithDiscordUser.user.emoji) {
                 description += roleWithDiscordUser.user.emoji
             }
-            
+
             description += roleWithDiscordUser.user.name
             if (roleWithDiscordUser.discordUser) {
                 description += ` *(${roleWithDiscordUser.discordUser})*`
@@ -277,7 +275,7 @@ exports.createInformationEmbed = (author, description) => {
         .setColor('#566573')
         .setTimestamp()
         .setDescription(description)
-        .setFooter(`Author: ${author.username}`)
+        .setFooter({ text: `Author: ${author.username}` })
 }
 
 exports.createBanListEmbed = async (client, guildId) => {
@@ -466,7 +464,7 @@ function createReplyForMixLineup(lineup, challengingLineup) {
         secondLineupEmbed = new MessageEmbed()
             .setColor('#0099ff')
             .setTitle(`Blue Team`)
-            .setFooter('If a Team faces the mix, it will replace the Blue Team')
+            .setFooter({ text: 'If a Team faces the mix, it will replace the Blue Team' })
         fillLineupEmbedWithRoles(secondLineupEmbed, lineup.roles.filter(role => role.lineupNumber === 2))
     }
 
