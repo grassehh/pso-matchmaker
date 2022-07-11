@@ -3,6 +3,7 @@ const matchmakingService = require("../../services/matchmakingService");
 const teamService = require("../../services/teamService");
 const statsService = require("../../services/statsService");
 const { handle } = require("../../utils");
+const { MessageEmbed } = require("discord.js");
 
 module.exports = {
     customId: 'join_',
@@ -35,7 +36,7 @@ module.exports = {
 
         const userToAdd = {
             id: interaction.user.id,
-            name: interaction.user.username,            
+            name: interaction.user.username,
             emoji: statsService.getLevelEmojiFromMember(interaction.member)
         }
 
@@ -53,6 +54,14 @@ module.exports = {
             }
             const firstCaptain = await interaction.client.users.fetch(captainsIds[0])
             const secondCaptain = await interaction.client.users.fetch(captainsIds[1])
+            const captainNotificationEmbed = new MessageEmbed()
+                .setColor('#6aa84f')
+                .setTitle('⚽ You have been chosen as the captain for a mix draft ⚽')
+                .setDescription(`Please join the channel ${interaction.channel} to start the draft !`)
+                .setTimestamp()
+            await Promise.all([firstCaptain, secondCaptain].map(async user => {
+                await handle(user.send({ embeds: [captainNotificationEmbed] }))
+            }))
             let currentCaptain = firstCaptain
 
             description += `\nThe draft begins. The captains are ${firstCaptain} and ${secondCaptain}.\n**${firstCaptain} turn to pick**.`
