@@ -40,7 +40,9 @@ async function enhanceWithDiscordUsers(client, roles) {
     return Promise.all(promises)
 }
 
-async function notifyUsersForMatchReady(match, lobbyHost, rolesWithDiscordUsers, opponentLineup) {
+async function notifyUsersForMatchReady(interaction, match, lobbyHost, rolesWithDiscordUsers, opponentLineup) {
+    let discordUsersWithoutDm = []
+
     const promises = rolesWithDiscordUsers.map(async (role) => {
         if (!role.discordUser) {
             return
@@ -61,10 +63,22 @@ async function notifyUsersForMatchReady(match, lobbyHost, rolesWithDiscordUsers,
             embeds.push(interactionUtils.createLineupEmbed(rolesWithDiscordUsers.filter(role => role.lineupNumber === 2), opponentLineup))
         }
 
-        await handle(role.discordUser.send({ embeds }))
+        const [message] = await handle(role.discordUser.send({ embeds }))
+        if (!message) {
+            discordUsersWithoutDm.push(role.discordUser)
+        }
     })
 
-    return Promise.all(promises)
+    await Promise.all(promises)
+
+    if (discordUsersWithoutDm.length > 0) {
+        const embed = new MessageEmbed()
+            .setColor('#6aa84f')
+            .setTitle('⚠ Some players did not receive the lobby information ⚠')
+            .setDescription(discordUsersWithoutDm.join(', '))
+            .setTimestamp()
+        await interaction.channel.send({ embeds: [embed] })
+    }
 }
 
 async function notifyLineupsForUsersLeaving(interaction, rolesWithDiscordUsers, lineup) {
@@ -117,9 +131,9 @@ async function notifyLineupForMatchReady(interaction, match, lobbyHost, lineup, 
             : lineup.roles)
 
     let promises = []
-    promises.push(notifyUsersForMatchReady(match, lobbyHost, rolesWithDiscordUsers, opponentLineup))
-    promises.push(notifyLineupsForUsersLeaving(interaction, rolesWithDiscordUsers, lineup))
     promises.push(notifyLineupChannelForMatchReady(interaction, match, lobbyHost, rolesWithDiscordUsers, lineup, opponentLineup))
+    promises.push(notifyUsersForMatchReady(interaction, match, lobbyHost, rolesWithDiscordUsers, opponentLineup))
+    promises.push(notifyLineupsForUsersLeaving(interaction, rolesWithDiscordUsers, lineup))
     return Promise.all(promises)
 }
 
