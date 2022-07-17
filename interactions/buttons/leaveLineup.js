@@ -1,4 +1,5 @@
 const teamService = require("../../services/teamService");
+const { handle } = require("../../utils");
 
 module.exports = {
     customId: 'leaveLineup',
@@ -6,7 +7,7 @@ module.exports = {
         const lineup = await teamService.retrieveLineup(interaction.channelId)
         await teamService.leaveLineup(interaction, interaction.channel, lineup)
         if (!interaction.replied) {
-            await interaction.update({ components: [] })
+            await handle(interaction.update({ components: [] }))
         }
     }
 }

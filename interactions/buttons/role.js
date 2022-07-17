@@ -2,6 +2,7 @@ const interactionUtils = require("../../services/interactionUtils");
 const matchmakingService = require("../../services/matchmakingService");
 const teamService = require("../../services/teamService");
 const statsService = require("../../services/statsService");
+const { handle } = require("../../utils");
 
 module.exports = {
     customId: 'role_',
@@ -62,7 +63,7 @@ module.exports = {
             description += `\nThe challenge request has been cancelled.`
         }
 
-        await interaction.update({ components: [] })
+        await handle(interaction.update({ components: [] }))
         let reply = await interactionUtils.createReplyForLineup(interaction, lineup, autoSearchResult.updatedLineupQueue)
         const embed = interactionUtils.createInformationEmbed(interaction.user, description)
         reply.embeds = (reply.embeds || []).concat(embed)

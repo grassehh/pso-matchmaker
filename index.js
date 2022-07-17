@@ -58,4 +58,7 @@ for (const file of eventFiles) {
 
 cron.schedule('*/5 * * * *', () => matchmakingService.updateBanList(client).catch(console.error));
 
+console.log("Login into discord...")
 client.login(process.env.TOKEN)
+	.then(console.log("Logged in"))
+	.catch(console.error)
