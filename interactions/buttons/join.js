@@ -11,6 +11,12 @@ module.exports = {
         const customId = interaction.customId.split('_')[1]
 
         let lineup = await teamService.retrieveLineup(interaction.channelId)
+        
+        if (!lineup) {
+            await interactionUtils.replyLineupNotSetup(interaction)
+            return
+        }
+
         if (lineup.isPicking) {
             await interaction.reply({ content: '⛔ Captains are currently picking the teams', ephemeral: true })
             return
