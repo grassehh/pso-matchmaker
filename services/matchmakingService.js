@@ -289,11 +289,11 @@ exports.joinQueue = async (client, user, lineup) => {
             return null
         }
         const [message] = await handle(channel.send({ embeds: [teamEmbed], components: [challengeTeamRow] }))
-        // return message ? { channelId: message.channelId, messageId: message.id } : null
+        return message ? { channelId: message.channelId, messageId: message.id } : null
     }))
-        // .then(notificationsMessages => {
-        //     lineupQueue.notificationMessages = notificationsMessages.filter(notificationMessage => notificationMessage)
-        // })
+        .then(notificationsMessages => {
+            lineupQueue.notificationMessages = notificationsMessages.filter(notificationMessage => notificationMessage)
+        })
         .catch(console.error)
         .finally(() => lineupQueue.save())
 
@@ -305,12 +305,12 @@ exports.leaveQueue = async (client, lineupQueue) => {
         return
     }
 
-    // Promise.all(lineupQueue.notificationMessages.map(async notificationMessage => {
-    //     const channel = await client.channels.fetch(notificationMessage.channelId)
-    //     handle(channel.messages.delete(notificationMessage.messageId))
-    // }))
-    //     .catch(console.error)
-    //     .finally(() => this.deleteLineupQueuesByChannelId(lineupQueue.lineup.channelId))
+    Promise.all(lineupQueue.notificationMessages.map(async notificationMessage => {
+        const channel = await client.channels.fetch(notificationMessage.channelId)
+        handle(channel.messages.delete(notificationMessage.messageId))
+    }))
+        .catch(console.error)
+        .finally(() => this.deleteLineupQueuesByChannelId(lineupQueue.lineup.channelId))
 
     this.deleteLineupQueuesByChannelId(lineupQueue.lineup.channelId)
 }
