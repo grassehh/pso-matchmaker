@@ -73,7 +73,12 @@ module.exports = {
                 .addField('Auto-search', `${lineup.autoSearch ? '**enabled**' : '*disabled*'}`, true)
         }
 
-        reply.embeds = [lineupStatusEmbed]
+        if (reply.embeds) {
+            reply.embeds.splice(0, 0, lineupStatusEmbed)
+        } else {
+            reply.embeds = [lineupStatusEmbed]
+        }
+        (reply.embeds || []).concat(lineupStatusEmbed)
         await interaction.reply(reply)
     }
 };
