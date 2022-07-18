@@ -5,6 +5,7 @@ const teamService = require("../../services/teamService");
 module.exports = {
     customId: 'startSearch',
     async execute(interaction) {
+        await interaction.message.edit({ components: [] })
         await interaction.deferReply();
         const challenge = await matchmakingService.findChallengeByChannelId(interaction.channelId)
         if (challenge) {
@@ -30,7 +31,6 @@ module.exports = {
         }
 
         lineupQueue = await matchmakingService.joinQueue(interaction.client, interaction.user, lineup)
-        interaction.message.edit({ components: [] })
         const embed = interactionUtils.createInformationEmbed(interaction.user, `🔎 Your team is now searching for a team to challenge`)
         await interaction.editReply({ embeds: [embed], components: interactionUtils.createLineupComponents(lineup, lineupQueue, challenge) })
     }
