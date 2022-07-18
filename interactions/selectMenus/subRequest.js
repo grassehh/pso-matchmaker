@@ -1,5 +1,6 @@
 const { MessageActionRow, MessageButton, MessageEmbed } = require("discord.js");
 const matchmakingService = require("../../services/matchmakingService");
+const teamService = require("../../services/teamService");
 
 module.exports = {
     customId: 'subRequest_select_',
@@ -12,6 +13,7 @@ module.exports = {
         const subRequestEmbed = new MessageEmbed()
             .setColor('#566573')
             .setTitle("📣 A sub is required !")
+            .addField('Lobby', `${match.lobbyName}`, true)
             .addField('Format', `${match.firstLineup.size}v${match.firstLineup.size}`, true)
             .addField('Position', position, true)
             .setDescription('*Accepting a sub request commits you to play. Doing otherwise can result in warns/bans*')
