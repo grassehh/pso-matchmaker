@@ -24,18 +24,22 @@ const CB = { name: 'CB', type: ROLE_DEFENDER }
 const RCB = { name: 'RCB', type: ROLE_DEFENDER }
 const RB = { name: 'RB', type: ROLE_DEFENDER }
 
+function role(role, pos) {
+    return { ...role, pos }
+}
+
 const DEFAULT_PLAYER_ROLES = new Map([
-    [1, [CF]],
-    [2, [CF, GK]],
-    [3, [LM, RM, GK]],
-    [4, [CF, LB, RB, GK]],
-    [5, [CF, LB, CB, RB, GK]],
-    [6, [LW, RW, CM, LB, RB, GK]],
-    [7, [LW, RW, CM, LB, CB, RB, GK]],
-    [8, [LW, CF, RW, CM, LB, CB, RB, GK]],
-    [9, [LW, CF, RW, LCM, RCM, LB, CB, RB, GK]],
-    [10, [LW, CF, RW, LCM, RCM, LB, LCB, RCB, RB, GK]],
-    [11, [LW, CF, RW, LM, CM, RM, LB, LCB, RCB, RB, GK]]
+    [1, [role(CF, 0)]],
+    [2, [role(CF, 0), role(GK, 0)]],
+    [3, [role(LM, 0), role(RM, 2), role(GK, 1)]],
+    [4, [role(CF, 1), role(LB, 0), role(RB, 2), role(GK, 1)]],
+    [5, [role(CF, 1), role(LB, 0), role(CB, 1), role(RB, 2), role(GK, 1)]],
+    [6, [role(LW, 0), role(RW, 2), role(CM, 1), role(LB, 0), role(RB, 2), role(GK, 1)]],
+    [7, [role(LW, 0), role(RW, 2), role(CM, 1), role(LB, 0), role(CB, 1), role(RB, 2), role(GK, 1)]],
+    [8, [role(LW, 0), role(CF, 1), role(RW, 2), role(CM, 1), role(LB, 0), role(CB, 1), role(RB, 2), role(GK, 1)]],
+    [9, [role(LW, 0), role(CF, 2), role(RW, 4), role(LCM, 1), role(RCM, 3), role(LB, 0), role(CB, 2), role(RB, 4), role(GK, 2)]],
+    [10, [role(LW, 0), role(CF, 2), role(RW, 4), role(LCM, 1), role(RCM, 3), role(LB, 0), role(LCB, 1), role(RCB, 3), role(RB, 4), role(GK, 2)]],
+    [11, [role(LW, 0), role(CF, 2), role(RW, 4), role(LM, 0), role(CM, 2), role(RM, 4), role(LB, 0), role(LCB, 1), role(RCB, 3), role(RB, 4), role(GK, 2)]]
 ])
 
 exports.ROLE_ATTACKER = ROLE_ATTACKER
