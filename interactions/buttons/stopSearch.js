@@ -4,6 +4,7 @@ const matchmakingService = require("../../services/matchmakingService");
 module.exports = {
     customId: 'stopSearch',
     async execute(interaction) {
+        await interaction.message.edit({ components: [] })
         await interaction.deferReply();
         const challenge = await matchmakingService.findChallengeByChannelId(interaction.channelId)
         if (challenge) {
@@ -18,7 +19,6 @@ module.exports = {
         }
 
         await matchmakingService.leaveQueue(interaction.client, lineupQueue)
-        interaction.message.edit({ components: [] })
         const embed = interactionUtils.createInformationEmbed(interaction.user, `😴 Your team is no longer searching for a challenge`)
         await interaction.editReply({ embeds: [embed], components: interactionUtils.createLineupComponents(lineupQueue.lineup, null, challenge) })
     }
