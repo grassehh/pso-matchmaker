@@ -82,6 +82,7 @@ const lineupSchema = new mongoose.Schema({
     }
 })
 lineupSchema.index({ channelId: 1 });
+lineupSchema.index({ "team.region": 1, type: 1, channelId: 1, size: 1 });
 lineupSchema.methods.isMix = function () {
     return this.type === 'MIX'
 }
