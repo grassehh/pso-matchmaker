@@ -43,6 +43,10 @@ const lineupSchema = new mongoose.Schema({
                 lineupNumber: {
                     type: Number,
                     required: true
+                },
+                pos: {
+                    type: Number, 
+                    required: true
                 }
             }
         ],

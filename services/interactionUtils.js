@@ -311,7 +311,7 @@ exports.createBanListEmbed = async (client, guildId) => {
 exports.createLineupComponents = createLineupComponents
 
 function createLineupComponents(lineup, lineupQueue, challenge, selectedLineupNumber = 1) {
-    components = createRolesComponent(lineup, selectedLineupNumber)
+    const actionRows = createRolesActionRows(lineup, selectedLineupNumber)
 
     const lineupActionsRow = new MessageActionRow()
     if (!lineup.isMix()) {
@@ -378,70 +378,81 @@ function createLineupComponents(lineup, lineupQueue, challenge, selectedLineupNu
             .setDisabled(numberOfMissingPlayers === 0)
             .setStyle('SECONDARY')
     )
-    components.push(lineupActionsRow)
+    actionRows.push(lineupActionsRow)
 
-    return components
+    return actionRows
 }
 
-function createRolesComponent(lineup, selectedLineupNumber = 1) {
-    let components = []
-
-    const gkActionRow = new MessageActionRow()
-    const midfieldersActionRow = new MessageActionRow()
-    const attackersActionRow = new MessageActionRow()
-    const defendersActionRow = new MessageActionRow()
-
+function createRolesActionRows(lineup, selectedLineupNumber = 1) {
     const roles = lineup.roles.filter(role => role.lineupNumber === selectedLineupNumber)
-    for (let role of roles) {
-        let actionRow
-        switch (role.type) {
-            case teamService.ROLE_GOAL_KEEPER: {
-                actionRow = gkActionRow
-                break
-            }
-            case teamService.ROLE_ATTACKER: {
-                actionRow = attackersActionRow
-                break
-            }
-            case teamService.ROLE_MIDFIELDER: {
-                actionRow = midfieldersActionRow
-                break
-            }
-            case teamService.ROLE_DEFENDER: {
-                actionRow = defendersActionRow
-                break
-            }
+    const attackerRoles = roles.filter(role => role.type === teamService.ROLE_ATTACKER)
+    const midfielderRoles = roles.filter(role => role.type === teamService.ROLE_MIDFIELDER)
+    const defenderRoles = roles.filter(role => role.type === teamService.ROLE_DEFENDER)
+    const gkRole = roles.filter(role => role.type === teamService.ROLE_GOAL_KEEPER)
+
+    const maxRolePos = Math.max(
+        Math.max(...attackerRoles.map(role => role.pos)),
+        Math.max(...midfielderRoles.map(role => role.pos)),
+        Math.max(...defenderRoles.map(role => role.pos)),
+        Math.max(...gkRole.map(role => role.pos))
+    )
+
+    let rolesActionRows = []
+    if (attackerRoles.length > 0) {
+        rolesActionRows.push(createRoleActionRow(maxRolePos, attackerRoles))
+    }
+
+    if (midfielderRoles.length > 0) {
+        rolesActionRows.push(createRoleActionRow(maxRolePos, midfielderRoles))
+    }
+
+    if (defenderRoles.length > 0) {
+        rolesActionRows.push(createRoleActionRow(maxRolePos, defenderRoles))
+    }
+
+    if (gkRole.length > 0) {
+        rolesActionRows.push(createRoleActionRow(maxRolePos, gkRole))
+    }
+
+    return rolesActionRows
+}
+
+function createRoleActionRow(maxRolePos, roles) {
+    let actionRow = new MessageActionRow()
+    for (let pos = 0; pos <= maxRolePos; pos++) {
+        const role = roles.find(role => role.pos === pos)
+        if (role) {
+            actionRow.addComponents(
+                new MessageButton()
+                    .setCustomId(`role_${role.name}_${role.lineupNumber}`)
+                    .setLabel(role.name)
+                    .setStyle('PRIMARY')
+                    .setDisabled(role.user != null)
+            )
+        } else {
+            actionRow.addComponents(
+                new MessageButton()
+                    .setCustomId(`${pos}_${Math.random()}`)
+                    .setLabel('\u200b')
+                    .setStyle('SECONDARY')
+                    .setDisabled(true)
+            )
         }
-
-        let playerName = role.user ? role.user.name.substring(0, 60) : null
-        actionRow.addComponents(
-            new MessageButton()
-                .setCustomId(`role_${role.name}_${selectedLineupNumber}`)
-                .setLabel(role.user == null ? role.name : `${role.name}: ${playerName}`)
-                .setStyle('PRIMARY')
-                .setDisabled(role.user != null)
-        )
     }
-
-    if (attackersActionRow.components.length > 0) {
-        components.push(attackersActionRow)
-    }
-    if (midfieldersActionRow.components.length > 0) {
-        components.push(midfieldersActionRow)
-    }
-    if (defendersActionRow.components.length > 0) {
-        components.push(defendersActionRow)
-    }
-    if (gkActionRow.components.length > 0) {
-        components.push(gkActionRow)
-    }
-
-    return components
+    return actionRow
 }
 
 async function createReplyForTeamLineup(lineup, lineupQueue) {
     const challenge = await matchmakingService.findChallengeByChannelId(lineup.channelId)
-    return { components: createLineupComponents(lineup, lineupQueue, challenge) }
+
+    const lineupEmbed = new MessageEmbed()
+        .setTitle(`${teamService.formatTeamName(lineup)} Lineup`)
+        .setColor('566573')
+    fillLineupEmbedWithRoles(lineupEmbed, lineup.roles.filter(role => role.lineupNumber === 1))
+
+    const components = createLineupComponents(lineup, lineupQueue, challenge)
+
+    return { embeds: [lineupEmbed], components }
 }
 
 function createReplyForMixLineup(lineup, challengingLineup) {
