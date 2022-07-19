@@ -6,7 +6,6 @@ module.exports = {
     customId: 'startSearch',
     async execute(interaction) {
         await interaction.message.edit({ components: [] })
-        await interaction.deferReply();
         const challenge = await matchmakingService.findChallengeByChannelId(interaction.channelId)
         if (challenge) {
             await interaction.reply({ content: "⛔ You are currently challenging", ephemeral: true })
@@ -15,13 +14,12 @@ module.exports = {
 
         let lineupQueue = await matchmakingService.findLineupQueueByChannelId(interaction.channelId)
         if (lineupQueue) {
-            await interactionUtils.replyAlreadyQueued(interaction, lineupQueue.lineup.size)
-            return
+            await interaction.reply(interactionUtils.createReplyAlreadyQueued(lineupQueue.lineup.size))
         }
 
         const lineup = await teamService.retrieveLineup(interaction.channelId)
         if (!lineup) {
-            await interactionUtils.replyLineupNotSetup(interaction)
+            await interaction.reply(interactionUtils.createReplyLineupNotSetup())
             return
         }
 
@@ -30,8 +28,11 @@ module.exports = {
             return
         }
 
+        await interaction.deferReply();
         lineupQueue = await matchmakingService.joinQueue(interaction.client, interaction.user, lineup)
-        const embed = interactionUtils.createInformationEmbed(interaction.user, `🔎 Your team is now searching for a team to challenge`)
-        await interaction.editReply({ embeds: [embed], components: interactionUtils.createLineupComponents(lineup, lineupQueue, challenge) })
+        const informationEmbed = interactionUtils.createInformationEmbed(interaction.user, `🔎 Your team is now searching for a team to challenge`)
+        let reply = await interactionUtils.createReplyForLineup(interaction, lineup, lineupQueue)
+        reply.embeds.splice(0, 0, informationEmbed)
+        await interaction.editReply(reply)
     }
 }

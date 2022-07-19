@@ -21,11 +21,15 @@ module.exports = {
             return
         }
 
+        await interaction.message.edit({ components: [] })
+        await interaction.deferReply()
         const secondLineup = await teamService.retrieveLineup(challenge.initiatingTeam.lineup.channelId === interaction.channelId ? challenge.challengedTeam.lineup.channelId : challenge.initiatingTeam.lineup.channelId)
-        if (await matchmakingService.checkForDuplicatedPlayers(interaction, lineup, secondLineup)) {
+        const duplicatedUsersReply = await matchmakingService.checkForDuplicatedPlayers(interaction, lineup, secondLineup)
+        if (duplicatedUsersReply) {
+            await interaction.editReply(duplicatedUsersReply)
             return
         }
-        await interaction.deferReply()
         await matchmakingService.readyMatch(interaction, challenge)
+        await interaction.editReply({ content: `${interaction.user} has accepted the challenge request` })
     }
 }

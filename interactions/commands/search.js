@@ -10,17 +10,17 @@ module.exports = {
     async execute(interaction) {
         let challenge = await matchmakingService.findChallengeByChannelId(interaction.channelId)
         if (challenge) {
-            await interactionUtils.replyAlreadyChallenging(interaction, challenge)
+            await interaction.reply(interactionUtils.createReplyAlreadyChallenging(challenge))
             return
         }
         let team = await teamService.findTeamByGuildId(interaction.guildId)
         if (!team) {
-            await interactionUtils.replyTeamNotRegistered(interaction)
+            await interaction.reply(interactionUtils.createReplyTeamNotRegistered())
             return
         }
         let lineup = await teamService.retrieveLineup(interaction.channelId)
         if (!lineup) {
-            await interactionUtils.replyLineupNotSetup(interaction)
+            await interaction.reply(interactionUtils.createReplyLineupNotSetup())
             return
         }        
         if (lineup.isMixOrCaptains()) {
@@ -29,7 +29,7 @@ module.exports = {
         }
         let currentQueuedLineup = await matchmakingService.findLineupQueueByChannelId(interaction.channelId)
         if (currentQueuedLineup) {
-            await interactionUtils.replyAlreadyQueued(interaction, currentQueuedLineup.lineup.size)
+            await interaction.reply(interactionUtils.createReplyAlreadyQueued(currentQueuedLineup.lineup.size))
             return
         }
 
@@ -37,8 +37,9 @@ module.exports = {
             interaction.reply({ content: '⛔ All outfield positions must be filled before searching', ephemeral: true })
             return
         }
-
+        
+        await interaction.deferReply();
         await matchmakingService.joinQueue(interaction.client, interaction.user, lineup)
-        await interaction.reply( `🔎 Your team is now searching for a team to challenge`)
+        await interaction.editReply( `🔎 Your team is now searching for a team to challenge`)
     }
 };

@@ -9,26 +9,28 @@ module.exports = {
         .setName('challenges')
         .setDescription('Display the teams looking for a match, with the same lineup size'),
     async execute(interaction) {
+        await interaction.deferReply()
+        
         let team = await teamService.findTeamByGuildId(interaction.guildId)
         if (!team) {
-            await interactionUtils.replyTeamNotRegistered(interaction)
+            await interaction.editReply(interactionUtils.createReplyTeamNotRegistered())
             return
         }
 
         let lineup = await teamService.retrieveLineup(interaction.channelId)
         if (!lineup) {
-            await interactionUtils.replyLineupNotSetup(interaction)
+            await interaction.editReply(interactionUtils.createReplyLineupNotSetup())
             return
         }
 
         if (lineup.isMixOrCaptains()) {
-            await interaction.reply({ content: '⛔ Mix lineups cannot see the list of challenges', ephemeral: true })
+            await interaction.editReply({ content: '⛔ Mix lineups cannot see the list of challenges', ephemeral: true })
             return
         }
 
         let lineupQueues = await matchmakingService.findAvailableLineupQueues(team.region, lineup.channelId, lineup.size, team.guildId)
         if (lineupQueues.length === 0) {
-            await interaction.reply({
+            await interaction.editReply({
                 embeds: [
                     new MessageEmbed()
                         .setColor('#566573')
@@ -114,6 +116,6 @@ module.exports = {
 
 
         await interaction.channel.send({ embeds: [mixLineupsEmbed], components: mixesActionComponents })
-        await interaction.reply({ embeds: [teamLineupsEmbed], components: teamsActionComponents })
+        await interaction.editReply({ embeds: [teamLineupsEmbed], components: teamsActionComponents })
     }
 }

@@ -12,7 +12,7 @@ module.exports = {
         const match = await matchmakingService.findMatchByMatchId(matchId)
 
         if (!match) {
-            await interactionUtils.replyMatchDoesntExist(interaction)
+            await interaction.reply(interactionUtils.createReplyMatchDoesntExist())
             return
         }
 

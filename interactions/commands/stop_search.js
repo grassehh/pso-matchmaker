@@ -10,12 +10,12 @@ module.exports = {
     async execute(interaction) {
         let team = await teamService.findTeamByGuildId(interaction.guildId)
         if (!team) {
-            await interactionUtils.replyTeamNotRegistered(interaction)
+            await interaction.reply(interactionUtils.createReplyTeamNotRegistered())
             return
         }
         let lineup = await teamService.retrieveLineup(interaction.channelId)
         if (!lineup) {
-            await interactionUtils.replyLineupNotSetup(interaction)
+            await interaction.reply(interactionUtils.createReplyLineupNotSetup())
             return
         }
         if (lineup.isMixOrCaptains()) {
@@ -24,16 +24,17 @@ module.exports = {
         }
         let challenge = await matchmakingService.findChallengeByChannelId(interaction.channelId)
         if (challenge) {
-            await interactionUtils.replyAlreadyChallenging(interaction, challenge)
+            await interaction.reply(interactionUtils.createReplyAlreadyChallenging(challenge))
             return
         }
         let lineupQueue = await matchmakingService.findLineupQueueByChannelId(interaction.channelId)
         if (!lineupQueue) {
-            await interactionUtils.replyNotQueued(interaction)
+            await interaction.reply(interactionUtils.createReplyNotQueued())
             return
         }
 
+        await interaction.deferReply();
         await matchmakingService.leaveQueue(interaction.client, lineupQueue)
-        await interaction.reply(`😴 Your team is no longer searching for a challenge`)
+        await interaction.editReply(`😴 Your team is no longer searching for a challenge`)
     }
 };

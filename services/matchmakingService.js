@@ -27,7 +27,7 @@ async function removeUserFromAllLineupQueues(userId) {
 
 async function enhanceWithDiscordUsers(client, roles) {
     const promises = roles.map(async (role) => {
-        if (!role.user) {
+        if (!role.user || role.user.id === MERC_USER_ID) {
             return role
         }
 
@@ -324,7 +324,7 @@ exports.challenge = async (interaction, lineupQueueIdToChallenge) => {
 
     let challenge = await this.findChallengeByChannelId(interaction.channelId)
     if (challenge) {
-        await interactionUtils.replyAlreadyChallenging(interaction, challenge)
+        await interaction.reply(interactionUtils.createReplyAlreadyChallenging(challenge))
         return
     }
 
@@ -336,7 +336,7 @@ exports.challenge = async (interaction, lineupQueueIdToChallenge) => {
 
     let lineup = await teamService.retrieveLineup(interaction.channelId)
     if (!lineup) {
-        await this.replyLineupNotSetup(interaction)
+        await interaction.reply(interactionUtils.createReplyLineupNotSetup())
         return
     }
 
@@ -355,9 +355,14 @@ exports.challenge = async (interaction, lineupQueueIdToChallenge) => {
         return
     }
 
-    if (await this.checkForDuplicatedPlayers(interaction, lineup, lineupQueueToChallenge.lineup)) {
+    const duplicatedUsersReply = await this.checkForDuplicatedPlayers(interaction, lineup, lineupQueueToChallenge.lineup)
+    if (duplicatedUsersReply) {
+        await interaction.reply(duplicatedUsersReply)
         return
     }
+
+    await interaction.message.edit({ components: [] })
+    await interaction.deferReply()
 
     let lineupQueue = await this.findLineupQueueByChannelId(interaction.channelId)
     if (!lineupQueue) {
@@ -378,12 +383,10 @@ exports.challenge = async (interaction, lineupQueueIdToChallenge) => {
     challenge.challengedMessageId = challengedMessage.id
 
     await this.reserveLineupQueuesByIds([lineupQueueIdToChallenge, lineupQueue.id], challenge.id)
-    let initiatingMessage = await interaction.channel.send(interactionUtils.createCancelChallengeReply(interaction, challenge))
+    let initiatingMessage = await interaction.editReply(interactionUtils.createCancelChallengeReply(interaction, challenge))
     challenge.initiatingMessageId = initiatingMessage.id
 
     await challenge.save()
-
-    await interaction.deferUpdate()
 
     if (await this.isMixOrCaptainsReadyToStart(lineupQueueToChallenge.lineup)) {
         await this.readyMatch(interaction, challenge, lineup)
@@ -511,12 +514,10 @@ exports.checkForDuplicatedPlayers = async (interaction, firstLineup, secondLineu
             .setTimestamp()
             .setFooter({ text: `Author: ${interaction.user.username}` })
 
-        await interaction.channel.send({ embeds: [duplicatedUsersEmbed] })
-        await interaction.deferUpdate()
-        return true
+        return { embeds: [duplicatedUsersEmbed] }
     }
 
-    return false
+    return null
 }
 
 exports.removeUserFromAllLineupQueues = removeUserFromAllLineupQueues
@@ -557,7 +558,6 @@ exports.readyMatch = async (interaction, challenge, mixLineup) => {
             await this.leaveQueue(interaction.client, challenge.initiatingTeam)
             const newInitiatingTeamLineup = await teamService.clearLineup(firstLineup.channelId)
             const reply = await interactionUtils.createReplyForLineup(interaction, newInitiatingTeamLineup)
-            reply.embeds = [interactionUtils.createInformationEmbed(lobbyHost, "Lineup cleared")]
             const initiatingTeamChannel = await interaction.client.channels.fetch(challenge.initiatingTeam.lineup.channelId)
             await initiatingTeamChannel.send(reply)
             await initiatingTeamChannel.messages.edit(challenge.initiatingMessageId, { components: [] })
@@ -580,10 +580,7 @@ exports.readyMatch = async (interaction, challenge, mixLineup) => {
             } else {
                 await this.leaveQueue(interaction.client, challenge.challengedTeam)
                 const newChallengedTeamLineup = await teamService.clearLineup(secondLineup.channelId)
-                await interaction.editReply(`${interaction.user} accepted the challenge request`)
                 const reply = await interactionUtils.createReplyForLineup(interaction, newChallengedTeamLineup)
-                reply.embeds = [interactionUtils.createInformationEmbed(interaction.user, "Lineup cleared")]
-                await interaction.message.edit({ components: [] })
                 await interaction.channel.send(reply)
             }
 
