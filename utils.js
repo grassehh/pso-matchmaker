@@ -3,7 +3,7 @@ const { MessageMentions: { USERS_PATTERN } } = require('discord.js');
 exports.handle = (promise) => {
     return promise
         .then(data => ([data, undefined]))
-        .catch(error => Promise.resolve([undefined, error]));
+        .catch(error => { console.log(error); Promise.resolve([undefined, error]) });
 }
 
 exports.getUserIdFromMention = (mention) => {
