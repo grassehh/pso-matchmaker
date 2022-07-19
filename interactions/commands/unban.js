@@ -15,7 +15,7 @@ module.exports = {
     async execute(interaction) {
         let team = await teamService.findTeamByGuildId(interaction.guildId)
         if (!team) {
-            await interactionUtils.replyTeamNotRegistered(interaction)
+            await interaction.reply(interactionUtils.createReplyTeamNotRegistered())
             return
         }
 

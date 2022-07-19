@@ -11,13 +11,13 @@ module.exports = {
     async execute(interaction) {
         const team = await teamService.findTeamByGuildId(interaction.guildId)
         if (!team) {
-            await interactionUtils.replyTeamNotRegistered(interaction)
+            await interaction.reply(interactionUtils.createReplyTeamNotRegistered())
             return
         }
 
         const lineup = await teamService.retrieveLineup(interaction.channelId)
         if (!lineup) {
-            await interactionUtils.replyLineupNotSetup(interaction)
+            await interaction.reply(interactionUtils.createReplyLineupNotSetup())
             return
         }
 
@@ -35,50 +35,51 @@ module.exports = {
         }
 
         const challenge = await matchmakingService.findChallengeByChannelId(interaction.channelId)
-        let lineupStatusEmbed = new MessageEmbed()
+        const lineupInfoEmbed = new MessageEmbed()
+            .setTitle(`Lineup information`)
             .setColor('#566573')
+            .addField('Lineup size', `${lineup.size}v${lineup.size}`, true)
+            .addField('Lineup name', lineup.name ? lineup.name : '*none*', true)
+            .addField('Auto-search', `${lineup.autoSearch ? '**enabled**' : '*disabled*'}`, true)
             .setTimestamp()
             .setFooter({ text: `Author: ${interaction.user.username}` })
 
-        if (challenge) {
-            if (challenge.challengedTeam.lineup.isMix()) {
-                lineupStatusEmbed.setTitle(`💬 You are challenging the mix ${teamService.formatTeamName(challenge.challengedTeam.lineup)}`)
-            } else {
-                if (challenge.initiatingTeam.lineup.channelId === lineup.channelId) {
-                    let description = `**${teamService.formatTeamName(challenge.challengedTeam.lineup)}**`
-                    description += `\n${challenge.challengedTeam.lineup.roles.filter(role => role.user != null).length} players signed`
-                    if (!teamService.hasGkSigned(challenge.challengedTeam.lineup)) {
-                        description += ' **(no GK)**'
-                    }
-                    lineupStatusEmbed.setTitle(`💬 You are challenging a team`)
-                        .setDescription(description)
+        let lineupStatusEmbed = new MessageEmbed()
+            .setColor('#566573')
 
-                } else {
-                    let description = `**${teamService.formatTeamName(challenge.initiatingTeam.lineup)}**`
-                    description += `\n${challenge.initiatingTeam.lineup.roles.filter(role => role.user != null).length} players signed`
-                    if (!teamService.hasGkSigned(challenge.initiatingTeam.lineup)) {
-                        description += ' **(no GK)**'
-                    }
-                    description += `\n\n*Contact ${challenge.initiatingUser.mention} for more information*`
-                    lineupStatusEmbed.setTitle(`🤝 A team wants to play against you`)
-                        .setDescription(description)
+        if (challenge) {
+            if (challenge.initiatingTeam.lineup.channelId === lineup.channelId) {
+                const challengedTeamLineup = await teamService.retrieveLineup(challenge.challengedTeam.lineup.channelId)
+                let description = `**${teamService.formatTeamName(challengedTeamLineup)}**`
+                description += `\n${challengedTeamLineup.roles.filter(role => role.user != null).length} players signed`
+                if (!teamService.hasGkSigned(challengedTeamLineup)) {
+                    description += ' **(no GK)**'
                 }
+                lineupStatusEmbed.setTitle(`💬 You are challenging a ${challengedTeamLineup.isMix() ? 'mix' : 'team'}`)
+                    .setDescription(description)
+            } else {
+                const initiatingTeamLineup = await teamService.retrieveLineup(challenge.initiatingTeam.lineup.channelId)
+                let description = `**${teamService.formatTeamName(initiatingTeamLineup)}**`
+                description += `\n${initiatingTeamLineup.roles.filter(role => role.user != null).length} players signed`
+                if (!teamService.hasGkSigned(initiatingTeamLineup)) {
+                    description += ' **(no GK)**'
+                }
+                description += `\n\n*Contact ${challenge.initiatingUser.mention} for more information*`
+                lineupStatusEmbed.setTitle(`🤝 A team wants to play against you`)
+                    .setDescription(description)
             }
         } else if (lineupQueue) {
             lineupStatusEmbed.setTitle("🔎 You are searching for a team to challenge ...")
         } else {
             lineupStatusEmbed.setTitle("😴 You are not searching for a team")
-            lineupStatusEmbed.addField('Lineup size', `${lineup.size}v${lineup.size}`, true)
-                .addField('Lineup name', lineup.name ? lineup.name : '*none*', true)
-                .addField('Auto-search', `${lineup.autoSearch ? '**enabled**' : '*disabled*'}`, true)
         }
 
         if (reply.embeds) {
             reply.embeds.splice(0, 0, lineupStatusEmbed)
+            reply.embeds.splice(0, 0, lineupInfoEmbed)
         } else {
-            reply.embeds = [lineupStatusEmbed]
+            reply.embeds = [lineupInfoEmbed, lineupStatusEmbed]
         }
-        (reply.embeds || []).concat(lineupStatusEmbed)
         await interaction.reply(reply)
     }
 };

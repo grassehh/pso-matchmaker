@@ -76,10 +76,13 @@ module.exports = {
                 await interaction.channel.send({ embeds: [embed] })
                 const challenge = await matchmakingService.findChallengeByChannelId(interaction.channelId)
                 const secondLineup = challenge ? await teamService.retrieveLineup(challenge.initiatingTeam.lineup.channelId === interaction.channelId ? challenge.challengedTeam.lineup.channelId : challenge.initiatingTeam.lineup.channelId) : null
-                if (await matchmakingService.checkForDuplicatedPlayers(interaction, lineup, secondLineup)) {
+                const duplicatedUsersReply = await matchmakingService.checkForDuplicatedPlayers(interaction, lineup, secondLineup)
+                if (duplicatedUsersReply) {
+                    await interaction.reply(duplicatedUsersReply)
                     return
                 }
                 await matchmakingService.readyMatch(interaction, challenge, lineup)
+                await interaction.reply({ content: "You have readied the match", ephemeral: true })
                 return
             }
 

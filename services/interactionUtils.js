@@ -1,50 +1,50 @@
-const { MessageActionRow, MessageButton, MessageEmbed, MessageSelectMenu } = require("discord.js");
+const { MessageActionRow, MessageButton, MessageEmbed, MessageSelectMenu, ReactionUserManager } = require("discord.js");
 const teamService = require("../services/teamService");
 const statsService = require("../services/statsService");
 const matchmakingService = require("../services/matchmakingService");
 const { Stats } = require("../mongoSchema");
 const { handle } = require("../utils");
 
-exports.replyAlreadyQueued = async (interaction, lineupSize) => {
-    await interaction.reply({
+exports.createReplyAlreadyQueued = (lineupSize) => {
+    return {
         content: `⛔ You are already queued for ${lineupSize}v${lineupSize}. Please use the /stop_search command before using this command`,
         ephemeral: true
-    })
+    }
 }
 
-exports.replyNotQueued = async (interaction) => {
-    await interaction.reply({
+exports.createReplyNotQueued = () => {
+    return {
         content: `⛔ Your team is not queued for matchmaking`,
         ephemeral: true
-    })
+    }
 }
 
-exports.replyTeamNotRegistered = async (interaction) => {
-    await interaction.reply({
+exports.createReplyTeamNotRegistered = () => {
+    return {
         content: '⛔ Please register your team with the /register_team command first',
         ephemeral: true
-    })
+    }
 }
 
-exports.replyMatchDoesntExist = async (interaction) => {
-    await interaction.reply({
+exports.createReplyMatchDoesntExist = () => {
+    return {
         content: '⛔ This match does not exist',
         ephemeral: true
-    })
+    }
 }
 
-exports.replyAlreadyChallenging = async (interaction, challenge) => {
-    await interaction.reply({
+exports.createReplyAlreadyChallenging = (challenge) => {
+    return {
         content: `⛔ Your team is negotiating a challenge between the teams '${teamService.formatTeamName(challenge.initiatingTeam.lineup)}' and '${teamService.formatTeamName(challenge.challengedTeam.lineup)}'`,
         ephemeral: true
-    })
+    }
 }
 
-exports.replyLineupNotSetup = async (interaction) => {
-    await interaction.reply({
+exports.createReplyLineupNotSetup = () => {
+    return {
         content: '⛔ This channel has no lineup configured yet. Use the /setup_lineup command to choose a lineup format',
         ephemeral: true
-    })
+    }
 }
 
 exports.createCancelChallengeReply = (interaction, challenge) => {

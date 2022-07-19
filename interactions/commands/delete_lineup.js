@@ -12,18 +12,18 @@ module.exports = {
     async execute(interaction) {
         let team = await teamService.findTeamByGuildId(interaction.guildId)
         if (!team) {
-            await interactionUtils.replyTeamNotRegistered(interaction)
+            await interaction.reply(interactionUtils.createReplyTeamNotRegistered())
             return
         }
         let lineup = await teamService.retrieveLineup(interaction.channelId)
         if (!lineup) {
-            await interactionUtils.replyLineupNotSetup(interaction)
+            await interaction.reply(interactionUtils.createReplyLineupNotSetup())
             return
         }
 
         let challenge = await matchmakingService.findChallengeByChannelId(interaction.channelId)
         if (challenge) {
-            await interactionUtils.replyAlreadyChallenging(interaction, challenge)
+            await interaction.reply(interactionUtils.createReplyAlreadyChallenging(challenge))
             return
         }
 

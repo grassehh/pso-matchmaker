@@ -13,7 +13,7 @@ module.exports = {
         let lineup = await teamService.retrieveLineup(interaction.channelId)
         
         if (!lineup) {
-            await interactionUtils.replyLineupNotSetup(interaction)
+            await interaction.reply(interactionUtils.createReplyLineupNotSetup())
             return
         }
 
