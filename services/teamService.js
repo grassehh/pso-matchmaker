@@ -332,15 +332,15 @@ exports.createLineup = (channelId, size, name, autoSearch, team, type, visibilit
         roles = []
         let i = 1
         while (i < size) {
-            roles.push({ name: i, lineupNumber: 1, type: ROLE_ATTACKER })
+            roles.push({ name: i, lineupNumber: 1, type: ROLE_ATTACKER, pos: 0 })
             i++
         }
         while (i < (size * 2) - 1) {
-            roles.push({ name: i, lineupNumber: 2, type: ROLE_ATTACKER })
+            roles.push({ name: i, lineupNumber: 2, type: ROLE_ATTACKER, pos: 0 })
             i++
         }
-        roles.push({ ...GK, lineupNumber: 1 })
-        roles.push({ ...GK, lineupNumber: 2 })
+        roles.push({ ...GK, lineupNumber: 1, pos: 0 })
+        roles.push({ ...GK, lineupNumber: 2, pos: 0 })
     }
     let lineup = new Lineup({
         channelId,
