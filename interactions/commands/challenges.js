@@ -8,26 +8,25 @@ module.exports = {
     data: new SlashCommandBuilder()
         .setName('challenges')
         .setDescription('Display the teams looking for a match, with the same lineup size'),
-    async execute(interaction) {
-        await interaction.deferReply()
-        
+    async execute(interaction) {        
         let team = await teamService.findTeamByGuildId(interaction.guildId)
         if (!team) {
-            await interaction.editReply(interactionUtils.createReplyTeamNotRegistered())
+            await interaction.reply(interactionUtils.createReplyTeamNotRegistered())
             return
         }
 
         let lineup = await teamService.retrieveLineup(interaction.channelId)
         if (!lineup) {
-            await interaction.editReply(interactionUtils.createReplyLineupNotSetup())
+            await interaction.reply(interactionUtils.createReplyLineupNotSetup())
             return
         }
 
         if (lineup.isMixOrCaptains()) {
-            await interaction.editReply({ content: '⛔ Mix lineups cannot see the list of challenges', ephemeral: true })
+            await interaction.reply({ content: '⛔ Mix lineups cannot see the list of challenges', ephemeral: true })
             return
         }
-
+        
+        await interaction.deferReply()
         let lineupQueues = await matchmakingService.findAvailableLineupQueues(team.region, lineup.channelId, lineup.size, team.guildId)
         if (lineupQueues.length === 0) {
             await interaction.editReply({
