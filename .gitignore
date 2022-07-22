@@ -38,6 +38,7 @@ bower_components
 
 # Compiled binary addons (https://nodejs.org/api/addons.html)
 build/Release
+built
 
 # Dependency directories
 node_modules/
@@ -106,3 +107,6 @@ dist
 
 # TernJS port file
 .tern-port
+
+# Visual Studio Code
+.vscode/
