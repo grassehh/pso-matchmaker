@@ -24,7 +24,6 @@ export default {
         }
 
         let promises = []
-        promises.push(interaction.update({ components: [] }))
 
         let description = `:inbox_tray: ${interaction.user} signed as **${selectedRoleName}**`
         if (roleLeft) {
@@ -64,6 +63,8 @@ export default {
             await interaction.editReply({ embeds: [embed] })
             return
         }
+
+        interaction.update({ components: [] })
 
         const autoSearchResult = await matchmakingService.checkIfAutoSearch(interaction.client, interaction.user, lineup)
         if (autoSearchResult.joinedQueue) {

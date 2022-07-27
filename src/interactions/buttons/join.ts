@@ -119,7 +119,7 @@ export default {
             await interaction.channel?.send(reply)
 
             const filter = (interaction: ButtonInteraction) => interaction.customId.startsWith('pick_') ? true : false;
-            const collector = interaction.channel!.createMessageComponentCollector<MessageComponentTypes.BUTTON>({ filter, time: 60000 })
+            const collector = interaction.channel!.createMessageComponentCollector<MessageComponentTypes.BUTTON>({ filter, time: 138000 })
             collector.on('collect', async (i: Interaction) => {
                 if (!(i instanceof ButtonInteraction)) {
                     return
