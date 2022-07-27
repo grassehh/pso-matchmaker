@@ -1,8 +1,8 @@
 const dotenv = require('dotenv');
 const mongoose = require('mongoose');
-const { handle } = require('../utils');
+const { handle } = require('../dist/utils');
 const { Client, Intents, MessageEmbed } = require('discord.js');
-const { Lineup } = require('../mongoSchema');
+const { Lineup } = require('../dist/mongoSchema');
 dotenv.config()
 
 const client = new Client({
@@ -17,8 +17,8 @@ async function notifyUpdate() {
 
     let updateEmbed = new MessageEmbed()
         .setColor('#566573')
-        .setTitle(`📢 News !`)
-        .setDescription('New  **/leave_all** command allows you to leave every lineup you are signed in.')
+        .setTitle(`📢 **IMPORTANT** !`)
+        .setDescription('A new version of the bot has been deployed. Please if you encounter any issue, recreate your lineups (using **/setup_lineup**, **/setup_mix**, **/setup_mix_captains** commands). \nSorry for the inconvenience.')
         .setTimestamp()
 
     const lienups = await Lineup.find({}, { channelId: 1 })
