@@ -2,7 +2,7 @@
     "scripts": {
         "build": "tsc --build",
         "clean": "tsc --build --clean",
-        "dev": "npx nodemon index.js",
+        "dev": "npx nodemon src/index.ts",
         "start": "node index.js",
         "deploy-commands": "node scripts/deploy-commands.js"
     },

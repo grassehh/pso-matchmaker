@@ -3,7 +3,7 @@ import { matchmakingService } from "../../beans";
 import { ISelectMenuHandler } from "../../handlers/selectMenuHandler";
 
 export default {
-    customId: 'challenge_select',
+    customId: 'select_challenge',
     async execute(interaction: SelectMenuInteraction) {
         await matchmakingService.challenge(interaction, interaction.values[0])
     }

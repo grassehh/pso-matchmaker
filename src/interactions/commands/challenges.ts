@@ -66,7 +66,7 @@ export default {
                 }
             } else {
                 const challengesSelectMenu = new MessageSelectMenu()
-                    .setCustomId(`challenge_select`)
+                    .setCustomId(`select_challenge`)
                     .setPlaceholder('Select a Team to challenge')
                 for (let lineupQueue of teamLineupQueues) {
                     challengesSelectMenu.addOptions([{ label: teamService.formatTeamName(lineupQueue.lineup, true), value: lineupQueue._id.toString() }])
@@ -103,7 +103,7 @@ export default {
                 }
             } else {
                 const challengesSelectMenu = new MessageSelectMenu()
-                    .setCustomId(`challenge_select`)
+                    .setCustomId(`select_challenge`)
                     .setPlaceholder('Select a Mix to challenge')
                 for (let lineupQueue of mixLineupQueues) {
                     challengesSelectMenu.addOptions([{ label: teamService.formatTeamName(lineupQueue.lineup, true), value: lineupQueue._id.toString() }])
