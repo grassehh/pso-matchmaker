@@ -22,14 +22,14 @@ export default {
         }
 
         const signedRole = lineup.roles.find(role => role.user?.id == interaction.user.id)
-        if (signedRole) {
-            if ((signedRole.name.includes('GK') && customId === 'gk') || (!signedRole.name.includes('GK') && customId !== 'gk')) {
-                await interaction.reply({ content: '⛔ You are already in the lineup', ephemeral: true })
-                return
-            }
+        // if (signedRole) {
+        //     if ((signedRole.name.includes('GK') && customId === 'gk') || (!signedRole.name.includes('GK') && customId !== 'gk')) {
+        //         await interaction.reply({ content: '⛔ You are already in the lineup', ephemeral: true })
+        //         return
+        //     }
 
-            lineup = await teamService.removeUserFromLineup(interaction.channelId, interaction.user.id) as ILineup
-        }
+        //     lineup = await teamService.removeUserFromLineup(interaction.channelId, interaction.user.id) as ILineup
+        // }
 
         await interaction.update({ components: [] })
 
@@ -119,7 +119,7 @@ export default {
             await interaction.channel?.send(reply)
 
             const filter = (interaction: ButtonInteraction) => interaction.customId.startsWith('pick_') ? true : false;
-            const collector = interaction.channel!.createMessageComponentCollector<MessageComponentTypes.BUTTON>({ filter, time: 138000 })
+            const collector = interaction.channel!.createMessageComponentCollector<MessageComponentTypes.BUTTON>({ filter, time: 2000 })
             collector.on('collect', async (i: Interaction) => {
                 if (!(i instanceof ButtonInteraction)) {
                     return
