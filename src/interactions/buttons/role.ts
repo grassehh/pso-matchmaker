@@ -23,8 +23,6 @@ export default {
             return
         }
         
-        await (interaction.message as Message).edit({ components: [] })
-
         let promises = []
 
         let description = `:inbox_tray: ${interaction.user} signed as **${selectedRoleName}**`
@@ -65,6 +63,8 @@ export default {
             await interaction.editReply({ embeds: [embed] })
             return
         }
+        
+        await interaction.update({ components: [] })
 
         const autoSearchResult = await matchmakingService.checkIfAutoSearch(interaction.client, interaction.user, lineup)
         if (autoSearchResult.joinedQueue) {
