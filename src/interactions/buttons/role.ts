@@ -22,6 +22,8 @@ export default {
             await interaction.reply({ content: 'A player is already signed at this position', ephemeral: true })
             return
         }
+        
+        await (interaction.message as Message).edit({ components: [] })
 
         let promises = []
 
@@ -30,6 +32,8 @@ export default {
             promises.push(teamService.removeUserFromLineup(interaction.channelId, interaction.user.id))
             promises.push(matchmakingService.removeUserFromLineupQueue(interaction.channelId, interaction.user.id))
             description = `:outbox_tray::inbox_tray: ${interaction.user} swapped **${roleLeft.name}** with **${selectedRoleName}**`
+            await Promise.all(promises)
+            promises = []
         }
 
         const userToAdd = {
@@ -40,8 +44,6 @@ export default {
         }
         promises.push(lineup = await teamService.addUserToLineup(interaction.channelId, selectedRoleName, userToAdd, lineupNumber) as ILineup)
         promises.push(matchmakingService.addUserToLineupQueue(interaction.channelId, selectedRoleName, userToAdd, lineupNumber))
-
-        await Promise.all(promises)
 
         if (await matchmakingService.isMixOrCaptainsReadyToStart(lineup)) {
             await interaction.deferReply()
@@ -63,8 +65,6 @@ export default {
             await interaction.editReply({ embeds: [embed] })
             return
         }
-
-        interaction.update({ components: [] })
 
         const autoSearchResult = await matchmakingService.checkIfAutoSearch(interaction.client, interaction.user, lineup)
         if (autoSearchResult.joinedQueue) {
