@@ -1,6 +1,5 @@
-import { BaseGuildTextChannel, ButtonInteraction, Integration, IntegrationApplication, Message } from "discord.js";
+import { BaseGuildTextChannel, ButtonInteraction } from "discord.js";
 import { interactionUtils, teamService } from "../../beans";
-import { handle } from "../../utils";
 import { IButtonHandler } from "../../handlers/buttonHandler";
 
 export default {

@@ -16,7 +16,8 @@ export default {
         }
 
         const roles = lineup.roles.filter(role => role.lineupNumber === selectedLineupNumber)
-        if (!roles.find(role => role.name === selectedRoleToClear)!.user) {
+        const roleToClear = roles.find(role => role.name === selectedRoleToClear)!
+        if (!roleToClear.user) {
             await interaction.reply({ content: `The ${selectedRoleToClear} is already empty !`, ephemeral: true })
             return
         }
@@ -31,6 +32,14 @@ export default {
         if (autoSearchResult.cancelledChallenge) {
             description += `\nThe challenge request has been cancelled.`
         }
+
+        
+        const benchUserToTransfer = teamService.getBenchUserToTransfer(lineup, roleToClear)
+        if (benchUserToTransfer !== null) {
+            lineup = await teamService.moveUserFromBenchToLineup(interaction.channelId, benchUserToTransfer, roleToClear) as ILineup
+            description += `\n:inbox_tray: ${benchUserToTransfer.mention} came off the bench and joined the **${roleToClear.name}** position.`
+        }
+
         let reply = await interactionUtils.createReplyForLineup(interaction, lineup, autoSearchResult.updatedLineupQueue) as MessageOptions
         const embed = interactionUtils.createInformationEmbed(interaction.user, description)
         reply.embeds = (reply.embeds || []).concat(embed)

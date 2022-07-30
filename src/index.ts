@@ -9,7 +9,6 @@ import { IButtonHandler } from './handlers/buttonHandler';
 import { ISelectMenuHandler } from './handlers/selectMenuHandler';
 import { schedule } from 'node-cron'
 import mongoose from 'mongoose';
-// __dirname = path.resolve();
 
 dotenv.config()
 

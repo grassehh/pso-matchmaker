@@ -5,7 +5,6 @@ import { IButtonHandler } from "../../handlers/buttonHandler";
 export default {
     customId: 'addMerc_',
     async execute(interaction: ButtonInteraction) {
-        const selectedLineupNumber = parseInt(interaction.customId.split('_')[1])
         const lineup = await teamService.retrieveLineup(interaction.channelId)
         if (lineup === null) {
             await interaction.reply(interactionUtils.createReplyLineupNotSetup())
@@ -17,6 +16,7 @@ export default {
             return
         }
 
+        const selectedLineupNumber = parseInt(interaction.customId.split('_')[1])
         const mercRoleSelectMenu = new MessageSelectMenu()
             .setCustomId(`select_addMerc_${selectedLineupNumber}`)
             .setPlaceholder('Select a position')
