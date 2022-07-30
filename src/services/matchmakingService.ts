@@ -1,13 +1,12 @@
 import { ButtonInteraction, Client, CommandInteraction, InteractionReplyOptions, Message, MessageActionRow, MessageButton, MessageEmbed, MessageOptions, SelectMenuInteraction, TextChannel, User } from "discord.js";
-import { interactionUtils, statsService, teamService } from "../beans";
+import { DeleteResult } from "mongodb";
+import { UpdateWriteOpResult } from "mongoose";
 import { v4 as uuidv4 } from 'uuid';
+import { interactionUtils, statsService, teamService } from "../beans";
 import { MERC_USER_ID } from "../constants";
-import { Challenge, IChallenge, ILineup, ILineupQueue, IMatch, IRole, IStats, ISub, IUser, LineupQueue, Match, Stats } from "../mongoSchema";
+import { Challenge, IChallenge, ILineup, ILineupQueue, IMatch, IRole, IRoleBench, IStats, ISub, IUser, LineupQueue, Match, Stats } from "../mongoSchema";
 import { handle, notEmpty } from "../utils";
 import { LINEUP_VISIBILITY_PUBLIC, LINEUP_VISIBILITY_TEAM } from "./teamService";
-import { UpdateWriteOpResult, } from "mongoose";
-import { DeleteResult } from "mongodb";
-import { resolveBody } from "@discordjs/rest/dist/lib/utils/utils";
 
 export default class MatchmakingService {
     isLineupAllowedToJoinQueue(lineup: ILineup): boolean {
@@ -163,7 +162,7 @@ export default class MatchmakingService {
 
     async joinQueue(client: Client, user: User, lineup: ILineup): Promise<ILineupQueue> {
         const lineupQueue = new LineupQueue({ lineup })
-        const channelIds = await teamService.findAllChannelIdToNotify(lineup.team.region, lineup.channelId, lineup.size)
+        // const channelIds = await teamService.findAllChannelIdToNotify(lineup.team.region, lineup.channelId, lineup.size)
 
         let description = `**${teamService.formatTeamName(lineup)}**`
         const teamEmbed = new MessageEmbed()
@@ -177,15 +176,15 @@ export default class MatchmakingService {
         description += `\n\n*Contact ${user} for more information*`
         teamEmbed.setDescription(description)
 
-        const challengeTeamRow = new MessageActionRow().addComponents(
-            new MessageButton()
-                .setCustomId(`challenge_${lineupQueue.id}`)
-                .setLabel('Challenge them !')
-                .setEmoji('⚽')
-                .setStyle('PRIMARY')
-        )
-
-        // FIXME This eventually causes rate limit exceeding
+        //FIXME This eventually causes rate limit exceeding
+        // const challengeTeamRow = new MessageActionRow().addComponents(
+        //     new MessageButton()
+        //         .setCustomId(`challenge_${lineupQueue.id}`)
+        //         .setLabel('Challenge them !')
+        //         .setEmoji('⚽')
+        //         .setStyle('PRIMARY')
+        // )
+        // 
         // await Promise.all(channelIds.map(async (channelId: string) => {
         //     const [channel] = await handle(client.channels.fetch(channelId))
         //     if (!(channel instanceof TextChannel)) {
@@ -424,8 +423,8 @@ export default class MatchmakingService {
 
 
     async readyMatch(interaction: ButtonInteraction | CommandInteraction | SelectMenuInteraction, challenge?: IChallenge, mixLineup?: ILineup): Promise<void> {
-        const firstLineup = challenge ? (await teamService.retrieveLineup(challenge.initiatingTeam.lineup.channelId))! : mixLineup!
-        const secondLineup = challenge ? (await teamService.retrieveLineup(challenge.challengedTeam.lineup.channelId) || undefined) : undefined
+        const initiatingLineup = challenge ? (await teamService.retrieveLineup(challenge.initiatingTeam.lineup.channelId))! : mixLineup!
+        const challengedLineup = challenge ? (await teamService.retrieveLineup(challenge.challengedTeam.lineup.channelId) || undefined) : undefined
         const lobbyHost = challenge ? await interaction.client.users.fetch(challenge.initiatingUser.id) : interaction.user
         const lobbyName = challenge
             ? `${teamService.formatTeamName(challenge.initiatingTeam.lineup)} vs. ${teamService.formatTeamName(challenge.challengedTeam.lineup)}`
@@ -436,31 +435,34 @@ export default class MatchmakingService {
             schedule: Date.now(),
             lobbyName,
             lobbyPassword,
-            firstLineup,
-            secondLineup
+            firstLineup: initiatingLineup,
+            secondLineup: challengedLineup
         }).save()
 
         if (challenge) {
-            await this.deleteChallengeById(challenge._id.toString())
-            await this.freeLineupQueuesByChallengeId(challenge._id.toString())
+            await Promise.all([
+                await this.deleteChallengeById(challenge._id.toString()),
+                await this.freeLineupQueuesByChallengeId(challenge._id.toString())
+            ])
         }
 
-        let matchReadyPromises = []
-        matchReadyPromises.push(this.notifyLineupForMatchReady(interaction, match, lobbyHost, firstLineup, secondLineup))
-        if (secondLineup) {
-            matchReadyPromises.push(this.notifyLineupForMatchReady(interaction, match, lobbyHost, secondLineup, firstLineup))
+        let promises = []
+        promises.push(this.notifyLineupForMatchReady(interaction, match, lobbyHost, initiatingLineup, challengedLineup))
+        if (challengedLineup) {
+            promises.push(this.notifyLineupForMatchReady(interaction, match, lobbyHost, challengedLineup, initiatingLineup))
         }
-        await Promise.all(matchReadyPromises)
+        await Promise.all(promises)
 
         if (challenge) {
-            const initiatingTeamUsers = firstLineup.roles.map(role => role.user).filter(notEmpty)
-            const nonNullSecondLineup = secondLineup!
-            const challengedTeamUsers = nonNullSecondLineup.roles.filter(role => role.lineupNumber === 1).map(role => role.user).filter(notEmpty)
+            const initiatingTeamUsers = initiatingLineup.roles.map(role => role.user).filter(notEmpty)
+            const nonNullChallengedLineup = challengedLineup!
+            const challengedTeamUsers = nonNullChallengedLineup.roles.filter(role => role.lineupNumber === 1).map(role => role.user).filter(notEmpty)
 
-            let promises = []
+            promises = []
             promises.push(new Promise<void>(async (resolve, reject) => {
                 await this.leaveQueue(interaction.client, challenge.initiatingTeam)
-                const newInitiatingTeamLineup = (await teamService.clearLineup(firstLineup.channelId))!
+                const newInitiatingTeamLineup = initiatingLineup.moveAllBenchToLineup()
+                await teamService.upsertLineup(newInitiatingTeamLineup)
                 const reply = await interactionUtils.createReplyForLineup(interaction, newInitiatingTeamLineup) as MessageOptions
                 const initiatingTeamChannel = await interaction.client.channels.fetch(challenge.initiatingTeam.lineup.channelId) as TextChannel
                 await initiatingTeamChannel.send(reply)
@@ -468,22 +470,26 @@ export default class MatchmakingService {
                 resolve()
             }))
             promises.push(new Promise<void>(async (resolve, reject) => {
-                if (nonNullSecondLineup.isMix()) {
-                    await teamService.clearLineup(nonNullSecondLineup.channelId, [1, 2])
-                    await this.clearLineupQueue(challenge.challengedTeam.lineup.channelId, [1, 2])
-                    let rolesInFirstLineup = nonNullSecondLineup.roles.filter(role => role.lineupNumber === 1)
-                    let rolesInSecondLineup = nonNullSecondLineup.roles.filter(role => role.lineupNumber === 2)
-                    rolesInFirstLineup.forEach(role => { role.user = undefined; role.lineupNumber = 2 })
-                    rolesInSecondLineup.forEach(role => role.lineupNumber = 1)
-                    const newRoles = rolesInFirstLineup.concat(rolesInSecondLineup)
-                    const newChallengedTeamLineup = (await teamService.updateLineupRoles(nonNullSecondLineup.channelId, newRoles))!
-                    await this.updateLineupQueueRoles(nonNullSecondLineup.channelId, newRoles)
-                    const reply = await interactionUtils.createReplyForLineup(interaction, newChallengedTeamLineup) as MessageOptions
+                if (nonNullChallengedLineup.isMix()) {
+                    let newMixLineup = nonNullChallengedLineup.moveAllBenchToLineup()
+                    newMixLineup.roles.filter(role => role.lineupNumber === 2 && role.user)
+                        .forEach(roleInSecondLineup => {
+                            const roleInFirstLineup = newMixLineup.roles.find(r => r.lineupNumber === 1 && r.name === roleInSecondLineup.name)!!
+                            if (!roleInFirstLineup.user) {
+                                roleInFirstLineup.user = roleInSecondLineup.user
+                                roleInSecondLineup.user = undefined
+                            }
+                        })
+                    newMixLineup = newMixLineup.moveAllBenchToLineup(2, false)
+                    await teamService.upsertLineup(newMixLineup)
+                    await this.updateLineupQueueRoles(nonNullChallengedLineup.channelId, newMixLineup.roles)
+                    const reply = await interactionUtils.createReplyForLineup(interaction, newMixLineup) as MessageOptions
                     const challengedTeamChannel = await interaction.client.channels.fetch(challenge.challengedTeam.lineup.channelId) as TextChannel
                     await challengedTeamChannel.send(reply)
                 } else {
                     await this.leaveQueue(interaction.client, challenge.challengedTeam)
-                    const newChallengedTeamLineup = (await teamService.clearLineup(nonNullSecondLineup.channelId))!
+                    const newChallengedTeamLineup = nonNullChallengedLineup.moveAllBenchToLineup()
+                    await teamService.upsertLineup(newChallengedTeamLineup)
                     const reply = await interactionUtils.createReplyForLineup(interaction, newChallengedTeamLineup) as MessageOptions
                     await interaction.channel?.send(reply)
                 }
@@ -491,16 +497,18 @@ export default class MatchmakingService {
             }))
             await Promise.all(promises)
 
-            await statsService.updateStats(interaction, challenge.initiatingTeam.lineup.team.region, challenge.initiatingTeam.lineup.size, initiatingTeamUsers.map(user => user.id))
-            await statsService.updateStats(interaction, challenge.challengedTeam.lineup.team.region, challenge.challengedTeam.lineup.size, challengedTeamUsers.map(user => user.id))
+            await Promise.all([
+                statsService.updateStats(interaction, challenge.initiatingTeam.lineup.team.region, challenge.initiatingTeam.lineup.size, initiatingTeamUsers.map(user => user.id)),
+                statsService.updateStats(interaction, challenge.challengedTeam.lineup.team.region, challenge.challengedTeam.lineup.size, challengedTeamUsers.map(user => user.id))
+            ])
         }
-        else { //This is a mix vs mix match  
-            await teamService.clearLineup(mixLineup!.channelId, [1, 2])
+        else { //This is a mix vs mix match     
             const allUsers = mixLineup!.roles.map(role => role.user).filter(notEmpty)
-            const newMixLineup = teamService.createLineup(interaction.channelId, mixLineup!.size, mixLineup!.name, mixLineup!.autoSearch, mixLineup!.team, mixLineup!.type, mixLineup!.visibility)
+            let newMixLineup = mixLineup!.moveAllBenchToLineup(1).moveAllBenchToLineup(2)
+            await teamService.upsertLineup(newMixLineup)
             const reply = await interactionUtils.createReplyForLineup(interaction, newMixLineup) as MessageOptions
             await interaction.channel?.send(reply)
-            await this.clearLineupQueue(mixLineup!.channelId, [1, 2])
+            await this.updateLineupQueueRoles(newMixLineup.channelId, newMixLineup.roles)
             await statsService.updateStats(interaction, mixLineup!.team.region, mixLineup!.size, allUsers.map(user => user.id))
         }
     }
@@ -666,7 +674,6 @@ export default class MatchmakingService {
             opponentLineup
                 ? lineup.roles.filter(role => role.lineupNumber === 1)
                 : lineup.roles)
-
         let promises = []
         promises.push(this.notifyLineupChannelForMatchReady(interaction, match, lobbyHost, rolesWithDiscordUsers, lineup, opponentLineup))
         promises.push(this.notifyUsersForMatchReady(interaction, match, lobbyHost, rolesWithDiscordUsers, opponentLineup))

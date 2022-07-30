@@ -5,10 +5,14 @@ import { IEventHandler } from '../handlers/eventHandler';
 
 export default {
 	name: 'presenceUpdate',
-	async execute(oldPresence: Presence, newPresence: Presence) {		
+	async execute(oldPresence: Presence, newPresence: Presence) {
 		if (newPresence.status === 'offline' || newPresence.status === 'idle') {
 			const userId = oldPresence?.userId || newPresence.userId
 			const channelIds = await teamService.findAllLineupChannelIdsByUserId(newPresence.userId)
+
+			if (channelIds.length === 0) {
+				return
+			}
 
 			if (newPresence.status === 'offline') {
 				let result = await teamService.removeUserFromAllLineups(userId)

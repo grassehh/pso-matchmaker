@@ -4,3 +4,4 @@ export const MINIMUM_LINEUP_SIZE_FOR_RANKED = 0
 export const MERC_USER_ID = "merc"
 export const BOT_ADMIN_ROLE = "PSO MM ADMIN"
 export const DEFAULT_LEADERBOARD_PAGE_SIZE = 10
+export const MAX_BENCH_SIZE = 11

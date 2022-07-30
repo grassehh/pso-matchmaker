@@ -1,5 +1,6 @@
 import { User } from "discord.js";
 import { model, Schema, Types } from "mongoose";
+import { ROLE_NAME_ANY } from "./services/teamService";
 import { notEmpty } from "./utils";
 
 export interface ITeam {
@@ -42,14 +43,25 @@ const roleSchema = new Schema<IRole>({
     pos: { type: Number, required: true },
 })
 
+export interface IRoleBench {
+    user: IUser,
+    roles: IRole[]
+}
+const roleBenchSchema = new Schema<IRoleBench>({
+    user: { type: userSchema, required: true },
+    roles: { type: [roleSchema], required: true }
+})
+
 export interface ILineup {
     isMixOrCaptains(): boolean,
     isMix(): boolean,
     isCaptains(): boolean,
     numberOfSignedPlayers(): number,
+    moveAllBenchToLineup(lineupNumber?: number, clearLineup?: boolean): ILineup,
     channelId: string,
     size: number,
     roles: IRole[],
+    bench: IRoleBench[] | [],
     name?: string | '',
     autoSearch: boolean,
     team: ITeam,
@@ -70,6 +82,11 @@ const lineupSchema = new Schema<ILineup>({
     roles: {
         type: [roleSchema],
         required: true
+    },
+    bench: {
+        type: [roleBenchSchema],
+        required: true,
+        default: []
     },
     name: {
         type: String,
@@ -118,6 +135,61 @@ lineupSchema.methods.isMixOrCaptains = function () {
 }
 lineupSchema.methods.numberOfSignedPlayers = function () {
     return this.roles.filter((role: IRole) => role.lineupNumber === 1).filter((role: IRole) => role.user != null).length;
+}
+lineupSchema.methods.moveAllBenchToLineup = function (lineupNumber: number = 1, clearLineup: boolean = true) {
+    if (clearLineup) {
+        this.roles.filter((lineupRole: IRole) => lineupRole.lineupNumber === lineupNumber)
+            .forEach((role: IRole) => role.user = undefined)
+    }
+
+    const benchedUsers = this.bench.filter((benchedUser: IRoleBench) => benchedUser.roles[0].lineupNumber === lineupNumber)
+    if (benchedUsers.length === 0) {
+        return this
+    }
+
+    const newRoles: IRole[] = [];
+    const newBench: IRoleBench[] = []
+    benchedUsers.forEach((benchedUser: IRoleBench, i: number, benchedUsers: IRoleBench[]) => {
+        let availableBenchRole
+        const rolesByIndexInBench = new Map<number, IRole>()
+        for (const role of benchedUser.roles) {
+            if (role.name === ROLE_NAME_ANY) {
+                const availableRole = this.roles.find((lineupRole: IRole) => lineupRole.lineupNumber === lineupNumber && !newRoles.some(r => r.name === lineupRole.name))
+                if (availableRole) {
+                    role.name = availableRole.name
+                    availableBenchRole = role
+                }
+            } else {
+                if (newRoles.some(nr => nr.name === role.name)) {
+                    continue
+                }
+                const index = benchedUsers.slice(i + 1).findIndex(br => br.roles.some(r => r.name === role.name))
+                if (index === -1) {
+                    availableBenchRole = role
+                    break
+                }
+                rolesByIndexInBench.set(index, role)
+            }
+        }
+        if (!availableBenchRole && rolesByIndexInBench.size > 0) {
+            availableBenchRole = rolesByIndexInBench.get(Math.max(...Array.from(rolesByIndexInBench.keys())))
+        }
+        if (availableBenchRole) {
+            newRoles.push(availableBenchRole)
+        } else {
+            newBench.push(benchedUser)
+        }
+    })
+
+    this.bench = this.bench.filter((benchUser: IRoleBench) => benchUser.roles[0].lineupNumber !== lineupNumber)
+    if (newBench.length > 0) {
+        this.bench.push(...newBench)
+    }
+    newRoles.forEach(role => {
+        this.roles.find((lineupRole: IRole) => lineupRole.name === role.name && lineupRole.lineupNumber === lineupNumber)!!.user = role.user
+    })
+
+    return this
 }
 export const Lineup = model<ILineup>('Lineup', lineupSchema, 'lineups')
 

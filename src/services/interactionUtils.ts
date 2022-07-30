@@ -2,7 +2,7 @@ import { ButtonInteraction, Client, CommandInteraction, InteractionReplyOptions,
 import { Types } from "mongoose";
 import { matchmakingService, statsService, teamService } from "../beans";
 import { DEFAULT_LEADERBOARD_PAGE_SIZE } from "../constants";
-import { IChallenge, ILineup, ILineupQueue, IRole, IStats } from "../mongoSchema";
+import { IChallenge, ILineup, ILineupQueue, IRole, IRoleBench, IStats, IUser } from "../mongoSchema";
 import { handle } from "../utils";
 import { RoleWithDiscordUser } from "./matchmakingService";
 import { ROLE_ATTACKER, ROLE_DEFENDER, ROLE_GOAL_KEEPER, ROLE_MIDFIELDER } from "./teamService";
@@ -364,26 +364,38 @@ export default class InteractionUtils {
 
         const numberOfSignedPlayers = lineup.roles.filter(role => role.lineupNumber === selectedLineupNumber).filter(role => role.user != null).length
         const numberOfMissingPlayers = lineup.size - numberOfSignedPlayers
+
+        if (!challenge) {
+            lineupActionsRow.addComponents(
+                new MessageButton()
+                    .setCustomId(`clearRole_${selectedLineupNumber}`)
+                    .setLabel("Clear a position")
+                    .setDisabled(numberOfSignedPlayers === 0)
+                    .setStyle('SECONDARY')
+            )
+            lineupActionsRow.addComponents(
+                new MessageButton()
+                    .setCustomId(`addMerc_${selectedLineupNumber}`)
+                    .setLabel('Sign another player')
+                    .setDisabled(numberOfMissingPlayers === 0)
+                    .setStyle('SECONDARY')
+            )
+        }
+
         lineupActionsRow.addComponents(
             new MessageButton()
-                .setCustomId(`clearRole_${selectedLineupNumber}`)
-                .setLabel("Clear a position")
+                .setCustomId(`bench_${selectedLineupNumber}`)
+                .setLabel('Sign Bench')
                 .setDisabled(numberOfSignedPlayers === 0)
                 .setStyle('SECONDARY')
         )
-        lineupActionsRow.addComponents(
-            new MessageButton()
-                .setCustomId(`addMerc_${selectedLineupNumber}`)
-                .setLabel('Sign another player')
-                .setDisabled(numberOfMissingPlayers === 0)
-                .setStyle('SECONDARY')
-        )
+
         actionRows.push(lineupActionsRow)
 
         return actionRows
     }
 
-    private createRolesActionRows(lineup: ILineup, selectedLineupNumber = 1): MessageActionRow[] {
+    createRolesActionRows(lineup: ILineup, selectedLineupNumber = 1, isBench: boolean = false): MessageActionRow[] {
         const roles = lineup.roles.filter(role => role.lineupNumber === selectedLineupNumber)
         const attackerRoles = roles.filter(role => role.type === ROLE_ATTACKER)
         const midfielderRoles = roles.filter(role => role.type === ROLE_MIDFIELDER)
@@ -399,35 +411,35 @@ export default class InteractionUtils {
 
         let rolesActionRows = []
         if (attackerRoles.length > 0) {
-            rolesActionRows.push(this.createRoleActionRow(maxRolePos, attackerRoles))
+            rolesActionRows.push(this.createRoleActionRow(maxRolePos, attackerRoles, isBench))
         }
 
         if (midfielderRoles.length > 0) {
-            rolesActionRows.push(this.createRoleActionRow(maxRolePos, midfielderRoles))
+            rolesActionRows.push(this.createRoleActionRow(maxRolePos, midfielderRoles, isBench))
         }
 
         if (defenderRoles.length > 0) {
-            rolesActionRows.push(this.createRoleActionRow(maxRolePos, defenderRoles))
+            rolesActionRows.push(this.createRoleActionRow(maxRolePos, defenderRoles, isBench))
         }
 
         if (gkRole.length > 0) {
-            rolesActionRows.push(this.createRoleActionRow(maxRolePos, gkRole))
+            rolesActionRows.push(this.createRoleActionRow(maxRolePos, gkRole, isBench))
         }
 
         return rolesActionRows
     }
 
-    private createRoleActionRow(maxRolePos: number, roles: IRole[]): MessageActionRow {
+    private createRoleActionRow(maxRolePos: number, roles: IRole[], isBench: boolean = false): MessageActionRow {
         let actionRow = new MessageActionRow()
         for (let pos = 0; pos <= maxRolePos; pos++) {
             const role = roles.find(role => role.pos === pos)
             if (role) {
                 actionRow.addComponents(
                     new MessageButton()
-                        .setCustomId(`role_${role.name}_${role.lineupNumber}`)
+                        .setCustomId(`${isBench ? 'benchRole' : 'role'}_${role.name}_${role.lineupNumber}`)
                         .setLabel(role.name)
                         .setStyle('PRIMARY')
-                        .setDisabled(role.user != null)
+                        .setDisabled(isBench ? !role.user : role.user != null)
                 )
             } else {
                 actionRow.addComponents(
@@ -448,8 +460,8 @@ export default class InteractionUtils {
         const lineupEmbed = new MessageEmbed()
             .setTitle(`${teamService.formatTeamName(lineup)} Lineup`)
             .setColor('#566573')
-        this.fillLineupEmbedWithRoles(lineupEmbed, lineup.roles.filter(role => role.lineupNumber === 1))
 
+        this.fillLineupEmbedWithRoles(lineupEmbed, lineup.roles, lineup.bench)
         const components = this.createLineupComponents(lineup, lineupQueue, challenge)
 
         return { embeds: [lineupEmbed], components }
@@ -459,7 +471,7 @@ export default class InteractionUtils {
         let firstLineupEmbed = new MessageEmbed()
             .setColor('#ed4245')
             .setTitle(`Red Team`)
-        this.fillLineupEmbedWithRoles(firstLineupEmbed, lineup.roles.filter(role => role.lineupNumber === 1))
+        this.fillLineupEmbedWithRoles(firstLineupEmbed, lineup.roles.filter(role => role.lineupNumber === 1), lineup.bench.filter(benchRole => benchRole.roles[0].lineupNumber === 1))
 
         let secondLineupEmbed
         if (challengingLineup) {
@@ -476,7 +488,7 @@ export default class InteractionUtils {
                 .setColor('#0099ff')
                 .setTitle(`Blue Team`)
                 .setFooter({ text: 'If a Team faces the mix, it will replace the Blue Team' })
-            this.fillLineupEmbedWithRoles(secondLineupEmbed, lineup.roles.filter(role => role.lineupNumber === 2))
+            this.fillLineupEmbedWithRoles(secondLineupEmbed, lineup.roles.filter(role => role.lineupNumber === 2), lineup.bench.filter(benchRole => benchRole.roles[0].lineupNumber === 2))
         }
 
         const lineupActionsComponent = new MessageActionRow().addComponents(
@@ -509,7 +521,7 @@ export default class InteractionUtils {
         let lineupEmbed = new MessageEmbed()
             .setColor('#ed4245')
             .setTitle(`Player Queue`)
-        this.fillLineupEmbedWithRoles(lineupEmbed, lineup.roles)
+        this.fillLineupEmbedWithRoles(lineupEmbed, lineup.roles, lineup.bench)
 
         const numberOfOutfieldUsers = lineup.roles.filter(role => !role.name.includes('GK') && role.user).length
         const numberOfGkUsers = lineup.roles.filter(role => role.name.includes('GK') && role.user).length
@@ -532,20 +544,29 @@ export default class InteractionUtils {
         return { embeds: [lineupEmbed], components: [lineupActionsComponent] }
     }
 
-    private fillLineupEmbedWithRoles(lineupEmbed: MessageEmbed, roles: IRole[]): void {
-        let description = ''
-        roles.map(role => {
-            let playerName = ''
-            if (role.user) {
-                if (role.user.emoji) {
-                    playerName += role.user.emoji
-                }
-                playerName += role.user.name
-            } else {
-                playerName = '\u200b'
-            }
-            description += `**${role.name}:** ${playerName}\n`
-        })
+    private fillLineupEmbedWithRoles(lineupEmbed: MessageEmbed, roles: IRole[], bench: IRoleBench[]): void {
+        let description = roles.map(role => `**${role.name}:** ${this.formatPlayerName(role.user)}`).join('\n')
+
+        if (bench.length > 0) {
+            description += '\n\n*Bench: '
+            description += bench.map(benchRole => `${this.formatPlayerName(benchRole.user)} (${benchRole.roles.map(role => role.name).join(', ')})`).join(', ')
+            description += '*\n'
+        }
+
         lineupEmbed.setDescription(description)
+    }
+
+    private formatPlayerName(user?: IUser) {
+        let playerName = ''
+        if (user) {
+            if (user.emoji) {
+                playerName += user.emoji
+            }
+            playerName += user.name
+        } else {
+            playerName = '\u200b'
+        }
+
+        return playerName
     }
 }

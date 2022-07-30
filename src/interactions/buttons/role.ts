@@ -1,5 +1,5 @@
 import { ButtonInteraction, GuildMember, Message, MessageOptions } from "discord.js";
-import { ILineup } from "src/mongoSchema";
+import { ILineup } from "../../mongoSchema";
 import { interactionUtils, matchmakingService, statsService, teamService } from "../../beans";
 import { IButtonHandler } from "../../handlers/buttonHandler";
 
@@ -17,19 +17,29 @@ export default {
         const lineupNumber = parseInt(split[2])
         const selectedRole = lineup.roles.filter(role => role.lineupNumber === lineupNumber).find(role => role.name == selectedRoleName)
         const roleLeft = lineup.roles.find(role => role.user?.id === interaction.user.id)
+        const benchRoleLeft = lineup.bench.find(role => role.user?.id === interaction.user.id)
 
         if (selectedRole?.user) {
             await interaction.reply({ content: 'A player is already signed at this position', ephemeral: true })
             return
         }
-        
+
         let promises = []
 
         let description = `:inbox_tray: ${interaction.user} signed as **${selectedRoleName}**`
-        if (roleLeft) {
+        if (roleLeft || benchRoleLeft) {
             promises.push(teamService.removeUserFromLineup(interaction.channelId, interaction.user.id))
             promises.push(matchmakingService.removeUserFromLineupQueue(interaction.channelId, interaction.user.id))
-            description = `:outbox_tray::inbox_tray: ${interaction.user} swapped **${roleLeft.name}** with **${selectedRoleName}**`
+            if (roleLeft) {
+                description = `:outbox_tray::inbox_tray: ${interaction.user} swapped **${roleLeft.name}** with **${selectedRoleName}**`                
+                const benchUserToTransfer = teamService.getBenchUserToTransfer(lineup, roleLeft)
+                if (benchUserToTransfer !== null) {
+                    lineup = await teamService.moveUserFromBenchToLineup(interaction.channelId, benchUserToTransfer, roleLeft!!) as ILineup
+                    description += `\n:inbox_tray: ${benchUserToTransfer.mention} came off the bench and joined the **${roleLeft?.name}** position.`
+                }
+            } else {
+                description = `\n:inbox_tray: ${benchRoleLeft?.user!!.mention} came off the bench and joined the **${selectedRoleName}** position.`
+            }
             await Promise.all(promises)
             promises = []
         }
@@ -63,7 +73,7 @@ export default {
             await interaction.editReply({ embeds: [embed] })
             return
         }
-        
+
         await interaction.update({ components: [] })
 
         const autoSearchResult = await matchmakingService.checkIfAutoSearch(interaction.client, interaction.user, lineup)

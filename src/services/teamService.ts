@@ -1,15 +1,17 @@
-import { BaseGuildTextChannel, ButtonInteraction, Client, CommandInteraction, MessageOptions, TextChannel, User } from "discord.js";
+import { BaseGuildTextChannel, ButtonInteraction, Client, CommandInteraction, GuildMember, MessageOptions, TextChannel, User } from "discord.js";
 import { DeleteResult } from "mongodb";
 import { UpdateWriteOpResult } from "mongoose";
-import { interactionUtils, matchmakingService } from "../beans";
+import { interactionUtils, matchmakingService, statsService, teamService } from "../beans";
 import { MAX_LINEUP_NAME_LENGTH, MAX_TEAM_NAME_LENGTH } from "../constants";
-import { Bans, IBan, ILineup, IRole, ITeam, IUser, Lineup, Team } from "../mongoSchema";
+import { Bans, IBan, ILineup, IRole, IRoleBench, ITeam, IUser, Lineup, Team } from "../mongoSchema";
 import { handle } from "../utils";
 
 export const ROLE_GOAL_KEEPER = 0
 export const ROLE_ATTACKER = 1
 export const ROLE_DEFENDER = 2
 export const ROLE_MIDFIELDER = 3
+
+export const ROLE_NAME_ANY = "any"
 
 export const LINEUP_VISIBILITY_TEAM = 'TEAM'
 export const LINEUP_VISIBILITY_PUBLIC = 'PUBLIC'
@@ -112,35 +114,37 @@ export default class TeamService {
             {
                 size: lineup.size,
                 roles: lineup.roles,
+                bench: lineup.bench,
                 name: lineup.name,
                 autoSearch: lineup.autoSearch,
                 team: lineup.team,
                 type: lineup.type,
                 visibility: lineup.visibility
-            },
+            } as ILineup,
             { upsert: true }
         )
     }
 
-    async clearLineup(channelId: string, lineupsToClear = [1]): Promise<ILineup | null> {
+    async clearLineup(channelId: string, lineupsToClear = [1], clearBench: boolean = true): Promise<ILineup | null> {
         return Lineup.findOneAndUpdate(
             {
                 channelId
             },
             {
-                "$set": {
-                    "roles.$[i].user": null
-                }
+                "$set": clearBench ?
+                    {
+                        "roles.$[i].user": null,
+                        "bench": []
+                    } :
+                    {
+                        "roles.$[i].user": null
+                    }
             },
             {
                 arrayFilters: [{ "i.lineupNumber": { $in: lineupsToClear } }],
                 new: true
             }
         )
-    }
-
-    async updateLineupRoles(channelId: string, roles: IRole[]): Promise<ILineup | null> {
-        return Lineup.findOneAndUpdate({ channelId }, { roles }, { new: true })
     }
 
     async startPicking(channelId: string): Promise<ILineup | null> {
@@ -156,15 +160,110 @@ export default class TeamService {
     }
 
     async removeUserFromAllLineups(userId: string): Promise<UpdateWriteOpResult> {
-        return Lineup.updateMany({ 'roles.user.id': userId }, { $set: { "roles.$.user": null } })
+        return Lineup.updateMany(
+            {
+                "$or": [
+                    { 'roles.user.id': userId },
+                    { 'bench': { "$elemMatch": { 'user.id': userId } } }
+                ]
+            },
+            {
+                "$set": {
+                    "roles.$[i].user": null
+                },
+                "$pull": {
+                    "bench": {
+                        "user.id": userId
+                    }
+                }
+            },
+            {
+                arrayFilters: [{ "i.user.id": userId }],
+                new: true
+            }
+        )
     }
 
     async removeUserFromLineupsByChannelIds(userId: string, channelIds: string[]): Promise<UpdateWriteOpResult> {
-        return Lineup.updateMany({ 'channelId': { $in: channelIds }, 'roles.user.id': userId }, { $set: { "roles.$.user": null } })
+        return Lineup.updateMany(
+            {
+                'channelId': { $in: channelIds }
+            },
+            {
+                "$set": {
+                    "roles.$[i].user": null
+                },
+                "$pull": {
+                    "bench": {
+                        "user.id": userId
+                    }
+                }
+            },
+            {
+                arrayFilters: [{ "i.user.id": userId }],
+                new: true
+            }
+        )
     }
 
     async removeUserFromLineup(channelId: string, userId: string): Promise<ILineup | null> {
-        return Lineup.findOneAndUpdate({ channelId, 'roles.user.id': userId, }, { "$set": { "roles.$.user": null } }, { new: true })
+        return Lineup.findOneAndUpdate(
+            {
+                channelId
+            },
+            {
+                "$set": {
+                    "roles.$[i].user": null
+                },
+                "$pull": {
+                    "bench": {
+                        "user.id": userId
+                    }
+                }
+            },
+            {
+                arrayFilters: [{ "i.user.id": userId }],
+                new: true
+            }
+        )
+    }
+
+    async removeUserFromLineupBench(channelId: string, userId: string): Promise<ILineup | null> {
+        return Lineup.findOneAndUpdate(
+            { channelId },
+            {
+                "$pull": {
+                    "bench": {
+                        "user.id": userId
+                    }
+                }
+            },
+            {
+                new: true
+            }
+        )
+    }
+
+    async moveUserFromBenchToLineup(channelId: string, user: IUser, role: IRole): Promise<ILineup | null> {
+        return Lineup.findOneAndUpdate(
+            {
+                channelId
+            },
+            {
+                "$set": {
+                    "roles.$[i].user": user
+                },
+                "$pull": {
+                    "bench": {
+                        "user.id": user.id
+                    }
+                }
+            },
+            {
+                arrayFilters: [{ "i.lineupNumber": role.lineupNumber, "i.name": role.name }],
+                new: true
+            }
+        )
     }
 
     async addUserToLineup(channelId: string, roleName: string, user: IUser, selectedLineup = 1): Promise<ILineup | null> {
@@ -179,6 +278,22 @@ export default class TeamService {
             },
             {
                 arrayFilters: [{ "i.lineupNumber": selectedLineup, "i.name": roleName }],
+                new: true
+            }
+        )
+    }
+
+    async addUserToLineupBench(channelId: string, user: IUser, roles: IRole[]): Promise<ILineup | null> {
+        return Lineup.findOneAndUpdate(
+            {
+                channelId
+            },
+            {
+                "$push": {
+                    "bench": { user, roles } as IRoleBench
+                }
+            },
+            {
                 new: true
             }
         )
@@ -201,24 +316,58 @@ export default class TeamService {
         )
     }
 
+    async joinBench(user: User, lineup: ILineup, rolesNames: string[], lineupNumber: number = 1, member?: GuildMember): Promise<ILineup | null> {
+        await teamService.removeUserFromLineupBench(lineup.channelId, user.id)
+        const userToAdd = {
+            id: user.id,
+            name: user.username,
+            mention: user.toString(),
+            emoji: statsService.getLevelEmojiFromMember(member as GuildMember)
+        }
+        const benchRoles = rolesNames.map(roleName => (
+            {
+                name: roleName,
+                type: 0,
+                lineupNumber,
+                pos: 0,
+                user: userToAdd
+            } as IRole
+        ))
+        return teamService.addUserToLineupBench(
+            lineup.channelId,
+            userToAdd,
+            benchRoles
+        )
+    }
+
     async leaveLineup(interaction: CommandInteraction | ButtonInteraction, channel: BaseGuildTextChannel, lineup: ILineup): Promise<boolean> {
         let roleLeft = lineup.roles.find(role => role.user?.id === interaction.user.id)
+        let benchLeft = lineup.bench.find(role => role.user.id === interaction.user.id)
 
-        if (!roleLeft) {
+        if (!roleLeft && !benchLeft) {
             await interaction.reply({ content: `⛔ You are not in the lineup`, ephemeral: true })
             return false
         }
 
-        const newLineup = await this.removeUserFromLineup(lineup.channelId, interaction.user.id) as ILineup
+        let newLineup = await this.removeUserFromLineup(lineup.channelId, interaction.user.id) as ILineup
         await matchmakingService.removeUserFromLineupQueue(lineup.channelId, interaction.user.id)
 
-        let description = `:outbox_tray: ${interaction.user} left the ${newLineup.isMixOrCaptains() ? 'queue !' : `**${roleLeft.name}** position`}`
+        let description = benchLeft ?
+            `:outbox_tray: ${interaction.user} left the bench`
+            : `:outbox_tray: ${interaction.user} left the ${newLineup.isMixOrCaptains() ? 'queue !' : `**${roleLeft?.name}** position`}`
+
         const autoSearchResult = await matchmakingService.checkIfAutoSearch(interaction.client, interaction.user, newLineup)
         if (autoSearchResult.leftQueue) {
             description += `\nYou are no longer searching for a team.`
         }
         if (autoSearchResult.cancelledChallenge) {
             description += `\nThe challenge request has been cancelled.`
+        }
+
+        const benchUserToTransfer = this.getBenchUserToTransfer(newLineup, roleLeft)
+        if (benchUserToTransfer !== null) {
+            newLineup = await this.moveUserFromBenchToLineup(interaction.channelId, benchUserToTransfer, roleLeft!!) as ILineup
+            description += `\n:inbox_tray: ${benchUserToTransfer.mention} came off the bench and joined the **${roleLeft?.name}** position.`
         }
 
         let reply = await interactionUtils.createReplyForLineup(interaction, newLineup, autoSearchResult.updatedLineupQueue) as MessageOptions
@@ -254,9 +403,18 @@ export default class TeamService {
             {
                 $match: {
                     channelId: { $nin: excludedChannelIds },
-                    roles: {
-                        $elemMatch: { 'user.id': userId }
-                    }
+                    $or: [
+                        {
+                            roles: {
+                                $elemMatch: { 'user.id': userId }
+                            }
+                        },
+                        {
+                            bench: {
+                                $elemMatch: { 'user.id': userId }
+                            }
+                        }
+                    ]
                 }
             },
             {
@@ -277,7 +435,22 @@ export default class TeamService {
     }
 
     async findAllLineupsByUserId(userId: string): Promise<ILineup[]> {
-        return Lineup.find({ roles: { $elemMatch: { 'user.id': userId } } })
+        return Lineup.find(
+            {
+                $or: [
+                    {
+                        roles: {
+                            $elemMatch: { 'user.id': userId }
+                        }
+                    },
+                    {
+                        bench: {
+                            $elemMatch: { 'user.id': userId }
+                        }
+                    }
+                ]
+            }
+        )
     }
 
     async findChannelIdsFromGuildIdAndUserId(guildId: string, userId: string): Promise<string[]> {
@@ -358,6 +531,7 @@ export default class TeamService {
             channelId,
             size,
             roles,
+            bench: [],
             name,
             autoSearch,
             team,
@@ -384,6 +558,15 @@ export default class TeamService {
 
     async findBansByGuildId(guildId: string): Promise<IBan[]> {
         return Bans.find({ guildId })
+    }
+
+    getBenchUserToTransfer(lineup: ILineup, roleLeft?: IRole): IUser | null {
+        if (lineup.bench.length === 0 || !roleLeft) {
+            return null
+        }
+
+        const benchRole = lineup.bench.find(role => role.roles.some(r => (r.name === roleLeft.name || r.name === ROLE_NAME_ANY) && r.lineupNumber === roleLeft.lineupNumber))
+        return benchRole ? benchRole.user : null
     }
 
     private removeSpecialCharacters(name: string): string {
