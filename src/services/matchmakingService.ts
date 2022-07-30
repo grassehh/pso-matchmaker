@@ -185,20 +185,22 @@ export default class MatchmakingService {
                 .setStyle('PRIMARY')
         )
 
-        await Promise.all(channelIds.map(async (channelId: string) => {
-            const [channel] = await handle(client.channels.fetch(channelId))
-            if (!(channel instanceof TextChannel)) {
-                return null
-            }
-            const [message] = await handle(channel.send({ embeds: [teamEmbed], components: [challengeTeamRow] }))
-            return message ? { channelId: message.channelId, messageId: message.id } : null
-        }))
-            .then(notificationsMessages => {
-                lineupQueue.notificationMessages = notificationsMessages.filter(notEmpty)
-            })
-            .catch(console.error)
-            .finally(() => lineupQueue.save())
+        // FIXME This eventually causes rate limit exceeding
+        // await Promise.all(channelIds.map(async (channelId: string) => {
+        //     const [channel] = await handle(client.channels.fetch(channelId))
+        //     if (!(channel instanceof TextChannel)) {
+        //         return null
+        //     }
+        //     const [message] = await handle(channel.send({ embeds: [teamEmbed], components: [challengeTeamRow] }))
+        //     return message ? { channelId: message.channelId, messageId: message.id } : null
+        // }))
+        //     .then(notificationsMessages => {
+        //         lineupQueue.notificationMessages = notificationsMessages.filter(notEmpty)
+        //     })
+        //     .catch(console.error)
+        //     .finally(() => lineupQueue.save())
 
+        lineupQueue.save()
         return lineupQueue
     }
 
@@ -208,12 +210,11 @@ export default class MatchmakingService {
             return
         }
 
-        await Promise.all(lineupQueue.notificationMessages.map(async (notificationMessage) => {
-            const channel = await client.channels.fetch(notificationMessage.channelId) as TextChannel
-            handle(channel.messages.delete(notificationMessage.messageId))
-        }))
-            .catch(console.error)
-            .finally(() => this.deleteLineupQueuesByChannelId(lineupQueue.lineup.channelId))
+        // await Promise.all(lineupQueue.notificationMessages.map(async (notificationMessage) => {
+        //     const channel = await client.channels.fetch(notificationMessage.channelId) as TextChannel
+        //     handle(channel.messages.delete(notificationMessage.messageId))
+        // }))
+        //     .catch(console.error)
 
         await this.deleteLineupQueuesByChannelId(lineupQueue.lineup.channelId)
     }
