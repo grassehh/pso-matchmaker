@@ -23,9 +23,8 @@ export default {
             benchRoleSelectMenu.addOptions([{ label: role.name, value: role.name }])
         }
 
-        let components: ActionRowBuilder<SelectMenuBuilder | ButtonBuilder>[] = []
+        let components: ActionRowBuilder<SelectMenuBuilder | ButtonBuilder>[] = interactionUtils.createRolesActionRows(lineup, selectedLineupNumber, true)
         components.push(new ActionRowBuilder<SelectMenuBuilder>().addComponents(benchRoleSelectMenu))
-        components = components.concat(interactionUtils.createRolesActionRows(lineup, selectedLineupNumber, true))
 
         await interaction.reply({ content: '**Select one position you want to bench ...**', components, ephemeral: true })
     }
