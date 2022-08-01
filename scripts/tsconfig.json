@@ -1,0 +1,12 @@
+{
+    "extends": "../tsconfig-base.json",
+    "compilerOptions": {
+        "outDir": "../build/scripts",
+        "rootDir": "./"
+    },
+    "references": [
+        {
+            "path": "../bot/tsconfig.json"
+        }
+    ]
+}

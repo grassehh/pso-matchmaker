@@ -110,3 +110,6 @@ dist
 
 # Visual Studio Code
 .vscode/
+
+# Application build folder
+build
