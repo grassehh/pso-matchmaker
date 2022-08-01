@@ -1,0 +1,12 @@
+{
+    "extends": "../tsconfig-base.json",
+    "compilerOptions": {
+        "outDir": "../build/migrations",
+        "rootDir": "./"
+    },
+    "references": [
+        {
+            "path": "../bot/tsconfig.json"
+        }
+    ]
+}

@@ -13,7 +13,7 @@ const teamSchema = new Schema<ITeam>({
     guildId: { type: String, required: true },
     name: { type: String, required: true },
     region: { type: String, required: true },
-    lastMatchDate: { type: Date, required: false }
+    lastMatchDate: { type: Date, required: false, default: () => new Date() }
 })
 export const Team = model<ITeam>('Team', teamSchema, 'teams')
 
@@ -71,7 +71,7 @@ export interface ILineup {
     visibility: string,
     isPicking?: boolean | false,
     lastNotificationTime?: Date | null,
-    lastMatchDate?: Date 
+    lastMatchDate?: Date
 }
 const lineupSchema = new Schema<ILineup>({
     channelId: {
@@ -126,7 +126,8 @@ const lineupSchema = new Schema<ILineup>({
     },
     lastMatchDate: {
         type: Date,
-        required: false
+        required: false,
+        default: () => new Date()
     }
 })
 lineupSchema.index({ channelId: 1 });
