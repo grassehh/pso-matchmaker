@@ -6,6 +6,9 @@
         },
         {
             "path": "scripts/tsconfig.json"
+        },
+        {
+            "path": "migrations/tsconfig.json"
         }
     ]
 }
