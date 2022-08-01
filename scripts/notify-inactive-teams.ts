@@ -1,7 +1,6 @@
 import mongoose from 'mongoose';
 import { Lineup } from '../bot/src/mongoSchema';
 import dotenv = require('dotenv');
-import { handle } from '../bot/src/utils';
 dotenv.config()
 
 // const client = new Client({
