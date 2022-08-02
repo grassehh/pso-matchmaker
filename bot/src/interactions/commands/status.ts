@@ -42,10 +42,9 @@ export default {
             .addFields([
                 { name: 'Lineup size', value: `${lineup.size}v${lineup.size}`, inline: true },
                 { name: 'Lineup name', value: lineup.name ? lineup.name : '*none*', inline: true },
-                { name: 'Auto-search', value: `${lineup.autoSearch ? '**enabled**' : '*disabled*'}`, inline: true }
+                { name: 'Auto-search', value: `${lineup.autoSearch ? '**enabled**' : '*disabled*'}`, inline: true },
+                { name: 'Allow ranked', value: `${lineup.allowRanked ? '**enabled**' : '*disabled*'}`, inline: true }
             ])
-            .setTimestamp()
-            .setFooter({ text: `Author: ${interaction.user.username}` })
 
         let lineupStatusEmbed = new EmbedBuilder()
             .setColor('#566573')
@@ -53,7 +52,7 @@ export default {
         if (challenge) {
             if (challenge.initiatingTeam.lineup.channelId === lineup.channelId) {
                 const challengedTeamLineup = (await teamService.retrieveLineup(challenge.challengedTeam.lineup.channelId))!
-                let description = `**${teamService.formatTeamName(challengedTeamLineup)}**`
+                let description = teamService.formatTeamName(challengedTeamLineup, false, !challengedTeamLineup.isMix())
                 description += `\n${challengedTeamLineup.roles.filter(role => role.user != null).length} players signed`
                 if (!teamService.hasGkSigned(challengedTeamLineup)) {
                     description += ' **(no GK)**'
@@ -62,7 +61,7 @@ export default {
                     .setDescription(description)
             } else {
                 const initiatingTeamLineup = (await teamService.retrieveLineup(challenge.initiatingTeam.lineup.channelId))!
-                let description = `**${teamService.formatTeamName(initiatingTeamLineup)}**`
+                let description = teamService.formatTeamName(initiatingTeamLineup, false, true)
                 description += `\n${initiatingTeamLineup.roles.filter(role => role.user != null).length} players signed`
                 if (!teamService.hasGkSigned(initiatingTeamLineup)) {
                     description += ' **(no GK)**'
@@ -72,7 +71,7 @@ export default {
                     .setDescription(description)
             }
         } else if (lineupQueue) {
-            lineupStatusEmbed.setTitle("🔎 You are searching for a team to challenge ...")
+            lineupStatusEmbed.setTitle(`🔎 You are searching for a **${lineupQueue.ranked ? 'Ranked' : 'Casual'}** match to play ...`)
         } else {
             lineupStatusEmbed.setTitle("😴 You are not searching for a team")
         }

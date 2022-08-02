@@ -1,19 +1,23 @@
 import { User } from "discord.js";
 import { model, Schema, Types } from "mongoose";
-import { ROLE_NAME_ANY } from "./services/teamService";
+import { DEFAULT_RATING, MERC_USER_ID } from "./constants";
+import { MatchResult } from "./services/matchmakingService";
+import { LINEUP_TYPE_CAPTAINS, LINEUP_TYPE_MIX, LINEUP_TYPE_TEAM, LINEUP_VISIBILITY_PUBLIC, LINEUP_VISIBILITY_TEAM, ROLE_ATTACKER, ROLE_DEFENDER, ROLE_GOAL_KEEPER, ROLE_MIDFIELDER, ROLE_NAME_ANY } from "./services/teamService";
 import { notEmpty } from "./utils";
 
 export interface ITeam {
     guildId: string,
     name: string,
     region: string,
-    lastMatchDate?: Date
+    lastMatchDate?: Date,
+    rating: number
 }
 const teamSchema = new Schema<ITeam>({
     guildId: { type: String, required: true },
     name: { type: String, required: true },
     region: { type: String, required: true },
-    lastMatchDate: { type: Date, required: false, default: () => new Date() }
+    lastMatchDate: { type: Date, required: false, default: () => new Date() },
+    rating: { type: Number, required: true, default: DEFAULT_RATING }
 })
 export const Team = model<ITeam>('Team', teamSchema, 'teams')
 
@@ -21,13 +25,15 @@ export interface IUser {
     id: string,
     name: string,
     mention: string,
-    emoji?: string
+    emoji?: string,
+    rating?: number
 }
 const userSchema = new Schema<IUser>({
     id: { type: String, required: true },
     name: { type: String, required: true },
     mention: { type: String, required: true },
-    emoji: { type: String, required: false }
+    emoji: { type: String, required: false },
+    rating: { type: Number, required: false, default: DEFAULT_RATING }
 })
 
 export interface IRole {
@@ -60,6 +66,7 @@ export interface ILineup {
     isCaptains(): boolean,
     numberOfSignedPlayers(): number,
     moveAllBenchToLineup(lineupNumber?: number, clearLineup?: boolean): ILineup,
+    computePlayersAverageRating(lineupNumber?: number): number,
     channelId: string,
     size: number,
     roles: IRole[],
@@ -70,6 +77,7 @@ export interface ILineup {
     type: string,
     visibility: string,
     isPicking?: boolean | false,
+    allowRanked: boolean,
     lastNotificationTime?: Date | null,
     lastMatchDate?: Date
 }
@@ -106,19 +114,24 @@ const lineupSchema = new Schema<ILineup>({
     },
     type: {
         type: String,
-        enum: ['TEAM', 'MIX', 'CAPTAINS'],
+        enum: [LINEUP_TYPE_TEAM, LINEUP_TYPE_MIX, LINEUP_TYPE_CAPTAINS],
         required: true
     },
     visibility: {
         type: String,
-        enum: ['PUBLIC', 'TEAM'],
+        enum: [LINEUP_VISIBILITY_PUBLIC, LINEUP_VISIBILITY_TEAM],
         required: true,
-        default: 'PUBLIC'
+        default: LINEUP_VISIBILITY_PUBLIC
     },
     isPicking: {
         type: Boolean,
         required: false,
         default: false
+    },
+    allowRanked: {
+        type: Boolean,
+        required: true,
+        default: true
     },
     lastNotificationTime: {
         type: Date,
@@ -133,13 +146,16 @@ const lineupSchema = new Schema<ILineup>({
 lineupSchema.index({ channelId: 1 });
 lineupSchema.index({ "team.region": 1, type: 1, channelId: 1, size: 1 });
 lineupSchema.methods.isMix = function () {
-    return this.type === 'MIX'
+    return this.type === LINEUP_TYPE_MIX
 }
 lineupSchema.methods.isCaptains = function () {
-    return this.type === 'CAPTAINS'
+    return this.type === LINEUP_TYPE_CAPTAINS
 }
 lineupSchema.methods.isMixOrCaptains = function () {
     return this.isMix() || this.isCaptains()
+}
+lineupSchema.methods.isTeam = function () {
+    return this.type === LINEUP_TYPE_TEAM
 }
 lineupSchema.methods.numberOfSignedPlayers = function () {
     return this.roles.filter((role: IRole) => role.lineupNumber === 1).filter((role: IRole) => role.user != null).length;
@@ -199,6 +215,11 @@ lineupSchema.methods.moveAllBenchToLineup = function (lineupNumber: number = 1, 
 
     return this
 }
+lineupSchema.methods.computePlayersAverageRating = function (lineupNumber: number = 1) {
+    const signedRoles = this.roles.filter((role: IRole) => role.lineupNumber === lineupNumber && role.user && role.user.id !== MERC_USER_ID)
+    const sum = signedRoles.map((role: IRole) => role.user?.rating).reduce((a: number, b: number) => a + b, 0)
+    return this.lineupRatingAverage = (sum / signedRoles.length) || 0
+}
 export const Lineup = model<ILineup>('Lineup', lineupSchema, 'lineups')
 
 export interface INotificationMessage {
@@ -215,6 +236,7 @@ export interface ILineupQueue {
     lineup: ILineup,
     challengeId: string | null,
     notificationMessages: INotificationMessage[],
+    ranked: boolean
 }
 const lineupQueueSchema = new Schema<ILineupQueue>({
     lineup: {
@@ -228,6 +250,11 @@ const lineupQueueSchema = new Schema<ILineupQueue>({
     notificationMessages: {
         type: [notificationMessageSchema],
         required: false
+    },
+    ranked: {
+        type: Boolean,
+        required: true,
+        default: false
     }
 })
 export const LineupQueue = model<ILineupQueue>('LineupQueue', lineupQueueSchema, 'lineup-queues')
@@ -274,15 +301,48 @@ const subSchema = new Schema<ISub>({
     }
 })
 
+export interface ILineupMatchResult {
+    captainUserId: string,
+    result: MatchResult
+}
+const lineupMatchResultSchema = new Schema<ILineupMatchResult>({
+    captainUserId: {
+        type: String,
+        required: true
+    },
+    result: {
+        type: Number,
+        enum: MatchResult,
+        required: true
+    }
+})
+
+export interface IMatchResult {
+    firstLineup?: ILineupMatchResult,
+    secondLineup?: ILineupMatchResult,
+}
+const matchResultSchema = new Schema<IMatchResult>({
+    firstLineup: {
+        type: lineupMatchResultSchema,
+        required: false
+    },
+    secondLineup: {
+        type: lineupMatchResultSchema,
+        required: false
+    }
+})
+
 export interface IMatch {
     findUserRole(user: User): IRole | null,
     matchId: string,
     schedule: Date,
     firstLineup: ILineup,
-    secondLineup: ILineup | null,
+    secondLineup?: ILineup | null,
     lobbyName: string,
     lobbyPassword: string,
-    subs: ISub[]
+    subs: ISub[],
+    ranked: boolean,
+    result: IMatchResult
 }
 const matchSchema = new Schema<IMatch>({
     matchId: {
@@ -312,6 +372,16 @@ const matchSchema = new Schema<IMatch>({
     subs: {
         type: [subSchema],
         required: true
+    },
+    ranked: {
+        type: Boolean,
+        required: true,
+        default: false
+    },
+    result: {
+        type: matchResultSchema,
+        required: true,
+        default: {}
     }
 })
 matchSchema.index({ schedule: 1 }, { expireAfterSeconds: 4 * 60 * 60 });
@@ -330,11 +400,19 @@ matchSchema.methods.findUserRole = function (user: User): IRole | null {
 export const Match = model<IMatch>('Match', matchSchema, 'matches')
 
 export interface IStats {
+    getRating(roleType: number): number,
     _id: Types.ObjectId,
     userId: string,
     region: string,
     numberOfGames: number,
-    numberOfRankedGames: number
+    numberOfRankedGames: number,
+    numberOfRankedWins: number,
+    numberOfRankedDraws: number,
+    numberOfRankedLosses: number,
+    attackRating: number,
+    midfieldRating: number,
+    defenseRating: number,
+    goalKeeperRating: number
 }
 const statsSchema = new Schema<IStats>({
     userId: {
@@ -347,16 +425,67 @@ const statsSchema = new Schema<IStats>({
     },
     numberOfGames: {
         type: Number,
-        required: true
+        required: true,
+        default: 0
     },
     numberOfRankedGames: {
         type: Number,
-        required: true
+        required: true,
+        default: 0
+    },
+    numberOfRankedWins: {
+        type: Number,
+        required: true,
+        default: 0
+    },
+    numberOfRankedDraws: {
+        type: Number,
+        required: true,
+        default: 0
+    },
+    numberOfRankedLosses: {
+        type: Number,
+        required: true,
+        default: 0
+    },
+    attackRating: {
+        type: Number,
+        required: true,
+        default: DEFAULT_RATING
+    },
+    defenseRating: {
+        type: Number,
+        required: true,
+        default: DEFAULT_RATING
+    },
+    midfieldRating: {
+        type: Number,
+        required: true,
+        default: DEFAULT_RATING
+    },
+    goalKeeperRating: {
+        type: Number,
+        required: true,
+        default: DEFAULT_RATING
     }
 })
-export const Stats = model<IStats>('Stats', statsSchema, 'stats')
 statsSchema.index({ userId: 1, region: 1 });
 statsSchema.index({ region: 1 });
+statsSchema.methods.getRating = function (roleType: number): number {
+    switch (roleType) {
+        case ROLE_ATTACKER:
+            return this.attackRating
+        case ROLE_DEFENDER:
+            return this.defenseRating
+        case ROLE_MIDFIELDER:
+            return this.midfieldRating
+        case ROLE_GOAL_KEEPER:
+            return this.goalKeeperRating
+        default:
+            return 0
+    }
+}
+export const Stats = model<IStats>('Stats', statsSchema, 'stats')
 
 export interface IBan {
     userId: string,

@@ -38,7 +38,7 @@ export default {
         await initiatingTeamChannel.send({ embeds: [interactionUtils.createInformationEmbed(interaction.user, `❌ **${teamService.formatTeamName(challenge.challengedTeam.lineup)}** has refused your challenge request`)] })
 
         await interaction.update({ components: [] })
-        await interaction.channel?.send({ embeds: [interactionUtils.createInformationEmbed(interaction.user, `❌ ${interaction.user} has refused to challenge **${teamService.formatTeamName(challenge.initiatingTeam.lineup)}**'`)] })
+        await interaction.channel?.send({ embeds: [interactionUtils.createInformationEmbed(interaction.user, `❌ ${interaction.user} has refused to challenge ${teamService.formatTeamName(challenge.initiatingTeam.lineup)}`)] })
         return
     }
 } as IButtonHandler

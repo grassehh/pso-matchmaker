@@ -4,15 +4,14 @@ import { ICommandHandler } from "../../handlers/commandHandler";
 import { Bans } from "../../mongoSchema";
 import { interactionUtils } from "../../services/interactionUtils";
 import { teamService } from "../../services/teamService";
-import { getUserIdFromMention } from "../../utils";
 
 export default {
     data: new SlashCommandBuilder()
         .setName('ban')
         .setDescription('Ban a player from using the bot in this team')
-        .addStringOption(option => option.setName('player')
+        .addUserOption(option => option.setName('player')
             .setRequired(true)
-            .setDescription('The mention (@...) or the id of the player to ban. For example: @Player or 123456789012345678'))
+            .setDescription('The player to ban'))
         .addStringOption(option => option.setName('reason')
             .setRequired(false)
             .setDescription('The reason of the ban'))
@@ -33,20 +32,12 @@ export default {
             return
         }
 
-        const player = interaction.options.getString('player')!
-        const userId = (player.includes('@') ? getUserIdFromMention(player) : player) as string
-
-        const user = interaction.client.users.resolve(userId)
-        if (!user) {
-            await interaction.reply({ content: `⛔ User '${player}' not found`, ephemeral: true })
-            return
-        }
-
-        if (user.id === interaction.client.user?.id) {
+        const player = interaction.options.getUser('player')!
+        if (player.id === interaction.client.user?.id) {
             await interaction.reply({ content: `⛔ You cannot ban the bot !`, ephemeral: true })
             return
         }
-        if (user.id === interaction.user.id) {
+        if (player.id === interaction.user.id) {
             await interaction.reply({ content: `⛔ You surely don't want to ban yourself !`, ephemeral: true })
             return
         }
@@ -59,12 +50,12 @@ export default {
         } else if (duration != -1) {
             expireAt = now + 24 * 60 * 60 * 1000
         }
-        await Bans.updateOne({ userId: user.id, guildId: team.guildId }, { userId: user.id, reason, expireAt }, { upsert: true })
+        await Bans.updateOne({ userId: player.id, guildId: team.guildId }, { userId: player.id, reason, expireAt }, { upsert: true })
 
         let formattedDate
         if (expireAt) {
             formattedDate = new Date(expireAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: '2-digit', hour: '2-digit', minute: 'numeric' })
         }
-        await interaction.reply({ content: `Player **${user.username}** is now ${formattedDate ? `banned until ${formattedDate}` : 'permanently banned'}`, ephemeral: true })
+        await interaction.reply({ content: `Player **${player.username}** is now ${formattedDate ? `banned until ${formattedDate}` : 'permanently banned'}`, ephemeral: true })
     }
 } as ICommandHandler;

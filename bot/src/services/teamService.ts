@@ -1,12 +1,12 @@
 import { BaseGuildTextChannel, ButtonInteraction, Client, CommandInteraction, GuildMember, MessageOptions, TextChannel, User } from "discord.js";
 import { DeleteResult } from "mongodb";
 import { UpdateWriteOpResult } from "mongoose";
-import { interactionUtils } from "./interactionUtils";
-import { matchmakingService } from "./matchmakingService";
-import { statsService } from "./statsService";
 import { MAX_LINEUP_NAME_LENGTH, MAX_TEAM_NAME_LENGTH } from "../constants";
 import { Bans, IBan, ILineup, IRole, IRoleBench, ITeam, IUser, Lineup, Team } from "../mongoSchema";
 import { handle } from "../utils";
+import { interactionUtils } from "./interactionUtils";
+import { matchmakingService } from "./matchmakingService";
+import { statsService } from "./statsService";
 
 export const ROLE_GOAL_KEEPER = 0
 export const ROLE_ATTACKER = 1
@@ -65,10 +65,14 @@ class TeamService {
         return name.length > 0 && name.length <= MAX_LINEUP_NAME_LENGTH
     }
 
-    formatTeamName(lineup: ILineup, filterName: boolean = false): string {
-        let name = lineup.team.name
+    formatTeamName(lineup: ILineup, filterName: boolean = false, includeRating: boolean = false): string {
+        let name = `**${lineup.team.name}`
         if (lineup.name) {
             name += ` *(${lineup.name})*`
+        }
+        name += `**`
+        if (includeRating) {
+            name += ` (${lineup.team.rating})`
         }
 
         return filterName ? this.removeSpecialCharacters(name) : name
@@ -95,7 +99,14 @@ class TeamService {
     }
 
     async updateTeamLastMatchDateByGuildId(guildId: string, date: Date): Promise<UpdateWriteOpResult> {
-        return Team.updateOne({ guildId: guildId }, { lastMatchDate: date })
+        return Team.updateOne({ guildId }, { lastMatchDate: date })
+    }
+
+    async updateTeamRating(guildId: string, rating: number): Promise<void> {
+        await Promise.all([
+            Team.updateOne({ guildId }, { rating }),
+            Lineup.updateMany({ 'team.guildId': guildId }, { 'team.rating': rating })
+        ])
     }
 
     async updateLineupNameByChannelId(channelId: string, name?: string): Promise<UpdateWriteOpResult> {
@@ -103,7 +114,10 @@ class TeamService {
     }
 
     async updateTeamRegionByGuildId(guildId: string, region: string): Promise<void> {
-        await Promise.all([Team.updateOne({ guildId }, { region }), Lineup.updateMany({ 'team.guildId': guildId }, { 'team.region': region })])
+        await Promise.all([
+            Team.updateOne({ guildId }, { region }),
+            Lineup.updateMany({ 'team.guildId': guildId }, { 'team.region': region })
+        ])
     }
 
     async deleteLineup(channelId: string): Promise<DeleteResult> {
@@ -123,6 +137,7 @@ class TeamService {
                 bench: lineup.bench,
                 name: lineup.name,
                 autoSearch: lineup.autoSearch,
+                allowRanked: lineup.allowRanked,
                 team: lineup.team,
                 type: lineup.type,
                 visibility: lineup.visibility,
@@ -514,7 +529,7 @@ class TeamService {
         return []
     }
 
-    createLineup(channelId: string, size: number, name: string = '', autoSearch: boolean, team: ITeam, type: string, visibility: string): ILineup {
+    createLineup(channelId: string, size: number, name: string = '', autoSearch: boolean, allowRanked: boolean, team: ITeam, type: string, visibility: string): ILineup {
         const defaultRoles = DEFAULT_PLAYER_ROLES.get(size)!
 
         let roles = defaultRoles.map(obj => ({ ...obj, lineupNumber: 1 }))
@@ -541,6 +556,7 @@ class TeamService {
             bench: [],
             name,
             autoSearch,
+            allowRanked,
             team,
             type,
             visibility
@@ -582,3 +598,11 @@ class TeamService {
 }
 
 export const teamService = new TeamService()
+
+export interface RankedStats {
+    role: IRole,
+    rating: number,
+    wins: number,
+    draws: number,
+    losses: number
+}

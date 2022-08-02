@@ -37,7 +37,7 @@ export default {
         }
 
         const lineupSize = interaction.options.getInteger("size")!
-        const lineup = teamService.createLineup(interaction.channelId, lineupSize, undefined, false, team, LINEUP_TYPE_CAPTAINS, LINEUP_VISIBILITY_TEAM)
+        const lineup = teamService.createLineup(interaction.channelId, lineupSize, undefined, false, false, team, LINEUP_TYPE_CAPTAINS, LINEUP_VISIBILITY_TEAM)
         await teamService.upsertLineup(lineup)
 
         await matchmakingService.deleteLineupQueuesByChannelId(interaction.channelId)

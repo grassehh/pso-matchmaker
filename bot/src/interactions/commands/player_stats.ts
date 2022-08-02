@@ -1,5 +1,5 @@
 import { SlashCommandBuilder } from "@discordjs/builders";
-import { ActionRowBuilder, ChatInputCommandInteraction, EmbedBuilder, SelectMenuBuilder } from "discord.js";
+import { ActionRowBuilder, ChatInputCommandInteraction, SelectMenuBuilder } from "discord.js";
 import { ICommandHandler } from "../../handlers/commandHandler";
 import { interactionUtils } from "../../services/interactionUtils";
 import { teamService } from "../../services/teamService";
@@ -7,10 +7,10 @@ import { teamService } from "../../services/teamService";
 export default {
     data: new SlashCommandBuilder()
         .setName('player_stats')
-        .setDescription(`Display your own stats or another player's stats`)
-        .addStringOption(option => option.setName('player_name')
+        .setDescription("Display your own stats or another player's stats")
+        .addUserOption(option => option.setName('player')
             .setRequired(false)
-            .setDescription('The name of the player you want to see the stats')),
+            .setDescription('The player you to see the stats')),
     async execute(interaction: ChatInputCommandInteraction) {
         let team = await teamService.findTeamByGuildId(interaction.guildId!)
         if (!team) {
@@ -18,22 +18,8 @@ export default {
             return
         }
 
-        let playerName = interaction.options.getString('player_name')
-        let user = interaction.user
-        if (playerName) {
-            let matchingUsers = await interaction.guild!.members.search({ query: playerName })
-            if (matchingUsers.size == 0) {
-                const statsEmbed = new EmbedBuilder()
-                    .setColor('#566573')
-                    .setTitle(`⛔ Player **${playerName}** not found`)
-                    .setTimestamp()
-                await interaction.reply({ embeds: [statsEmbed], ephemeral: true })
-                return
-            } else {
-                user = matchingUsers.at(0)!.user
-            }
-        }
-
+        let player = interaction.options.getUser('player')
+        let user = player ? player : interaction.user
         const statsTypeComponent = new ActionRowBuilder<SelectMenuBuilder>().addComponents(
             new SelectMenuBuilder()
                 .setCustomId(`stats_type_select_${user.id}`)

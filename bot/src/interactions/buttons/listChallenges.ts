@@ -5,7 +5,7 @@ import { interactionUtils } from "../../services/interactionUtils";
 import { teamService } from "../../services/teamService";
 
 export default {
-    customId: 'startSearch',
+    customId: 'listChallenges',
     async execute(interaction: ButtonInteraction) {
         const lineup = await teamService.retrieveLineup(interaction.channelId)
         if (lineup === null) {
@@ -18,12 +18,12 @@ export default {
         const searchActionRow = new ActionRowBuilder<ButtonBuilder>()
             .addComponents(
                 new ButtonBuilder()
-                    .setCustomId('search_ranked')
+                    .setCustomId('challenges_ranked')
                     .setLabel('Ranked')
                     .setStyle(ButtonStyle.Primary)
                     .setDisabled(!lineup.allowRanked || lineupHasAnyMerc),
                 new ButtonBuilder()
-                    .setCustomId('search_casual')
+                    .setCustomId('challenges_casual')
                     .setLabel('Casual')
                     .setStyle(ButtonStyle.Secondary)
             )
