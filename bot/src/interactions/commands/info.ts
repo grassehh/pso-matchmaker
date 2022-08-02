@@ -19,10 +19,10 @@ export default {
         const teamEmbed = new EmbedBuilder()
             .setColor('#566573')
             .setTitle(`Team information`)
-            .setTimestamp()
             .addFields([
                 { name: 'Name', value: team.name, inline: true },
-                { name: 'Region', value: team.region, inline: true }
+                { name: 'Region', value: team.region, inline: true },
+                { name: 'Rating', value: `${team.rating}`, inline: true }
             ])
 
         await interaction.reply({

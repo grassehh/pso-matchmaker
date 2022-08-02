@@ -1,28 +1,21 @@
-import { ActionRowBuilder, ButtonBuilder, SelectMenuBuilder, SelectMenuInteraction } from "discord.js";
+import { InteractionUpdateOptions, SelectMenuInteraction } from "discord.js";
 import { DEFAULT_LEADERBOARD_PAGE_SIZE } from "../../constants";
 import { ISelectMenuHandler } from "../../handlers/selectMenuHandler";
-import { interactionUtils } from "../../services/interactionUtils";
-import { statsService } from "../../services/statsService";
+import { interactionUtils, StatsScope, StatsType } from "../../services/interactionUtils";
+import { teamService } from "../../services/teamService";
 
 export default {
-    customId: 'leaderboard_type_select',
+    customId: 'leaderboard_scope_select',
     async execute(interaction: SelectMenuInteraction) {
-        let statsType = interaction.values[0]
-        let region
-        if (statsType.startsWith('region')) {
-            region = statsType.split(',')[1]
+        const team = await teamService.findTeamByGuildId(interaction.guildId!)
+        if (!team) {
+            await interaction.reply(interactionUtils.createReplyTeamNotRegistered())
+            return
         }
-        let numberOfPlayers = await statsService.countNumberOfPlayers(region)
-        let numberOfPages = Math.ceil(numberOfPlayers / DEFAULT_LEADERBOARD_PAGE_SIZE)
-        let statsEmbeds = await interactionUtils.createLeaderBoardEmbeds(interaction, numberOfPages, { region })
-        let leaderboardPaginationComponent = interactionUtils.createLeaderBoardPaginationComponent({ statsType, page: 0 }, numberOfPages)
-        
-        let components: ActionRowBuilder<SelectMenuBuilder | ButtonBuilder>[] = []
-        interaction.message.components.forEach(component => {
-            components.push(ActionRowBuilder.from(component) as ActionRowBuilder<SelectMenuBuilder | ButtonBuilder>)
-        })
-        components[0] = leaderboardPaginationComponent
 
-        await interaction.update({ embeds: statsEmbeds, components })
+        const statsScope: StatsScope = parseInt(interaction.values[0])
+        const statsType: StatsType = parseInt(interaction.customId.split('_')[3])
+        const reply = await interactionUtils.createLeaderboardReply(interaction, team, { page: 0, pageSize: DEFAULT_LEADERBOARD_PAGE_SIZE, statsScope, statsType })
+        await interaction.update(reply as InteractionUpdateOptions)
     }
 } as ISelectMenuHandler

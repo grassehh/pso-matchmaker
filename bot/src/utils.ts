@@ -1,5 +1,3 @@
-import { MessageMentions } from "discord.js";
-
 export async function handle<T>(promise: Promise<T>): Promise<[T | undefined, any]> {
     try {
         const data = await promise;
@@ -8,13 +6,6 @@ export async function handle<T>(promise: Promise<T>): Promise<[T | undefined, an
         console.log(error);
         return [undefined, error];
     }
-}
-
-export function getUserIdFromMention(mention: string): string | null {
-    const result = MessageMentions.UsersPattern.exec(mention)
-    MessageMentions.UsersPattern.lastIndex = 0
-    if (!result) return null
-    return result[1]
 }
 
 

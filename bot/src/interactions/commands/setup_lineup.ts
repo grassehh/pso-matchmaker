@@ -30,7 +30,10 @@ export default {
             )
             .addBooleanOption(option => option.setName('auto_search')
                 .setRequired(false)
-                .setDescription('Indicates if this lineup should automatically search for a team once it is filled')),
+                .setDescription('Indicates if this lineup should automatically search for a team once it is filled'))
+            .addBooleanOption(option => option.setName('allow_ranked')
+                    .setRequired(false)
+                    .setDescription('Indicates if this lineup allows to play ranked matches that would influence the team rating')),
     authorizedRoles: [BOT_ADMIN_ROLE],
     async execute(interaction: ChatInputCommandInteraction) {
         let team = await teamService.findTeamByGuildId(interaction.guildId!)
@@ -47,7 +50,8 @@ export default {
 
         const lineupSize = interaction.options.getInteger("size")!
         const autoSearch = interaction.options.getBoolean("auto_search") || false
-        const lineup = teamService.createLineup(interaction.channelId, lineupSize, undefined, autoSearch, team, LINEUP_TYPE_TEAM, LINEUP_VISIBILITY_PUBLIC)
+        const allowRanked = interaction.options.getBoolean("allow_ranked") !== false
+        const lineup = teamService.createLineup(interaction.channelId, lineupSize, undefined, autoSearch, allowRanked, team, LINEUP_TYPE_TEAM, LINEUP_VISIBILITY_PUBLIC)
         await teamService.upsertLineup(lineup)
 
         let reply = await interactionUtils.createReplyForLineup(interaction, lineup, lineupQueue)

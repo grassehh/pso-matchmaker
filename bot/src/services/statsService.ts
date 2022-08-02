@@ -1,7 +1,8 @@
 import { ButtonInteraction, CommandInteraction, GuildMember, Role, SelectMenuInteraction } from "discord.js"
 import { MERC_USER_ID, MINIMUM_LINEUP_SIZE_FOR_RANKED } from "../constants"
-import { IStats, Stats } from "../mongoSchema"
+import { IStats, ITeam, Stats, Team } from "../mongoSchema"
 import { handle } from "../utils"
+import { RankedStats, ROLE_ATTACKER, ROLE_DEFENDER, ROLE_GOAL_KEEPER, ROLE_MIDFIELDER } from "./teamService"
 
 class StatsService {
     getLevelEmojiFromMember(member: GuildMember): string {
@@ -25,57 +26,76 @@ class StatsService {
         return (await Stats.distinct('userId', region ? { region } : {})).length
     }
 
-    async findStats(userId?: string, region?: string, page?: number, size?: number): Promise<IStats[]> {
-        const skip = (!page || !size) ? 0 : page * size
-        let pipeline = <any>[]
+    async countNumberOfTeams(region?: string): Promise<number> {
+        return (await Team.count(region ? { region } : {}))
+    }
 
+    async findPlayersStats(page: number, pageSize: number, region?: string): Promise<IStats[]> {
         let match: any = {}
-        if (userId) {
-            match.userId = userId;
-        }
-
         if (region) {
             match.region = region;
         }
-        pipeline.push({ $match: match })
-
-        if (userId) {
-            pipeline.push(
-                {
-                    $group: {
-                        _id: null,
-                        numberOfGames: {
-                            $sum: '$numberOfGames'
-                        },
-                        numberOfRankedGames: {
-                            $sum: '$numberOfRankedGames'
-                        }
+        const pipeline = <any>[
+            { $match: match },
+            {
+                $group: {
+                    _id: '$userId',
+                    numberOfRankedGames: {
+                        $sum: '$numberOfRankedGames'
+                    },
+                    numberOfGames: {
+                        $sum: '$numberOfGames'
+                    },
+                    numberOfRankedWins: {
+                        $sum: '$numberOfRankedWins'
+                    },
+                    numberOfRankedDraws: {
+                        $sum: '$numberOfRankedDraws'
+                    },
+                    numberOfRankedLosses: {
+                        $sum: '$numberOfRankedLosses'
+                    },
+                    attackRating: {
+                        $avg: '$attackRating'
+                    },
+                    midfieldRating: {
+                        $avg: '$midfieldRating'
+                    },
+                    defenseRating: {
+                        $avg: '$defenseRating'
+                    },
+                    goalKeeperRating: {
+                        $avg: '$goalKeeperRating'
                     }
-                })
-        } else {
-            pipeline = pipeline.concat([
-                {
-                    $group: {
-                        _id: '$userId',
-                        numberOfGames: {
-                            $sum: '$numberOfGames'
-                        },
-                        numberOfRankedGames: {
-                            $sum: '$numberOfRankedGames'
-                        }
-                    }
-                },
-                {
-                    $sort: { 'numberOfRankedGames': -1 },
-                },
-                {
-                    $skip: skip
-                },
-                {
-                    $limit: size
                 }
-            ])
-        }
+            },
+            {
+                $project: {
+                    numberOfRankedGames: 1,
+                    numberOfGames: 1,
+                    numberOfRankedWins: 1,
+                    numberOfRankedDraws: 1,
+                    numberOfRankedLosses: 1,
+                    rating: {
+                        $avg: [
+                            "$attackRating",
+                            "$midfieldRating",
+                            "$defenseRating",
+                            "$goalKeeperRating"
+                        ]
+                    }
+                }
+            },
+            {
+                $sort: { 'rating': -1 }
+            },
+            {
+                $skip: page * pageSize
+            },
+            {
+                $limit: pageSize
+            }
+        ]
 
         return Stats.aggregate(pipeline)
     }
@@ -109,7 +129,7 @@ class StatsService {
 
         if (region === 'EU' && lineupSize >= MINIMUM_LINEUP_SIZE_FOR_RANKED) {
             const psoEuGuild = await interaction.client.guilds.fetch(process.env.PSO_EU_DISCORD_GUILD_ID as string)
-            const usersStats = await this.findUsersStats(nonMercUserIds)
+            const usersStats = await this.findUsersStats(nonMercUserIds, region)
 
             await Promise.all(usersStats.map(async (userStats: IStats) => {
                 const levelingRoleId = this.getLevelingRoleIdFromStats(userStats)
@@ -128,6 +148,99 @@ class StatsService {
         }
     }
 
+    async findUsersStats(userIds: string[], region?: string): Promise<IStats[]> {
+        let match: any = { userId: { $in: userIds } }
+        if (region) {
+            match.region = region;
+        }
+
+        return Stats.aggregate([
+            {
+                $match: match
+            },
+            {
+                $group: {
+                    _id: '$userId',
+                    numberOfGames: {
+                        $sum: '$numberOfGames',
+                    },
+                    numberOfRankedGames: {
+                        $sum: '$numberOfRankedGames',
+                    },
+                    numberOfRankedWins: {
+                        $sum: '$numberOfRankedWins'
+                    },
+                    numberOfRankedDraws: {
+                        $sum: '$numberOfRankedDraws'
+                    },
+                    numberOfRankedLosses: {
+                        $sum: '$numberOfRankedLosses'
+                    },
+                    attackRating: {
+                        $avg: '$attackRating'
+                    },
+                    midfieldRating: {
+                        $avg: '$midfieldRating'
+                    },
+                    defenseRating: {
+                        $avg: '$defenseRating'
+                    },
+                    goalKeeperRating: {
+                        $avg: '$goalKeeperRating'
+                    }
+                }
+            }
+        ])
+    }
+
+    async findUserStats(userId: string, region: string): Promise<IStats | null> {
+        return Stats.findOne({ userId, region })
+    }
+
+    async updatePlayerRating(userId: string, region: string, newRating: RankedStats): Promise<IStats | null> {
+        let ratingField
+        switch (newRating.role.type) {
+            case ROLE_ATTACKER:
+                ratingField = 'attackRating'
+                break
+            case ROLE_DEFENDER:
+                ratingField = 'defenseRating'
+                break
+            case ROLE_MIDFIELDER:
+                ratingField = 'midfieldRating'
+                break
+            case ROLE_GOAL_KEEPER:
+                ratingField = 'goalKeeperRating'
+                break
+        }
+        return Stats.findOneAndUpdate(
+            { userId, region },
+            {
+                $set: {
+                    numberOfRankedWins: newRating.wins,
+                    numberOfRankedDraws: newRating.draws,
+                    numberOfRankedLosses: newRating.losses,
+                    [`${ratingField}`]: newRating.rating
+                }
+            },
+            { upsert: true }
+        )
+    }
+
+    async findTeamsStats(page: number, pageSize: number, region?: string): Promise<ITeam[] | null> {
+        let match: any = {}
+        if (region) {
+            match.region = region;
+        }
+
+        return Team.aggregate([
+            { $match: match },
+            { $sort: { 'rating': -1 }, },
+            { $skip: page * pageSize },
+            { $limit: pageSize }
+        ])
+    }
+
     private getLevelingRoleIdFromStats(userStats: IStats): string {
         if (userStats.numberOfRankedGames >= 800) {
             return process.env.PSO_EU_DISCORD_VETERAN_ROLE_ID as string
@@ -140,29 +253,6 @@ class StatsService {
         }
 
         return process.env.PSO_EU_DISCORD_CASUAL_ROLE_ID as string
-    }
-
-    private async findUsersStats(userIds: string[]): Promise<IStats[]> {
-        return Stats.aggregate([
-            {
-                $match: {
-                    userId: {
-                        $in: userIds
-                    }
-                }
-            },
-            {
-                $group: {
-                    _id: '$userId',
-                    numberOfGames: {
-                        $sum: '$numberOfGames',
-                    },
-                    numberOfRankedGames: {
-                        $sum: '$numberOfRankedGames',
-                    }
-                }
-            }
-        ])
     }
 }
 

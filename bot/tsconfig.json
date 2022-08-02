@@ -3,5 +3,8 @@
     "compilerOptions": {
         "outDir": "../build/bot/",
         "rootDir": "./"
-    }
+    },
+    "exclude": [
+        "./test"
+    ]
 }

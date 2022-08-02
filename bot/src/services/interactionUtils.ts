@@ -1,13 +1,10 @@
-import { ActionRowBuilder, ButtonBuilder, ButtonInteraction, ButtonStyle, Client, CommandInteraction, EmbedBuilder, InteractionReplyOptions, SelectMenuInteraction, User } from "discord.js";
-import { Types } from "mongoose";
-import { matchmakingService } from "./matchmakingService";
-import { statsService } from "./statsService";
-import { teamService } from "./teamService";
-import { DEFAULT_LEADERBOARD_PAGE_SIZE } from "../constants";
-import { IChallenge, ILineup, ILineupQueue, IRole, IRoleBench, IStats, IUser } from "../mongoSchema";
+import { ActionRowBuilder, ButtonBuilder, ButtonInteraction, ButtonStyle, Client, CommandInteraction, EmbedBuilder, Interaction, InteractionReplyOptions, InteractionUpdateOptions, SelectMenuBuilder, SelectMenuInteraction, User, UserManager } from "discord.js";
+import { DEFAULT_RATING } from "../constants";
+import { IChallenge, ILineup, ILineupQueue, IRole, IRoleBench, IStats, ITeam, IUser, Stats } from "../mongoSchema";
 import { handle } from "../utils";
-import { RoleWithDiscordUser } from "./matchmakingService";
-import { ROLE_ATTACKER, ROLE_DEFENDER, ROLE_GOAL_KEEPER, ROLE_MIDFIELDER } from "./teamService";
+import { matchmakingService, MatchResult, RoleWithDiscordUser } from "./matchmakingService";
+import { statsService } from "./statsService";
+import { ROLE_ATTACKER, ROLE_DEFENDER, ROLE_GOAL_KEEPER, ROLE_MIDFIELDER, teamService } from "./teamService";
 
 class InteractionUtils {
     createReplyAlreadyQueued(lineupSize: number): InteractionReplyOptions {
@@ -61,7 +58,7 @@ class InteractionUtils {
         if (challenge.challengedTeam.lineup.isMix()) {
             embed.setDescription(`💬 ${interaction.user} is challenging the mix '${teamService.formatTeamName(challenge.challengedTeam.lineup)}'.\nThe match will start automatically once the mix lineup is full.`)
         } else {
-            embed.setDescription(`💬 ${interaction.user} has sent a challenge request to the team '${teamService.formatTeamName(challenge.challengedTeam.lineup)}'.\nYou can either wait for their answer, or cancel your request.`)
+            embed.setDescription(`💬 ${interaction.user} has sent a challenge request to ${teamService.formatTeamName(challenge.challengedTeam.lineup, false, false)}.\nYou can either wait for their answer, or cancel your request.`)
         }
 
         let cancelChallengeRow = new ActionRowBuilder<ButtonBuilder>()
@@ -78,10 +75,10 @@ class InteractionUtils {
     createDecideChallengeReply(interaction: ButtonInteraction | CommandInteraction | SelectMenuInteraction, challenge: IChallenge): InteractionReplyOptions {
         if (challenge.challengedTeam.lineup.isMix()) {
             let reply = this.createReplyForMixLineup(challenge.challengedTeam.lineup, challenge.initiatingTeam.lineup)
-            reply.embeds = reply.embeds?.concat(this.createInformationEmbed(interaction.user, `**${teamService.formatTeamName(challenge.initiatingTeam.lineup)}** is challenging the mix`))
+            reply.embeds = reply.embeds?.concat(this.createInformationEmbed(interaction.user, `**${teamService.formatTeamName(challenge.initiatingTeam.lineup), false, true}** is challenging the mix`))
             return reply
         } else {
-            let description = `**${teamService.formatTeamName(challenge.initiatingTeam.lineup)}**`
+            let description = teamService.formatTeamName(challenge.initiatingTeam.lineup, false, true)
             const challengeEmbed = new EmbedBuilder()
                 .setColor('#566573')
                 .setTitle(`A team wants to play against you !`)
@@ -97,11 +94,11 @@ class InteractionUtils {
                 .addComponents(
                     new ButtonBuilder()
                         .setCustomId(`accept_challenge_${challenge._id}`)
-                        .setLabel(`Accept`)
+                        .setLabel('Accept')
                         .setStyle(ButtonStyle.Success),
                     new ButtonBuilder()
                         .setCustomId(`refuse_challenge_${challenge._id}`)
-                        .setLabel(`Refuse`)
+                        .setLabel('Refuse')
                         .setStyle(ButtonStyle.Danger)
                 )
             return { embeds: [challengeEmbed], components: [challengeActionRow] }
@@ -159,16 +156,22 @@ class InteractionUtils {
 
     async createStatsEmbeds(interaction: ButtonInteraction | CommandInteraction | SelectMenuInteraction, userId: string, region?: string): Promise<EmbedBuilder[]> {
         const user = interaction.client.users.resolve(userId)
-        const foundStats = await statsService.findStats(userId, region)
+        const foundStats = await statsService.findUsersStats([userId], region)
         let stats: IStats
         if (foundStats.length === 0) {
-            stats = {
-                _id: new Types.ObjectId(),
+            stats = new Stats({
                 userId,
                 region: 'Europe',
                 numberOfGames: 0,
-                numberOfRankedGames: 0
-            }
+                numberOfRankedGames: 0,
+                numberOfRankedWins: 0,
+                numberOfRankedDraws: 0,
+                numberOfRankedLosses: 0,
+                attackRating: DEFAULT_RATING,
+                midfieldRating: DEFAULT_RATING,
+                defenseRating: DEFAULT_RATING,
+                goalKeeperRating: DEFAULT_RATING
+            })
         } else {
             stats = foundStats[0]
         }
@@ -176,32 +179,122 @@ class InteractionUtils {
         return [
             new EmbedBuilder()
                 .setColor('#566573')
-                .setTitle(`${region ? '⛺ Region' : '🌎 Global'} Stats`)
-                .setDescription(`Ranked Games are matches played with a format of 5v5 or more\n${user?.toString()}`)
+                .setTitle(`${region ? '⛺ Region' : '🌎 Global'} Stats for ${user?.username}`)
                 .addFields([
-                    { name: '🏆 Ranked Games Played', value: stats.numberOfRankedGames.toString() },
-                    { name: '⚽ Total Games Played', value: stats.numberOfGames.toString() }
+                    { name: '📈 Ratings', value: `**Att:** ${stats.attackRating || DEFAULT_RATING} \n **Mid:** ${stats.midfieldRating || DEFAULT_RATING} \n **Def:** ${stats.defenseRating || DEFAULT_RATING} \n **GK**: ${stats.goalKeeperRating || DEFAULT_RATING}`, inline: true },
+                    { name: '⚽ Ranked Matches', value: `**Wins:** ${stats.numberOfRankedWins} \n **Draws:** ${stats.numberOfRankedDraws} \n **Losses:** ${stats.numberOfRankedLosses}`, inline: true },
+                    { name: '\u200B', value: '\u200B' },
+                    { name: 'Ranked Games Played *(deprecated)*', value: stats.numberOfRankedGames.toString() },
+                    { name: 'Total Games Played *(deprecated)*', value: stats.numberOfGames.toString() }
                 ])
         ]
     }
 
-    async createLeaderBoardEmbeds(interaction: ButtonInteraction | CommandInteraction | SelectMenuInteraction, numberOfPages: number, searchOptions: any = {}): Promise<EmbedBuilder[]> {
-        const { region, page = 0, pageSize = DEFAULT_LEADERBOARD_PAGE_SIZE } = searchOptions
-        let allStats = await statsService.findStats(undefined, region, page, pageSize)
-        let statsEmbed
-        if (allStats.length === 0) {
-            statsEmbed = new EmbedBuilder()
-                .setColor('#566573')
-                .setTitle('🏆 Games Leaderboard 🏆')
-                .addFields([{ name: 'Ooooof', value: 'This looks pretty empty here. Time to get some games lads !' }])
+    async createLeaderboardReply(interaction: Interaction, team: ITeam, searchOptions: StatsSearchOptions): Promise<InteractionReplyOptions | InteractionUpdateOptions> {
+        let numberOfItems
+        if (searchOptions.statsType === StatsType.TEAMS) {
+            numberOfItems = await statsService.countNumberOfTeams(team.region)
         } else {
-            statsEmbed = new EmbedBuilder()
-                .setColor('#566573')
-                .setTitle('🏆 Games Leaderboard 🏆')
-            let playersStats = ''
-            let pos = (pageSize * page) + 1
-            for (let stats of allStats) {
-                let [user] = await handle(interaction.client.users.fetch(stats._id.toString()))
+            numberOfItems = await statsService.countNumberOfPlayers(team.region)
+        }
+        const numberOfPages = Math.ceil(numberOfItems / searchOptions.pageSize)
+
+        if (searchOptions.page === -1) {
+            searchOptions.page = numberOfPages - 1
+        }
+
+        const leaderboardEmbed: EmbedBuilder = await this.createLeaderboardEmbed(interaction, team, numberOfPages, searchOptions)
+        const scopeActionRow = new ActionRowBuilder<SelectMenuBuilder>().addComponents(
+            new SelectMenuBuilder()
+                .setCustomId(`leaderboard_scope_select_${searchOptions.statsType}`)
+                .setPlaceholder('Stats Scope')
+                .addOptions([
+                    {
+                        emoji: '🌎',
+                        label: 'International',
+                        value: StatsScope.INTERNATIONAL.toString()
+                    },
+                    {
+                        emoji: '⛺',
+                        label: 'Regional',
+                        value: StatsScope.REGIONAL.toString()
+                    }
+                ])
+        )
+        const typeActionRow = new ActionRowBuilder<SelectMenuBuilder>().addComponents(
+            new SelectMenuBuilder()
+                .setCustomId(`leaderboard_type_select_${searchOptions.statsScope}`)
+                .setPlaceholder('Stats Type')
+                .addOptions([
+                    {
+                        emoji: '👕',
+                        label: 'Teams',
+                        value: StatsType.TEAMS.toString()
+                    },
+                    {
+                        emoji: '🏅',
+                        label: 'Players',
+                        value: StatsType.PLAYERS.toString()
+                    }
+                ])
+        )
+
+        const paginationActionRow = this.createLeaderboardPaginationActionRow(numberOfPages, searchOptions)
+
+        return { embeds: [leaderboardEmbed], components: [scopeActionRow, typeActionRow, paginationActionRow], ephemeral: true }
+    }
+
+    async createLeaderboardEmbed(interaction: Interaction, team: ITeam, numberOfPages: number, searchOptions: StatsSearchOptions): Promise<EmbedBuilder> {
+        if (searchOptions.statsType === StatsType.TEAMS) {
+            return this.createTeamLeaderboardEmbed(team, numberOfPages, searchOptions)
+        }
+        return this.createPlayersLeaderboardEmbed(interaction.client.users, team, numberOfPages, searchOptions)
+    }
+
+    async createTeamLeaderboardEmbed(team: ITeam, numberOfPages: number, searchOptions: StatsSearchOptions): Promise<EmbedBuilder> {
+        const teamsStats = await statsService.findTeamsStats(searchOptions.page, searchOptions.pageSize, searchOptions.statsScope === StatsScope.REGIONAL ? team.region : undefined) as ITeam[]
+
+        let teamStatsEmbed = new EmbedBuilder()
+            .setColor('#566573')
+            .setTitle('🏆 Teams Leaderboard 🏆')
+            .setDescription(`**${searchOptions.statsScope === StatsScope.REGIONAL ? '⛺ Regional' : '🌎 Interational'} Stats**`)
+        if (teamsStats.length === 0) {
+            teamStatsEmbed.addFields([{ name: 'Ooooof', value: 'This looks pretty empty here. Time to get some games lads !' }])
+        } else {
+            let fieldValue = ''
+            let pos = (searchOptions.pageSize * searchOptions.page) + 1
+            let emoji = ''
+            for (let teamStats of teamsStats) {
+                if (pos === 1) {
+                    emoji = '🥇'
+                } else if (pos === 2) {
+                    emoji = '🥈'
+                } else if (pos === 3) {
+                    emoji = '🥉'
+                }
+                let isTop3 = pos <= 3
+                fieldValue += `${isTop3 ? '**' : ''}${pos}. ${emoji} ${teamStats.name} *(${teamStats.rating})* ${emoji}${isTop3 ? '**' : ''}\n`
+                pos++
+            }
+            teamStatsEmbed.addFields([{ name: `Page ${searchOptions.page + 1}/${numberOfPages}`, value: fieldValue }])
+        }
+
+        return teamStatsEmbed
+    }
+
+    async createPlayersLeaderboardEmbed(usersManager: UserManager, team: ITeam, numberOfPages: number, searchOptions: StatsSearchOptions): Promise<EmbedBuilder> {
+        let playersStats = await statsService.findPlayersStats(searchOptions.page, searchOptions.pageSize, searchOptions.statsScope === StatsScope.REGIONAL ? team.region : undefined)
+        let playersStatsEmbed = new EmbedBuilder()
+            .setColor('#566573')
+            .setTitle('🏆 Players Leaderboard 🏆')
+            .setDescription(`**${searchOptions.statsScope === StatsScope.REGIONAL ? '⛺ Regional' : '🌎 Interational'} Stats**`)
+        if (playersStats.length === 0) {
+            playersStatsEmbed.addFields([{ name: 'Ooooof', value: 'This looks pretty empty here. Time to get some games lads !' }])
+        } else {
+            let fieldValue = ''
+            let pos = (searchOptions.pageSize * searchOptions.page) + 1
+            for (let playerStats of playersStats) {
+                let [user] = await handle(usersManager.fetch(playerStats._id.toString()))
                 const username = user ? user.username : '*deleted user*'
                 let emoji = ''
                 if (pos === 1) {
@@ -212,47 +305,40 @@ class InteractionUtils {
                     emoji = '🥉'
                 }
                 let isTop3 = pos <= 3
-                playersStats += `${isTop3 ? '**' : ''}${pos}. ${emoji} ${username} - ${stats.numberOfRankedGames} *(${stats.numberOfGames})* ${emoji}${isTop3 ? '**' : ''}\n`
+                fieldValue += `${isTop3 ? '**' : ''}${pos}. ${emoji} ${username} - ${(playerStats as any).rating || DEFAULT_RATING}  *(${playerStats.numberOfRankedWins} - ${playerStats.numberOfRankedDraws} - ${playerStats.numberOfRankedLosses})* ${emoji}${isTop3 ? '**' : ''}\n`
                 pos++
             }
 
-            statsEmbed.addFields([{ name: `Page ${page + 1}/${numberOfPages}`, value: playersStats }])
+            playersStatsEmbed.addFields([{ name: `Page ${searchOptions.page + 1}/${numberOfPages}`, value: fieldValue }])
         }
 
-        statsEmbed.setDescription(
-            `Stats are displayed in the following way: 'Player - RankedGames *(TotalGames)*'
-        Ranked Games are matches played with a format of 5v5 or more.
-
-        **${region ? '⛺ Region' : '🌎 Global'} Stats**`
-        )
-
-        return [statsEmbed]
+        return playersStatsEmbed
     }
 
-    createLeaderBoardPaginationComponent(searchOptions: any = {}, numberOfPages: number): ActionRowBuilder<ButtonBuilder> {
-        const { statsType, page } = searchOptions
+
+    createLeaderboardPaginationActionRow(numberOfPages: number, searchOptions: StatsSearchOptions): ActionRowBuilder<ButtonBuilder> {
         const paginationActionsRow = new ActionRowBuilder<ButtonBuilder>()
         paginationActionsRow.addComponents(
             new ButtonBuilder()
-                .setCustomId(`leaderboard_first_page_${statsType}`)
+                .setCustomId(`leaderboard_page_first_${searchOptions.statsScope}_${searchOptions.statsType}`)
                 .setLabel('<<')
                 .setStyle(ButtonStyle.Secondary)
-                .setDisabled(page === 0),
+                .setDisabled(searchOptions.page === 0),
             new ButtonBuilder()
-                .setCustomId(`leaderboard_page_${statsType}_${page - 1}`)
+                .setCustomId(`leaderboard_page_${searchOptions.page - 1}_${searchOptions.statsScope}_${searchOptions.statsType}`)
                 .setLabel('<')
                 .setStyle(ButtonStyle.Secondary)
-                .setDisabled(page === 0),
+                .setDisabled(searchOptions.page === 0),
             new ButtonBuilder()
-                .setCustomId(`leaderboard_page_${statsType}_${page + 1}`)
+                .setCustomId(`leaderboard_page_${searchOptions.page + 1}_${searchOptions.statsScope}_${searchOptions.statsType}`)
                 .setLabel('>')
                 .setStyle(ButtonStyle.Secondary)
-                .setDisabled(page >= numberOfPages - 1),
+                .setDisabled(searchOptions.page >= numberOfPages - 1),
             new ButtonBuilder()
-                .setCustomId(`leaderboard_last_page_${statsType}`)
+                .setCustomId(`leaderboard_page_last_${searchOptions.statsScope}_${searchOptions.statsType}`)
                 .setLabel('>>')
                 .setStyle(ButtonStyle.Secondary)
-                .setDisabled(page >= numberOfPages - 1)
+                .setDisabled(searchOptions.page >= numberOfPages - 1)
         )
 
         return paginationActionsRow
@@ -316,9 +402,23 @@ class InteractionUtils {
 
     createLineupComponents(lineup: ILineup, lineupQueue?: ILineupQueue, challenge?: IChallenge, selectedLineupNumber: number = 1): ActionRowBuilder<ButtonBuilder>[] {
         const actionRows = this.createRolesActionRows(lineup, selectedLineupNumber)
-
         const lineupActionsRow = new ActionRowBuilder<ButtonBuilder>()
+        const numberOfSignedPlayers = lineup.roles.filter(role => role.lineupNumber === selectedLineupNumber).filter(role => role.user != null).length
+        lineupActionsRow.addComponents(
+            new ButtonBuilder()
+                .setCustomId(`bench_${selectedLineupNumber}`)
+                .setLabel('Sign Bench')
+                .setDisabled(numberOfSignedPlayers === 0)
+                .setStyle(ButtonStyle.Primary)
+        )
         if (!lineup.isMix()) {
+            lineupActionsRow.addComponents(
+                new ButtonBuilder()
+                    .setCustomId(`leaveLineup`)
+                    .setLabel(`Leave`)
+                    .setStyle(ButtonStyle.Danger)
+            )
+
             if (challenge) {
                 if (challenge.initiatingTeam.lineup.channelId === lineup.channelId) {
                     lineupActionsRow.addComponents(
@@ -350,7 +450,7 @@ class InteractionUtils {
                 } else {
                     lineupActionsRow.addComponents(
                         new ButtonBuilder()
-                            .setCustomId(`startSearch`)
+                            .setCustomId('startSearch')
                             .setLabel('Search')
                             .setDisabled(!matchmakingService.isLineupAllowedToJoinQueue(lineup))
                             .setStyle(ButtonStyle.Success)
@@ -358,41 +458,22 @@ class InteractionUtils {
                 }
             }
 
-            lineupActionsRow.addComponents(
-                new ButtonBuilder()
-                    .setCustomId(`leaveLineup`)
-                    .setLabel(`Leave`)
-                    .setStyle(ButtonStyle.Danger)
-            )
+            if (!challenge) {
+                lineupActionsRow.addComponents(
+                    new ButtonBuilder()
+                        .setCustomId(`listChallenges`)
+                        .setLabel(`Challenges`)
+                        .setStyle(ButtonStyle.Primary)
+                )
+            }
         }
-
-        const numberOfSignedPlayers = lineup.roles.filter(role => role.lineupNumber === selectedLineupNumber).filter(role => role.user != null).length
-        const numberOfMissingPlayers = lineup.size - numberOfSignedPlayers
 
         lineupActionsRow.addComponents(
             new ButtonBuilder()
-                .setCustomId(`bench_${selectedLineupNumber}`)
-                .setLabel('Sign Bench')
-                .setDisabled(numberOfSignedPlayers === 0)
-                .setStyle(ButtonStyle.Primary)
+                .setCustomId(`other_${selectedLineupNumber}`)
+                .setLabel('Other')
+                .setStyle(ButtonStyle.Secondary)
         )
-
-        if (!challenge) {
-            lineupActionsRow.addComponents(
-                new ButtonBuilder()
-                    .setCustomId(`clearRole_${selectedLineupNumber}`)
-                    .setLabel("Clear a position")
-                    .setDisabled(numberOfSignedPlayers === 0)
-                    .setStyle(ButtonStyle.Secondary)
-            )
-            lineupActionsRow.addComponents(
-                new ButtonBuilder()
-                    .setCustomId(`addMerc_${selectedLineupNumber}`)
-                    .setLabel('Sign another player')
-                    .setDisabled(numberOfMissingPlayers === 0)
-                    .setStyle(ButtonStyle.Secondary)
-            )
-        }
 
         actionRows.push(lineupActionsRow)
 
@@ -433,6 +514,39 @@ class InteractionUtils {
         return rolesActionRows
     }
 
+    createMatchResultVoteReply(matchId: string, region: string, user: User) {
+        const matchVoteEmbed = new EmbedBuilder()
+            .setColor('#6aa84f')
+            .setTitle("Vote for you team result !")
+            .setFields([
+                { name: 'Match ID', value: matchId, inline: true },
+                { name: 'Voter', value: `${user}`, inline: true }]
+            )
+            .setDescription(
+                `Ranks will be updated **ONLY** if **BOTH TEAMS** votes are consistent.
+                **Be fair and honest. Vote for the real result.** 
+                ${region === 'EU' ? 'If needed, use the [Ticket Tool](https://discord.com/channels/913821068811178045/914202504747688006) on EU server to report any abuse.' : ''}
+            `)
+            .setTimestamp()
+        const matchVoteActionRow = new ActionRowBuilder<ButtonBuilder>()
+        matchVoteActionRow.addComponents(
+            new ButtonBuilder()
+                .setCustomId(`match_result_vote_${MatchResult.WIN}_${matchId}_${user.id}`)
+                .setLabel("WIN !")
+                .setStyle(ButtonStyle.Success),
+            new ButtonBuilder()
+                .setCustomId(`match_result_vote_${MatchResult.DRAW}_${matchId}_${user.id}`)
+                .setLabel("DRAW")
+                .setStyle(ButtonStyle.Secondary),
+            new ButtonBuilder()
+                .setCustomId(`match_result_vote_${MatchResult.LOSS}_${matchId}_${user.id}`)
+                .setLabel("LOSS")
+                .setStyle(ButtonStyle.Danger),
+        )
+
+        return { embeds: [matchVoteEmbed], components: [matchVoteActionRow] }
+    }
+
     private createRoleActionRow(maxRolePos: number, roles: IRole[], isBench: boolean = false): ActionRowBuilder<ButtonBuilder> {
         let actionRow = new ActionRowBuilder<ButtonBuilder>()
         for (let pos = 0; pos <= maxRolePos; pos++) {
@@ -462,7 +576,7 @@ class InteractionUtils {
         const challenge = await matchmakingService.findChallengeByChannelId(lineup.channelId) || undefined
 
         const lineupEmbed = new EmbedBuilder()
-            .setTitle(`${teamService.formatTeamName(lineup)} Lineup`)
+            .setTitle(teamService.formatTeamName(lineup, false, true))
             .setColor('#566573')
 
         this.fillLineupEmbedWithRoles(lineupEmbed, lineup.roles, lineup.bench)
@@ -474,7 +588,7 @@ class InteractionUtils {
     private createReplyForMixLineup(lineup: ILineup, challengingLineup?: ILineup | null): InteractionReplyOptions {
         let firstLineupEmbed = new EmbedBuilder()
             .setColor('#ed4245')
-            .setTitle(`Red Team`)
+            .setTitle(`Red Team *(${lineup.computePlayersAverageRating(1)})*`)
         this.fillLineupEmbedWithRoles(firstLineupEmbed, lineup.roles.filter(role => role.lineupNumber === 1), lineup.bench.filter(benchRole => benchRole.roles[0].lineupNumber === 1))
 
         let secondLineupEmbed
@@ -486,11 +600,11 @@ class InteractionUtils {
             if (!teamService.hasGkSigned(challengingLineup)) {
                 fieldValue += ' **(no GK)**'
             }
-            secondLineupEmbed.addFields([{ name: teamService.formatTeamName(challengingLineup, false), value: fieldValue }])
+            secondLineupEmbed.addFields([{ name: teamService.formatTeamName(challengingLineup, false, true), value: fieldValue }])
         } else {
             secondLineupEmbed = new EmbedBuilder()
                 .setColor('#0099ff')
-                .setTitle(`Blue Team`)
+                .setTitle(`Blue Team *(${lineup.computePlayersAverageRating(2)})*`)
                 .setFooter({ text: 'If a Team faces the mix, it will replace the Blue Team' })
             this.fillLineupEmbedWithRoles(secondLineupEmbed, lineup.roles.filter(role => role.lineupNumber === 2), lineup.bench.filter(benchRole => benchRole.roles[0].lineupNumber === 2))
         }
@@ -566,13 +680,30 @@ class InteractionUtils {
             if (user.emoji) {
                 playerName += user.emoji
             }
-            playerName += user.name
+            playerName += `${user.name} *(${user.rating})*`
         } else {
             playerName = '\u200b'
         }
 
         return playerName
     }
+}
+
+export interface StatsSearchOptions {
+    page: number,
+    pageSize: number,
+    statsScope: StatsScope,
+    statsType: StatsType
+}
+
+export enum StatsScope {
+    INTERNATIONAL,
+    REGIONAL
+}
+
+export enum StatsType {
+    TEAMS,
+    PLAYERS
 }
 
 export const interactionUtils = new InteractionUtils()

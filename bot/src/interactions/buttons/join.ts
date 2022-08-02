@@ -25,12 +25,12 @@ export default {
 
         const signedRole = lineup.roles.find(role => role.user?.id == interaction.user.id)
         if (signedRole) {
-            if ((signedRole.name.includes('GK') && customId === 'gk') || (!signedRole.name.includes('GK') && customId !== 'gk')) {
-                await interaction.reply({ content: '⛔ You are already in the lineup', ephemeral: true })
-                return
-            }
+            // if ((signedRole.name.includes('GK') && customId === 'gk') || (!signedRole.name.includes('GK') && customId !== 'gk')) {
+            //     await interaction.reply({ content: '⛔ You are already in the lineup', ephemeral: true })
+            //     return
+            // }
 
-            lineup = await teamService.removeUserFromLineup(interaction.channelId, interaction.user.id) as ILineup
+            // lineup = await teamService.removeUserFromLineup(interaction.channelId, interaction.user.id) as ILineup
         }
 
         await interaction.update({ components: [] })

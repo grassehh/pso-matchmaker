@@ -5,6 +5,7 @@ import { IEventHandler } from '../handlers/eventHandler';
 import { authorizationService } from '../services/authorizationService';
 import { teamService } from '../services/teamService';
 import { interactionUtils } from '../services/interactionUtils';
+import { handle } from '../utils';
 
 export default {
     name: 'interactionCreate',
@@ -25,42 +26,31 @@ export default {
         }
 
 
-        if (interaction.isChatInputCommand()) {
-            const command = commands.get(interaction.commandName);
+        try {
+            if (interaction.isChatInputCommand()) {
+                const command = commands.get(interaction.commandName);
 
-            if (!command) return;
+                if (!command) return;
 
-            if (!authorizationService.isAllowedToExecuteCommand(command, interaction.member as GuildMember)) {
-                await interactionUtils.replyNotAllowed(interaction)
-                return
-            }
+                if (!authorizationService.isAllowedToExecuteCommand(command, interaction.member as GuildMember)) {
+                    await interactionUtils.replyNotAllowed(interaction)
+                    return
+                }
 
-            try {
                 await command.execute(interaction);
                 return
-            } catch (error) {
-                console.error(error);
-                await interaction.reply({ content: 'There was an error while executing this command!', ephemeral: true });
-                return
             }
-        }
 
-        if (interaction.isButton() || interaction.isSelectMenu()) {
-            for (const componentInteraction of componentInteractions) {
-                if (interaction.customId.startsWith(componentInteraction.customId)) {
-                    try {
+            if (interaction.isButton() || interaction.isSelectMenu()) {
+                for (const componentInteraction of componentInteractions) {
+                    if (interaction.customId.startsWith(componentInteraction.customId)) {
                         componentInteraction.execute(interaction);
-                    }
-                    catch (error) {
-                        console.error(error);
-                        try {
-                            await interaction.reply({ content: 'There was an error while executing this interaction!', ephemeral: true });
-                        } catch (error) {
-                            //Shush
-                        }
                     }
                 }
             }
+        } catch (error) {
+            console.error(error);
+            await handle(interaction.reply({ content: 'There was an error while executing this command!', ephemeral: true }))
         }
     }
 } as IEventHandler

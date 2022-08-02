@@ -41,7 +41,7 @@ export default {
         }
 
         await interaction.deferReply();
-        await matchmakingService.joinQueue(interaction.user, lineup)
+        await matchmakingService.joinQueue(lineup, false)
         await interaction.editReply({ embeds: [interactionUtils.createInformationEmbed(interaction.user, '🔎 Your team is now searching for a team to challenge')] })
     }
 } as ICommandHandler;

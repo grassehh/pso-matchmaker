@@ -1,22 +1,21 @@
-import { ButtonInteraction, InteractionUpdateOptions } from "discord.js";
+import { InteractionUpdateOptions, SelectMenuInteraction } from "discord.js";
 import { DEFAULT_LEADERBOARD_PAGE_SIZE } from "../../constants";
-import { IButtonHandler } from "../../handlers/buttonHandler";
+import { ISelectMenuHandler } from "../../handlers/selectMenuHandler";
 import { interactionUtils, StatsScope, StatsType } from "../../services/interactionUtils";
 import { teamService } from "../../services/teamService";
 
 export default {
-    customId: 'leaderboard_page_first_',
-    async execute(interaction: ButtonInteraction) {
+    customId: 'leaderboard_type_select',
+    async execute(interaction: SelectMenuInteraction) {
         const team = await teamService.findTeamByGuildId(interaction.guildId!)
         if (!team) {
             await interaction.reply(interactionUtils.createReplyTeamNotRegistered())
             return
         }
 
-        const split = interaction.customId.split('_')
-        const statsScope: StatsScope = parseInt(split[3])
-        const statsType: StatsType = parseInt(split[4])
+        const statsScope: StatsScope = parseInt(interaction.customId.split('_')[3])
+        const statsType: StatsType = parseInt(interaction.values[0])
         const reply = await interactionUtils.createLeaderboardReply(interaction, team, { page: 0, pageSize: DEFAULT_LEADERBOARD_PAGE_SIZE, statsScope, statsType })
         await interaction.update(reply as InteractionUpdateOptions)
     }
-} as IButtonHandler
+} as ISelectMenuHandler
