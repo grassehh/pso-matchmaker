@@ -121,7 +121,7 @@ export default {
             await interaction.channel?.send(reply)
 
             const filter = (interaction: ButtonInteraction) => interaction.customId.startsWith('pick_') ? true : false;
-            const collector = interaction.channel!.createMessageComponentCollector<ComponentType.Button>({ filter, time: 138000 })
+            const collector = interaction.channel!.createMessageComponentCollector<ComponentType.Button>({ filter, time: 150000 })
             collector.on('collect', async (i: Interaction) => {
                 if (!(i instanceof ButtonInteraction)) {
                     return
@@ -131,6 +131,8 @@ export default {
                     await i.reply({ content: "You are not the captain or it's not your turn to pick !", ephemeral: true })
                     return
                 }
+
+                collector.resetTimer()
                 const pickedUserId = i.customId.split('_')[1]
                 const pickedRole = remainingRoles.splice(remainingRoles.findIndex(role => role.user!.id === pickedUserId), 1)[0]
                 let teamRoles = currentCaptain.id === firstCaptain.id ? firstTeamRoles : secondTeamRoles
@@ -160,7 +162,7 @@ export default {
                         lineup.roles = firstTeamRoles.concat(secondTeamRoles)
                     }
                     remainingRoles = []
-                    await teamService.stopPicking(lineup.channelId)
+                    lineup = await teamService.stopPicking(lineup.channelId) as ILineup
                     await handle(i.update({ components: [] }))
 
                     const embed = interactionUtils.createInformationEmbed(interaction.user, `${i.user} has picked ${pickedRole.user!.name}.\nEvery players have been picked. The match is about to start.`)
