@@ -4,7 +4,7 @@ import { UpdateWriteOpResult } from "mongoose";
 import { v4 as uuidv4 } from 'uuid';
 import { interactionUtils } from "./interactionUtils";
 import { statsService } from "./statsService";
-import { teamService } from "./teamService";
+import { LINEUP_TYPE_CAPTAINS, teamService } from "./teamService";
 import { MERC_USER_ID } from "../constants";
 import { Challenge, IChallenge, ILineup, ILineupQueue, IMatch, IRole, IStats, ISub, IUser, LineupQueue, Match, Stats } from "../mongoSchema";
 import { handle, notEmpty } from "../utils";
@@ -510,14 +510,19 @@ class MatchmakingService {
         }
         else { //This is a mix vs mix match     
             const allUsers = mixLineup!.roles.map(role => role.user).filter(notEmpty)
-            let newMixLineup = mixLineup!.moveAllBenchToLineup(1).moveAllBenchToLineup(2)
+            let newMixLineup = mixLineup!
+            if (newMixLineup.isCaptains()) {
+                newMixLineup = teamService.createLineup(newMixLineup.channelId, newMixLineup.size, "", false, newMixLineup.team, LINEUP_TYPE_CAPTAINS, LINEUP_VISIBILITY_TEAM)
+            } else {
+                newMixLineup = newMixLineup.moveAllBenchToLineup(1).moveAllBenchToLineup(2)
+            }
             newMixLineup.lastMatchDate = match.schedule
             await teamService.upsertLineup(newMixLineup)
             await teamService.updateTeamLastMatchDateByGuildId(newMixLineup.team.guildId, match.schedule)
             const reply = await interactionUtils.createReplyForLineup(interaction, newMixLineup) as MessageOptions
             await interaction.channel?.send(reply)
             await this.updateLineupQueueRoles(newMixLineup.channelId, newMixLineup.roles)
-            await statsService.updateStats(interaction, mixLineup!.team.region, mixLineup!.size, allUsers.map(user => user.id))
+            await statsService.updateStats(interaction, newMixLineup.team.region, newMixLineup.size, allUsers.map(user => user.id))
         }
     }
 

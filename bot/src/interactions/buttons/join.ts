@@ -4,7 +4,7 @@ import { matchmakingService } from "../../services/matchmakingService";
 import { statsService } from "../../services/statsService";
 import { teamService } from "../../services/teamService";
 import { IButtonHandler } from "../../handlers/buttonHandler";
-import { ILineup, IRole } from "../../mongoSchema";
+import { ILineup, IRole, IUser } from "../../mongoSchema";
 import { handle, notEmpty } from "../../utils";
 
 export default {
@@ -47,7 +47,7 @@ export default {
             name: interaction.user.username,
             mention: interaction.user.toString(),
             emoji: statsService.getLevelEmojiFromMember(interaction.member as GuildMember)
-        }
+        } as IUser
 
         lineup = await teamService.addUserToLineup(interaction.channelId, roleToSign.name, userToAdd, roleToSign.lineupNumber) as ILineup
 
@@ -162,9 +162,7 @@ export default {
                         lineup.roles = firstTeamRoles.concat(secondTeamRoles)
                     }
                     remainingRoles = []
-                    lineup = await teamService.stopPicking(lineup.channelId) as ILineup
                     await handle(i.update({ components: [] }))
-
                     const embed = interactionUtils.createInformationEmbed(interaction.user, `${i.user} has picked ${pickedRole.user!.name}.\nEvery players have been picked. The match is about to start.`)
                     await interaction.followUp({ embeds: [embed] })
                     await matchmakingService.readyMatch(interaction, undefined, lineup)
