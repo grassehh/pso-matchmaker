@@ -35,7 +35,7 @@ export default {
         const receivedEmbed = interaction.message.embeds[0]
         const embedBuilder = EmbedBuilder.from(receivedEmbed)
         embedBuilder.setColor("#6aa84f")
-        embedBuilder.setTitle(`~~${receivedEmbed}~~`)
+        embedBuilder.setTitle(`~~${receivedEmbed.title}~~`)
         embedBuilder.setDescription(`~~${receivedEmbed.description}~~\n${interaction.user} accepted the request`)
         await interaction.update({ components: [], embeds: [embedBuilder] })
 
