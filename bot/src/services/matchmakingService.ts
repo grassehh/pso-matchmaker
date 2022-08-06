@@ -190,6 +190,7 @@ class MatchmakingService {
         const lineupQueue = new LineupQueue({ lineup, ranked })
         // const channelIds = await teamService.findAllChannelIdToNotify(lineup.team.region, lineup.channelId, lineup.size)
 
+        //FIXME This eventually causes rate limit exceeding
         // let description = `**${teamService.formatTeamName(lineup)}**`
         // const teamEmbed = new EmbedBuilder()
         //     .setColor('#566573')
@@ -202,7 +203,6 @@ class MatchmakingService {
         // description += `\n\n*Contact ${user} for more information*`
         // teamEmbed.setDescription(description)
 
-        //FIXME This eventually causes rate limit exceeding
         // const challengeTeamRow = new ActionRowBuilder().addComponents(
         //     new ButtonBuilder()
         //         .setCustomId(`challenge_${lineupQueue.id}`)
@@ -366,10 +366,10 @@ class MatchmakingService {
             return
         }
 
-        // if (!this.isUserAllowedToInteractWithMatchmaking(interaction.user.id, lineup)) {
-        //     await interaction.reply({ content: `⛔ You must be in the lineup in order to challenge a team`, ephemeral: true })
-        //     return
-        // }
+        if (!this.isUserAllowedToInteractWithMatchmaking(interaction.user.id, lineup)) {
+            await interaction.reply({ content: `⛔ You must be in the lineup in order to challenge a team`, ephemeral: true })
+            return
+        }
 
         if (!this.isLineupAllowedToJoinQueue(lineup)) {
             await interaction.reply({ content: '⛔ All outfield positions must be filled before challenging a team', ephemeral: true })
@@ -387,11 +387,11 @@ class MatchmakingService {
             return
         }
 
-        // const duplicatedUsersReply = await this.checkForDuplicatedPlayers(interaction, lineup, lineupQueueToChallenge.lineup)
-        // if (duplicatedUsersReply) {
-        //     await interaction.reply(duplicatedUsersReply)
-        //     return
-        // }
+        const duplicatedUsersReply = await this.checkForDuplicatedPlayers(interaction, lineup, lineupQueueToChallenge.lineup)
+        if (duplicatedUsersReply) {
+            await interaction.reply(duplicatedUsersReply)
+            return
+        }
 
         await (interaction.message as Message).edit({ components: [] })
         await interaction.deferReply()

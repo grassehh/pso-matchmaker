@@ -4,6 +4,7 @@ import { ILineupMatchResult } from "../../mongoSchema";
 import { interactionUtils } from "../../services/interactionUtils";
 import { matchmakingService, MatchResult, MatchResultType } from "../../services/matchmakingService";
 import { teamService } from "../../services/teamService";
+import { handle } from "../../utils";
 
 export default {
     customId: 'match_result_vote_',
@@ -12,11 +13,11 @@ export default {
         const matchId = interaction.customId.split('_')[4]
         const userId = interaction.customId.split('_')[5]
 
-        // if (interaction.user.id !== userId) {
-        //     const [user] = await handle(interaction.client.users.fetch(userId))
-        //     await interaction.reply({ content: `Only ${user} is allowed to vote`, ephemeral: true })
-        //     return
-        // }
+        if (interaction.user.id !== userId) {
+            const [user] = await handle(interaction.client.users.fetch(userId))
+            await interaction.reply({ content: `Only ${user} is allowed to vote`, ephemeral: true })
+            return
+        }
 
         let match = await matchmakingService.findMatchByMatchId(matchId)
         if (match === null) {

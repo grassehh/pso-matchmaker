@@ -28,24 +28,24 @@ export default {
         let promises = []
 
         let description = `:inbox_tray: ${interaction.user} signed as **${selectedRoleName}**`
-        // const roleLeft = lineup.roles.find(role => role.user?.id === interaction.user.id)
-        // const benchRoleLeft = lineup.bench.find(role => role.user?.id === interaction.user.id)
-        // if (roleLeft || benchRoleLeft) {
-        //     promises.push(teamService.removeUserFromLineup(interaction.channelId, interaction.user.id))
-        //     promises.push(matchmakingService.removeUserFromLineupQueue(interaction.channelId, interaction.user.id))
-        //     if (roleLeft) {
-        //         description = `:outbox_tray::inbox_tray: ${interaction.user} swapped **${roleLeft.name}** with **${selectedRoleName}**`                
-        //         const benchUserToTransfer = teamService.getBenchUserToTransfer(lineup, roleLeft)
-        //         if (benchUserToTransfer !== null) {
-        //             lineup = await teamService.moveUserFromBenchToLineup(interaction.channelId, benchUserToTransfer, roleLeft!!) as ILineup
-        //             description += `\n:inbox_tray: ${benchUserToTransfer.mention} came off the bench and joined the **${roleLeft?.name}** position.`
-        //         }
-        //     } else {
-        //         description = `\n:inbox_tray: ${benchRoleLeft?.user!!.mention} came off the bench and joined the **${selectedRoleName}** position.`
-        //     }
-        //     await Promise.all(promises)
-        //     promises = []
-        // }
+        const roleLeft = lineup.roles.find(role => role.user?.id === interaction.user.id)
+        const benchRoleLeft = lineup.bench.find(role => role.user?.id === interaction.user.id)
+        if (roleLeft || benchRoleLeft) {
+            promises.push(teamService.removeUserFromLineup(interaction.channelId, interaction.user.id))
+            promises.push(matchmakingService.removeUserFromLineupQueue(interaction.channelId, interaction.user.id))
+            if (roleLeft) {
+                description = `:outbox_tray::inbox_tray: ${interaction.user} swapped **${roleLeft.name}** with **${selectedRoleName}**`                
+                const benchUserToTransfer = teamService.getBenchUserToTransfer(lineup, roleLeft)
+                if (benchUserToTransfer !== null) {
+                    lineup = await teamService.moveUserFromBenchToLineup(interaction.channelId, benchUserToTransfer, roleLeft!!) as ILineup
+                    description += `\n:inbox_tray: ${benchUserToTransfer.mention} came off the bench and joined the **${roleLeft?.name}** position.`
+                }
+            } else {
+                description = `\n:inbox_tray: ${benchRoleLeft?.user!!.mention} came off the bench and joined the **${selectedRoleName}** position.`
+            }
+            await Promise.all(promises)
+            promises = []
+        }
 
         const rating = await statsService.findUserStats(interaction.user.id, lineup.team.region)
         const userToAdd = {
