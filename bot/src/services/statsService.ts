@@ -1,4 +1,4 @@
-import { GuildMember, Interaction, Role } from "discord.js"
+import { Client, GuildMember, Role } from "discord.js"
 import { MERC_USER_ID, MIN_LINEUP_SIZE_FOR_RANKED } from "../constants"
 import { IStats, ITeam, Stats, Team } from "../mongoSchema"
 import { handle } from "../utils"
@@ -104,7 +104,7 @@ class StatsService {
         return Stats.aggregate(pipeline)
     }
 
-    async updateStats(interaction: Interaction, region: string, lineupSize: number, userIds: string[]): Promise<void> {
+    async updateStats(client: Client, region: string, lineupSize: number, userIds: string[]): Promise<void> {
         const nonMercUserIds = userIds.filter(userId => userId !== MERC_USER_ID)
         if (nonMercUserIds.length === 0) {
             return
@@ -132,7 +132,7 @@ class StatsService {
         await Stats.bulkWrite(bulks)
 
         if (region === 'EU' && lineupSize >= MIN_LINEUP_SIZE_FOR_RANKED) {
-            const psoEuGuild = await interaction.client.guilds.fetch(process.env.PSO_EU_DISCORD_GUILD_ID as string)
+            const psoEuGuild = await client.guilds.fetch(process.env.PSO_EU_DISCORD_GUILD_ID as string)
             const usersStats = await this.findUsersStats(nonMercUserIds, region)
 
             await Promise.all(usersStats.map(async (userStats: IStats) => {

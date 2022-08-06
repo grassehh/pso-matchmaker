@@ -59,6 +59,6 @@ export default {
             }))
         }
 
-        statsService.updateStats(interaction, match.firstLineup.team.region, match.firstLineup.size, [interaction.user.id])
+        statsService.updateStats(interaction.client, match.firstLineup.team.region, match.firstLineup.size, [interaction.user.id])
     }
 } as IButtonHandler

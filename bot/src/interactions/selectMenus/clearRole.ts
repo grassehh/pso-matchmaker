@@ -42,7 +42,7 @@ export default {
             description += `\n:inbox_tray: ${benchUserToTransfer.mention} came off the bench and joined the **${roleToClear.name}** position.`
         }
 
-        let reply = await interactionUtils.createReplyForLineup(interaction, lineup, autoSearchResult.updatedLineupQueue) as MessageOptions
+        let reply = await interactionUtils.createReplyForLineup(lineup, autoSearchResult.updatedLineupQueue) as MessageOptions
         const embed = interactionUtils.createInformationEmbed(interaction.user, description)
         reply.embeds = (reply.embeds || []).concat(embed)
         await interaction.update({ components: [] })

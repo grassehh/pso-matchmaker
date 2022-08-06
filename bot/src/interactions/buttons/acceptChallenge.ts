@@ -27,12 +27,12 @@ export default {
         await (interaction.message as Message).edit({ components: [] })
         await interaction.deferReply()
         const secondLineup = await teamService.retrieveLineup(challenge.initiatingTeam.lineup.channelId === interaction.channelId ? challenge.challengedTeam.lineup.channelId : challenge.initiatingTeam.lineup.channelId) || undefined
-        const duplicatedUsersReply = await matchmakingService.checkForDuplicatedPlayers(interaction, lineup, secondLineup)
+        const duplicatedUsersReply = await matchmakingService.checkForDuplicatedPlayers(interaction.client, lineup, secondLineup)
         if (duplicatedUsersReply) {
             await interaction.editReply(duplicatedUsersReply)
             return
         }
-        await matchmakingService.readyMatch(interaction, challenge)
+        await matchmakingService.readyMatch(interaction.client, interaction, challenge)
         await interaction.editReply({ embeds: [interactionUtils.createInformationEmbed(interaction.user, `${interaction.user} has accepted the challenge request`)] })
     }
 } as IButtonHandler

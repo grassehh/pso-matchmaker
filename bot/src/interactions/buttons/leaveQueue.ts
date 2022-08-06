@@ -17,7 +17,7 @@ export default {
         }
         await interaction.update({ components: [] })
         const embed = interactionUtils.createInformationEmbed(interaction.user, `:outbox_tray: ${interaction.user} left the queue !`)
-        let reply = await interactionUtils.createReplyForLineup(interaction, lineup) as MessageOptions
+        let reply = await interactionUtils.createReplyForLineup(lineup) as MessageOptions
         reply.embeds = reply.embeds!.concat(embed)
         interaction.channel?.send(reply)
     }

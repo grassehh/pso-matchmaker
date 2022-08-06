@@ -116,7 +116,7 @@ export default {
 
             lineup.roles = firstTeamRoles.concat(secondTeamRoles)
 
-            let reply = await interactionUtils.createReplyForLineup(interaction, lineup) as MessageOptions
+            let reply = await interactionUtils.createReplyForLineup(lineup) as MessageOptions
             const embed = interactionUtils.createInformationEmbed(interaction.user, description)
             reply.embeds = reply.embeds!.concat(embed)
             reply.components = interactionUtils.createCaptainsPickComponent(remainingRoles)
@@ -167,7 +167,7 @@ export default {
                     await handle(i.update({ components: [] }))
                     const embed = interactionUtils.createInformationEmbed(interaction.user, `${i.user} has picked ${pickedRole.user!.name}.\nEvery players have been picked. The match is about to start.`)
                     await interaction.followUp({ embeds: [embed] })
-                    await matchmakingService.readyMatch(interaction, undefined, lineup)
+                    await matchmakingService.readyMatch(interaction.client, interaction, undefined, lineup)
                     collector.stop()
                     return
                 }
@@ -175,7 +175,7 @@ export default {
                 currentCaptain = currentCaptain.id === firstCaptain.id ? secondCaptain : firstCaptain
 
                 const embed = interactionUtils.createInformationEmbed(interaction.user, `${i.user} has picked ${pickedRole.user!.name}.\n**${currentCaptain} turn to pick.**`)
-                let reply = await interactionUtils.createReplyForLineup(interaction, lineup)
+                let reply = await interactionUtils.createReplyForLineup(lineup)
                 reply.embeds = reply.embeds!.concat(embed)
                 reply.components = interactionUtils.createCaptainsPickComponent(remainingRoles)
                 await i.update({ components: [] })
@@ -186,7 +186,7 @@ export default {
                 await teamService.stopPicking(lineup.channelId)
                 if (remainingRoles.length > 0) {
                     lineup = await teamService.removeUserFromLineup(interaction.channelId, currentCaptain.id) as ILineup
-                    let reply = await interactionUtils.createReplyForLineup(interaction, lineup)
+                    let reply = await interactionUtils.createReplyForLineup(lineup)
                     reply.content = `You have been too long to pick a player. Draft has been cancelled and ${currentCaptain} has been removed from the lineup`
                     await interaction.followUp(reply)
                     return
@@ -196,7 +196,7 @@ export default {
         }
 
         const embed = interactionUtils.createInformationEmbed(interaction.user, description)
-        let reply = await interactionUtils.createReplyForLineup(interaction, lineup) as MessageOptions
+        let reply = await interactionUtils.createReplyForLineup(lineup) as MessageOptions
         reply.embeds = reply.embeds!.concat(embed)
         await interaction.channel?.send(reply)
     }

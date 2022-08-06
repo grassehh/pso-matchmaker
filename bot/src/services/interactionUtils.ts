@@ -106,9 +106,9 @@ class InteractionUtils {
         }
     }
 
-    async createReplyForLineup(interaction: Interaction, lineup: ILineup, lineupQueue?: ILineupQueue): Promise<InteractionReplyOptions> {
+    async createReplyForLineup(lineup: ILineup, lineupQueue?: ILineupQueue): Promise<InteractionReplyOptions> {
         if (lineup.isMix() || lineup.isPicking) {
-            const challenge = await matchmakingService.findChallengeByChannelId(interaction.channelId!)
+            const challenge = await matchmakingService.findChallengeByChannelId(lineup.channelId)
             let challengingLineup
             if (challenge) {
                 challengingLineup = await teamService.retrieveLineup(challenge.initiatingTeam.lineup.channelId)
