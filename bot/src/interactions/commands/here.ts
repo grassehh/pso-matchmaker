@@ -28,7 +28,7 @@ export default {
             return
         }
 
-        const reply = await interactionUtils.createReplyForLineup(interaction, lineup) as MessageOptions
+        const reply = await interactionUtils.createReplyForLineup(lineup) as MessageOptions
         reply.content = "Wake up @everyone ! It's time to sign !"
 
         await teamService.updateLastNotificationTime(interaction.channelId, now)

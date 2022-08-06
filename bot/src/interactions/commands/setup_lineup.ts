@@ -58,7 +58,7 @@ export default {
         const lineup = teamService.createLineup(interaction.channelId, lineupSize, undefined, autoSearch, allowRanked, team, LINEUP_TYPE_TEAM, LINEUP_VISIBILITY_PUBLIC)
         await teamService.upsertLineup(lineup)
 
-        let reply = await interactionUtils.createReplyForLineup(interaction, lineup, lineupQueue)
+        let reply = await interactionUtils.createReplyForLineup(lineup, lineupQueue)
         reply.embeds?.splice(0, 0, interactionUtils.createInformationEmbed(interaction.user, '✅ New lineup configured'))
         await interaction.reply(reply);
     }

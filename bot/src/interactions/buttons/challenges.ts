@@ -15,7 +15,7 @@ export default {
 
         const ranked = interaction.customId.split('_')[1] === 'ranked'
         if (ranked && !lineup.isAllowedToPlayRanked()) {
-            interaction.reply({ content: '⛔ Your team is not allowed to play ranked matchmaking', ephemeral: true })
+            await interaction.reply({ content: '⛔ Your team is not allowed to play ranked matchmaking', ephemeral: true })
             return
         }
 

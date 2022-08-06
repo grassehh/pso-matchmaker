@@ -94,17 +94,17 @@ export default {
                     (await teamService.retrieveLineup(challenge.initiatingTeam.lineup.channelId === interaction.channelId ? challenge.challengedTeam.lineup.channelId : challenge.initiatingTeam.lineup.channelId))
                     || undefined
                     : undefined
-                const duplicatedUsersReply = await matchmakingService.checkForDuplicatedPlayers(interaction, lineup, secondLineup)
+                const duplicatedUsersReply = await matchmakingService.checkForDuplicatedPlayers(interaction.client, lineup, secondLineup)
                 if (duplicatedUsersReply) {
                     await interaction.reply(duplicatedUsersReply)
                     return
                 }
-                await matchmakingService.readyMatch(interaction, challenge, lineup)
+                await matchmakingService.readyMatch(interaction.client, interaction, challenge, lineup)
                 await interaction.reply({ content: "You have readied the match", ephemeral: true })
                 return
             }
 
-            let reply = await interactionUtils.createReplyForLineup(interaction, lineup, autoSearchResult.updatedLineupQueue) as MessageOptions
+            let reply = await interactionUtils.createReplyForLineup(lineup, autoSearchResult.updatedLineupQueue) as MessageOptions
             reply.embeds = (reply.embeds || []).concat(embed)
             await interaction.channel?.send(reply)
         })

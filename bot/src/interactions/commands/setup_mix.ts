@@ -81,7 +81,7 @@ export default {
         await matchmakingService.deleteLineupQueuesByChannelId(interaction.channelId)
         const lineupQueue = await new LineupQueue({ lineup, ranked }).save()
 
-        let reply = await interactionUtils.createReplyForLineup(interaction, lineup, lineupQueue)
+        let reply = await interactionUtils.createReplyForLineup(lineup, lineupQueue)
         reply.embeds?.splice(0, 0, interactionUtils.createInformationEmbed(interaction.user, '✅ New mix lineup configured'))
         await interaction.reply(reply);
     }

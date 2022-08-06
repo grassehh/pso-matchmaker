@@ -67,14 +67,14 @@ export default {
                     challenge.initiatingTeam.lineup.channelId === interaction.channelId ? challenge.challengedTeam.lineup.channelId : challenge.initiatingTeam.lineup.channelId
                 ) || undefined
                 ) : undefined
-            const duplicatedUsersReply = await matchmakingService.checkForDuplicatedPlayers(interaction, lineup, secondLineup)
+            const duplicatedUsersReply = await matchmakingService.checkForDuplicatedPlayers(interaction.client, lineup, secondLineup)
             if (duplicatedUsersReply) {
                 duplicatedUsersReply.embeds?.splice(0, 0, embed)
                 await interaction.editReply(duplicatedUsersReply)
                 return
             }
 
-            await matchmakingService.readyMatch(interaction, challenge, lineup)
+            await matchmakingService.readyMatch(interaction.client, interaction, challenge, lineup)
             await interaction.editReply({ embeds: [embed] })
             return
         }
@@ -92,7 +92,7 @@ export default {
             description += `\nThe challenge request has been cancelled.`
         }
 
-        let reply = await interactionUtils.createReplyForLineup(interaction, lineup, autoSearchResult.updatedLineupQueue) as MessageOptions
+        let reply = await interactionUtils.createReplyForLineup(lineup, autoSearchResult.updatedLineupQueue) as MessageOptions
         const informationEmbed = interactionUtils.createInformationEmbed(interaction.user, description)
         reply.embeds = (reply.embeds || []).concat(informationEmbed)
         await interaction.channel?.send(reply)

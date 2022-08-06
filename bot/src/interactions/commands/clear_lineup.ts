@@ -42,7 +42,7 @@ export default {
 
         lineup = await teamService.clearLineup(interaction.channelId, [1, 2]) as ILineup
         await matchmakingService.clearLineupQueue(interaction.channelId, [1, 2])
-        let reply = await interactionUtils.createReplyForLineup(interaction, lineup, lineupQueue)
+        let reply = await interactionUtils.createReplyForLineup(lineup, lineupQueue)
         reply.embeds?.splice(0, 0, interactionUtils.createInformationEmbed(interaction.user, '✅ Lineup has been cleared !'))
         await interaction.reply(reply);
     },

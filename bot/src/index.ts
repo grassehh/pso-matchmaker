@@ -68,6 +68,8 @@ for (const file of eventFiles) {
 
 schedule('*/5 * * * *', () => matchmakingService.updateBanList(client).catch(console.error));
 
+schedule('*/10 * * * * *', () => matchmakingService.makeMatches(client).catch(console.error));
+
 console.log("Logging into discord...")
 client.login(process.env.TOKEN)
 	.then(() => console.log("Logged In"))

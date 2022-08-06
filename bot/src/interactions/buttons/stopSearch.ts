@@ -22,7 +22,7 @@ export default {
         await interaction.deferReply()
         await matchmakingService.leaveQueue(lineupQueue)
         const informationEmbed = interactionUtils.createInformationEmbed(interaction.user, `😴 Your team is no longer searching for a challenge`)
-        let reply = await interactionUtils.createReplyForLineup(interaction, lineupQueue.lineup)
+        let reply = await interactionUtils.createReplyForLineup(lineupQueue.lineup)
         reply.embeds!.splice(0, 0, informationEmbed)
         await interaction.editReply(reply)
     }
