@@ -900,7 +900,7 @@ class MatchmakingService {
         }
     }
 
-    private async notifyLineupsForUsersLeaving(interaction: Interaction, rolesWithDiscordUsers: RoleWithDiscordUser[], lineup: ILineup) {
+    private async notifyLineupsForUsersLeaving(interaction: Interaction, lineup: ILineup, rolesWithDiscordUsers: RoleWithDiscordUser[]) {
         const promises = rolesWithDiscordUsers
             .map(roleWithDiscordUser => roleWithDiscordUser.discordUser)
             .filter(notEmpty)
@@ -941,7 +941,8 @@ class MatchmakingService {
         let promises = []
         promises.push(this.notifyUsersForMatchReady(interaction, match, lobbyHost, firstLineup, firstLineupRoles, secondLineup, secondLineupRoles))
         promises.push(this.notifyUsersForMatchReady(interaction, match, lobbyHost, secondLineup, secondLineupRoles, firstLineup, firstLineupRoles))
-        promises.push(this.notifyLineupsForUsersLeaving(interaction, firstLineupRoles, firstLineup))
+        promises.push(this.notifyLineupsForUsersLeaving(interaction, firstLineup, firstLineupRoles))
+        promises.push(this.notifyLineupsForUsersLeaving(interaction, secondLineup, secondLineupRoles))
         if (firstLineup.isMixOrCaptains() && secondLineup.isMixOrCaptains()) {
             promises.push(this.notifyLineupChannelForMatchReady(interaction, match, lobbyHost, firstLineup, firstLineupRoles, secondLineup, secondLineupRoles))
         } else {
