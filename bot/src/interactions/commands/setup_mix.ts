@@ -60,7 +60,7 @@ export default {
             return
         }
 
-        const ranked = interaction.options.getBoolean("ranked") !== false
+        const ranked = interaction.options.getBoolean("ranked") === true
         if (ranked && !authorizationService.isOfficialDiscord(interaction.guildId!)) {
             await interaction.reply({ content: "⛔ Only official community discords can create ranked mixes", ephemeral: true })
             return
