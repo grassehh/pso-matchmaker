@@ -132,7 +132,7 @@ const lineupSchema = new Schema<ILineup>({
     allowRanked: {
         type: Boolean,
         required: true,
-        default: true
+        default: false
     },
     lastNotificationTime: {
         type: Date,
