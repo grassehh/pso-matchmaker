@@ -2,7 +2,7 @@ import { User } from "discord.js";
 import { model, Schema, Types } from "mongoose";
 import { DEFAULT_RATING, MERC_USER_ID } from "./constants";
 import { MatchResult } from "./services/matchmakingService";
-import { LINEUP_TYPE_CAPTAINS, LINEUP_TYPE_MIX, LINEUP_TYPE_TEAM, LINEUP_VISIBILITY_PUBLIC, LINEUP_VISIBILITY_TEAM, ROLE_ATTACKER, ROLE_DEFENDER, ROLE_GOAL_KEEPER, ROLE_MIDFIELDER, ROLE_NAME_ANY } from "./services/teamService";
+import { LINEUP_TYPE_CAPTAINS, LINEUP_TYPE_MIX, LINEUP_TYPE_TEAM, LINEUP_VISIBILITY_PUBLIC, LINEUP_VISIBILITY_TEAM, ROLE_ATTACKER, ROLE_DEFENDER, ROLE_GOAL_KEEPER, ROLE_MIDFIELDER, ROLE_MIX_CAPTAINS, ROLE_NAME_ANY } from "./services/teamService";
 import { notEmpty } from "./utils";
 
 export interface ITeam {
@@ -67,6 +67,8 @@ export interface ILineup {
     isTeam(): boolean,
     numberOfSignedPlayers(): number,
     moveAllBenchToLineup(lineupNumber?: number, clearLineup?: boolean): ILineup,
+    getNonMecSignedRoles(): IRole[],
+    
     computePlayersAverageRating(lineupNumber?: number): number,
     channelId: string,
     size: number,
@@ -160,6 +162,9 @@ lineupSchema.methods.isTeam = function () {
 }
 lineupSchema.methods.numberOfSignedPlayers = function () {
     return this.roles.filter((role: IRole) => role.lineupNumber === 1).filter((role: IRole) => role.user != null).length;
+}
+lineupSchema.methods.getNonMecSignedRoles = function () {
+    return this.roles.filter((role: IRole) => role.user).filter((role: IRole) => role.user?.id !== MERC_USER_ID)
 }
 lineupSchema.methods.moveAllBenchToLineup = function (lineupNumber: number = 1, clearLineup: boolean = true) {
     if (clearLineup) {
@@ -413,7 +418,8 @@ export interface IStats {
     attackRating: number,
     midfieldRating: number,
     defenseRating: number,
-    goalKeeperRating: number
+    goalKeeperRating: number,
+    mixCaptainsRating: number
 }
 const statsSchema = new Schema<IStats>({
     userId: {
@@ -468,6 +474,11 @@ const statsSchema = new Schema<IStats>({
         type: Number,
         required: true,
         default: DEFAULT_RATING
+    },
+    mixCaptainsRating: {
+        type: Number,
+        required: true,
+        default: DEFAULT_RATING
     }
 })
 statsSchema.index({ userId: 1, region: 1 });
@@ -482,6 +493,8 @@ statsSchema.methods.getRating = function (roleType: number): number {
             return this.midfieldRating
         case ROLE_GOAL_KEEPER:
             return this.goalKeeperRating
+        case ROLE_MIX_CAPTAINS:
+            return this.mixCaptainsRating
         default:
             return 0
     }

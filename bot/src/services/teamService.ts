@@ -12,6 +12,7 @@ export const ROLE_GOAL_KEEPER = 0
 export const ROLE_ATTACKER = 1
 export const ROLE_DEFENDER = 2
 export const ROLE_MIDFIELDER = 3
+export const ROLE_MIX_CAPTAINS = 4
 
 export const ROLE_NAME_ANY = "any"
 
@@ -22,7 +23,7 @@ export const LINEUP_TYPE_TEAM = 'TEAM'
 export const LINEUP_TYPE_MIX = 'MIX'
 export const LINEUP_TYPE_CAPTAINS = 'CAPTAINS'
 
-const GK = { name: '🥅 GK', type: ROLE_GOAL_KEEPER }
+export const GK = { name: '🥅 GK', type: ROLE_GOAL_KEEPER }
 const LW = { name: 'LW', type: ROLE_ATTACKER }
 const CF = { name: 'CF', type: ROLE_ATTACKER }
 const RW = { name: 'RW', type: ROLE_ATTACKER }
@@ -539,11 +540,11 @@ class TeamService {
             roles = []
             let i = 1
             while (i < size) {
-                roles.push({ name: i, lineupNumber: 1, type: ROLE_ATTACKER, pos: 0 })
+                roles.push({ name: i, lineupNumber: 1, type: ROLE_MIX_CAPTAINS, pos: 0 })
                 i++
             }
             while (i < (size * 2) - 1) {
-                roles.push({ name: i, lineupNumber: 2, type: ROLE_ATTACKER, pos: 0 })
+                roles.push({ name: i, lineupNumber: 2, type: ROLE_MIX_CAPTAINS, pos: 0 })
                 i++
             }
             roles.push({ ...GK, lineupNumber: 1, pos: 0 })

@@ -8,7 +8,7 @@ import { Challenge, IChallenge, ILineup, ILineupMatchResult, ILineupQueue, IMatc
 import { handle, notEmpty } from "../utils";
 import { interactionUtils } from "./interactionUtils";
 import { statsService } from "./statsService";
-import { LINEUP_TYPE_CAPTAINS, LINEUP_VISIBILITY_PUBLIC, LINEUP_VISIBILITY_TEAM, RankedStats, teamService } from "./teamService";
+import { LINEUP_TYPE_CAPTAINS, LINEUP_VISIBILITY_PUBLIC, LINEUP_VISIBILITY_TEAM, RankedStats, ROLE_GOAL_KEEPER, teamService } from "./teamService";
 const ZScore = require("math-z-score");
 
 export enum MatchResult {
@@ -191,39 +191,40 @@ class MatchmakingService {
         // const channelIds = await teamService.findAllChannelIdToNotify(lineup.team.region, lineup.channelId, lineup.size)
 
         //FIXME This eventually causes rate limit exceeding
-        // let description = `**${teamService.formatTeamName(lineup)}**`
-        // const teamEmbed = new EmbedBuilder()
-        //     .setColor('#566573')
-        //     .setTitle('A team is looking for a match !')
-        //     .setTimestamp()
-        // description += `\n${lineup.roles.filter(role => role.user != null).length} players signed`
-        // if (!teamService.hasGkSigned(lineupQueue.lineup)) {
-        //     description += ' **(no GK)**'
-        // }
-        // description += `\n\n*Contact ${user} for more information*`
-        // teamEmbed.setDescription(description)
+        /*let description = `**${teamService.formatTeamName(lineup)}**`
+        const teamEmbed = new EmbedBuilder()
+            .setColor('#566573')
+            .setTitle('A team is looking for a match !')
+            .setTimestamp()
+        description += `\n${lineup.roles.filter(role => role.user != null).length} players signed`
+        if (!teamService.hasGkSigned(lineupQueue.lineup)) {
+            description += ' **(no GK)**'
+        }
+        description += `\n\n*Contact ${user} for more information*`
+        teamEmbed.setDescription(description)
 
-        // const challengeTeamRow = new ActionRowBuilder().addComponents(
-        //     new ButtonBuilder()
-        //         .setCustomId(`challenge_${lineupQueue.id}`)
-        //         .setLabel('Challenge them !')
-        //         .setEmoji('⚽')
-        //         .setStyle('PRIMARY')
-        // )
-        // 
-        // await Promise.all(channelIds.map(async (channelId: string) => {
-        //     const [channel] = await handle(client.channels.fetch(channelId))
-        //     if (!(channel instanceof TextChannel)) {
-        //         return null
-        //     }
-        //     const [message] = await handle(channel.send({ embeds: [teamEmbed], components: [challengeTeamRow] }))
-        //     return message ? { channelId: message.channelId, messageId: message.id } : null
-        // }))
-        //     .then(notificationsMessages => {
-        //         lineupQueue.notificationMessages = notificationsMessages.filter(notEmpty)
-        //     })
-        //     .catch(console.error)
-        //     .finally(() => lineupQueue.save())
+        const challengeTeamRow = new ActionRowBuilder().addComponents(
+            new ButtonBuilder()
+                .setCustomId(`challenge_${lineupQueue.id}`)
+                .setLabel('Challenge them !')
+                .setEmoji('⚽')
+                .setStyle('PRIMARY')
+        )
+        
+        await Promise.all(channelIds.map(async (channelId: string) => {
+            const [channel] = await handle(client.channels.fetch(channelId))
+            if (!(channel instanceof TextChannel)) {
+                return null
+            }
+            const [message] = await handle(channel.send({ embeds: [teamEmbed], components: [challengeTeamRow] }))
+            return message ? { channelId: message.channelId, messageId: message.id } : null
+        }))
+            .then(notificationsMessages => {
+                lineupQueue.notificationMessages = notificationsMessages.filter(notEmpty)
+            })
+            .catch(console.error)
+            .finally(() => lineupQueue.save())
+            */
 
         lineupQueue.save()
         return lineupQueue
@@ -235,11 +236,13 @@ class MatchmakingService {
             return
         }
 
-        // await Promise.all(lineupQueue.notificationMessages.map(async (notificationMessage) => {
-        //     const channel = await client.channels.fetch(notificationMessage.channelId) as TextChannel
-        //     handle(channel.messages.delete(notificationMessage.messageId))
-        // }))
-        //     .catch(console.error)
+        /*
+        await Promise.all(lineupQueue.notificationMessages.map(async (notificationMessage) => {
+            const channel = await client.channels.fetch(notificationMessage.channelId) as TextChannel
+            handle(channel.messages.delete(notificationMessage.messageId))
+        }))
+            .catch(console.error)
+            */
 
         await this.deleteLineupQueuesByChannelId(lineupQueue.lineup.channelId)
     }
@@ -818,8 +821,8 @@ class MatchmakingService {
     }
 
     private async updatePlayersRating(match: IMatch): Promise<void> {
-        const firstLineupRating = await new LineupRating(match.firstLineup, match.result.firstLineup!.result).init()
-        const secondLineupRating = await new LineupRating(match.secondLineup, match.result.secondLineup!.result).init()
+        const firstLineupRating = await new LineupRating(match.firstLineup, match.secondLineup, match.result.firstLineup!.result).init()
+        const secondLineupRating = await new LineupRating(match.secondLineup, match.firstLineup, match.result.secondLineup!.result).init()
 
         match.firstLineup.roles.map(role => role.user).filter(notEmpty).forEach(async user => {
             const newRating = firstLineupRating.computeNewPlayerRating(user.id, secondLineupRating.lineupRatingAverage!)
@@ -969,20 +972,29 @@ export interface RoleWithDiscordUser {
 
 class LineupRating {
     private readonly lineup: ILineup
+    private readonly opponentLineup: ILineup
     private readonly zscore: typeof ZScore
     private readonly rankedStatsByUserId: Map<string, RankedStats> = new Map()
     private readonly matchResult: MatchResult
     private readonly kFactorPerNumberOfGames: Map<string, number> = new Map().set("25", 30).set("250", 20).set("800", 10)
     lineupRatingAverage?: number
 
-    constructor(lineup: ILineup, matchResult: MatchResult) {
+    constructor(lineup: ILineup, opponentLineup: ILineup, matchResult: MatchResult) {
         this.lineup = lineup
+        this.opponentLineup = opponentLineup
         this.zscore = new ZScore()
         this.matchResult = matchResult
     }
 
     public async init() {
-        await Promise.all(this.lineup.roles.filter(role => role.user && role.user.id !== MERC_USER_ID).map(async role => {
+        let roles = this.lineup.getNonMecSignedRoles()
+        const lineupHasGk = roles.some(role => role.type === ROLE_GOAL_KEEPER)
+        const opponentLineupHasGk = this.opponentLineup.getNonMecSignedRoles().some(role => role.type === ROLE_GOAL_KEEPER)
+        if (!lineupHasGk || !opponentLineupHasGk) {
+            roles = roles.filter(role => role.type !== ROLE_GOAL_KEEPER)
+        }
+
+        await Promise.all(roles.map(async role => {
             let playerStats = await statsService.findUserStats(role.user!.id, this.lineup.team.region)
             if (!playerStats) {
                 playerStats = new Stats({
@@ -996,11 +1008,13 @@ class LineupRating {
                     attackRating: DEFAULT_RATING,
                     midfieldRating: DEFAULT_RATING,
                     defenseRating: DEFAULT_RATING,
-                    goalKeeperRating: DEFAULT_RATING
+                    goalKeeperRating: DEFAULT_RATING,
+                    mixCaptainsRating: DEFAULT_RATING
                 })
             }
+
             this.rankedStatsByUserId.set(role.user!.id, {
-                role: role,
+                role,
                 rating: playerStats.getRating(role.type),
                 wins: playerStats.numberOfRankedWins,
                 draws: playerStats.numberOfRankedDraws,
