@@ -1,4 +1,4 @@
-import { ButtonInteraction, CommandInteraction, GuildMember, Role, SelectMenuInteraction } from "discord.js"
+import { GuildMember, Interaction, Role } from "discord.js"
 import { MERC_USER_ID, MINIMUM_LINEUP_SIZE_FOR_RANKED } from "../constants"
 import { IStats, ITeam, Stats, Team } from "../mongoSchema"
 import { handle } from "../utils"
@@ -100,7 +100,7 @@ class StatsService {
         return Stats.aggregate(pipeline)
     }
 
-    async updateStats(interaction: ButtonInteraction | CommandInteraction | SelectMenuInteraction, region: string, lineupSize: number, userIds: string[]): Promise<void> {
+    async updateStats(interaction: Interaction, region: string, lineupSize: number, userIds: string[]): Promise<void> {
         const nonMercUserIds = userIds.filter(userId => userId !== MERC_USER_ID)
         if (nonMercUserIds.length === 0) {
             return

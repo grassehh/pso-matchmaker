@@ -1,4 +1,4 @@
-import { ActionRowBuilder, ButtonBuilder, ButtonInteraction, ButtonStyle, Client, CommandInteraction, EmbedBuilder, Interaction, InteractionReplyOptions, InteractionUpdateOptions, SelectMenuBuilder, SelectMenuInteraction, User, UserManager } from "discord.js";
+import { ActionRowBuilder, ButtonBuilder, ButtonInteraction, ButtonStyle, Client, CommandInteraction, EmbedBuilder, Interaction, InteractionReplyOptions, InteractionUpdateOptions, Message, MessageOptions, SelectMenuBuilder, SelectMenuInteraction, User, UserManager } from "discord.js";
 import { DEFAULT_RATING } from "../constants";
 import { IChallenge, ILineup, ILineupQueue, IRole, IRoleBench, IStats, ITeam, IUser, Stats } from "../mongoSchema";
 import { handle } from "../utils";
@@ -105,9 +105,9 @@ class InteractionUtils {
         }
     }
 
-    async createReplyForLineup(interaction: ButtonInteraction | CommandInteraction | SelectMenuInteraction, lineup: ILineup, lineupQueue?: ILineupQueue): Promise<InteractionReplyOptions> {
+    async createReplyForLineup(interaction: Interaction, lineup: ILineup, lineupQueue?: ILineupQueue): Promise<InteractionReplyOptions> {
         if (lineup.isMix() || lineup.isPicking) {
-            const challenge = await matchmakingService.findChallengeByChannelId(interaction.channelId)
+            const challenge = await matchmakingService.findChallengeByChannelId(interaction.channelId!)
             let challengingLineup
             if (challenge) {
                 challengingLineup = await teamService.retrieveLineup(challenge.initiatingTeam.lineup.channelId)
@@ -344,10 +344,11 @@ class InteractionUtils {
         return paginationActionsRow
     }
 
-    createLineupEmbed(rolesWithDiscordUsers: RoleWithDiscordUser[], opponentLineup?: ILineup): EmbedBuilder {
+    createLineupEmbed(rolesWithDiscordUsers: RoleWithDiscordUser[], lineup: ILineup): EmbedBuilder {
+        let embedTitle = `${teamService.formatTeamName(lineup)} Lineup`
         let lineupEmbed = new EmbedBuilder()
             .setColor('#6aa84f')
-            .setTitle(opponentLineup ? `Lineup against ${teamService.formatTeamName(opponentLineup)}` : `${rolesWithDiscordUsers[0].role.lineupNumber === 1 ? 'Red' : 'Blue'} Team lineup`)
+            .setTitle(embedTitle)
 
         let description = ''
         rolesWithDiscordUsers.map(roleWithDiscordUser => {
@@ -514,17 +515,17 @@ class InteractionUtils {
         return rolesActionRows
     }
 
-    createMatchResultVoteReply(matchId: string, region: string, user: User) {
+    createMatchResultVoteMessage(matchId: string, region: string, user: User): MessageOptions {
         const matchVoteEmbed = new EmbedBuilder()
             .setColor('#6aa84f')
-            .setTitle("Vote for you team result !")
+            .setTitle(":bangbang::bangbang: Submit for you team result ! :bangbang::bangbang:")
             .setFields([
                 { name: 'Match ID', value: matchId, inline: true },
-                { name: 'Voter', value: `${user}`, inline: true }]
+                { name: 'Submitter', value: `${user}`, inline: true }]
             )
             .setDescription(
                 `Ranks will be updated **ONLY** if **BOTH TEAMS** votes are consistent.
-                **Be fair and honest. Vote for the real result.** 
+                **Be fair and honest and submit real result.** 
                 ${region === 'EU' ? 'If needed, use the [Ticket Tool](https://discord.com/channels/913821068811178045/914202504747688006) on EU server to report any abuse.' : ''}
             `)
             .setTimestamp()
@@ -545,6 +546,16 @@ class InteractionUtils {
         )
 
         return { embeds: [matchVoteEmbed], components: [matchVoteActionRow] }
+    }
+
+    createMatchResultVoteUserMessage(message: Message): MessageOptions {
+        const matchVoteEmbed = new EmbedBuilder()
+            .setColor('#6aa84f')
+            .setTitle(":bangbang::bangbang: Submit your team result ! :bangbang::bangbang:")
+            .setDescription(`Don't forget to submit your team result by clicking [here](${message.url}) after the match ended !`)
+            .setTimestamp()
+
+        return { embeds: [matchVoteEmbed] }
     }
 
     private createRoleActionRow(maxRolePos: number, roles: IRole[], isBench: boolean = false): ActionRowBuilder<ButtonBuilder> {

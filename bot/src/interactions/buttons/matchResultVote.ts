@@ -30,7 +30,27 @@ export default {
             return
         }
 
-        const existingLineupResult = interaction.channelId === match.firstLineup.channelId ? match.result.firstLineup : match.result.secondLineup
+        let lineup, opponentLineup
+        let otherLineupChannel
+        let existingLineupResult
+        let teamName
+        let lineupToUpdate
+        if (match.firstLineup.isMixOrCaptains() && match.secondLineup.isMixOrCaptains()) {
+            lineup = match.firstLineup
+            opponentLineup = match.secondLineup
+            otherLineupChannel = interaction.channel!
+            existingLineupResult = match.firstLineup.roles.some(role => role.user?.id === interaction.user.id) ? match.result.firstLineup : match.result.secondLineup
+            teamName = match.firstLineup.roles.some(role => role.user?.id === interaction.user.id) ? "Red Team" : "Blue Team"
+            lineupToUpdate = match.firstLineup.roles.some(role => role.user?.id === interaction.user.id) ? 1 : 2
+        } else {
+            lineup = interaction.channelId === match.firstLineup.channelId ? match.firstLineup : match.secondLineup
+            opponentLineup = interaction.channelId === match.firstLineup.channelId ? match.secondLineup : match.firstLineup
+            otherLineupChannel = await interaction.client.channels.fetch(opponentLineup.channelId) as BaseGuildTextChannel
+            existingLineupResult = interaction.channelId === match.firstLineup.channelId ? match.result.firstLineup : match.result.secondLineup
+            teamName = teamService.formatTeamName(lineup)
+            lineupToUpdate = interaction.channelId === match.firstLineup.channelId ? 1 : 2
+        }
+
         if (existingLineupResult) {
             await interaction.reply({ content: '⛔ You have already voted for this match outcome', ephemeral: true })
             return
@@ -40,28 +60,24 @@ export default {
             captainUserId: userId,
             result
         }
-
-        const lineupToUpdate = interaction.channelId === match.firstLineup.channelId ? 1 : 2
         match = (await matchmakingService.updateMatchResult(matchId, lineupToUpdate, lineupResult))!
-
-        const lineup = interaction.channelId === match.firstLineup.channelId ? match.firstLineup : match.secondLineup!
-        const opponentLineup = interaction.channelId === match.firstLineup.channelId ? match.secondLineup! : match.firstLineup
 
         const voteNotificationMessageEmbed = new EmbedBuilder()
             .setColor('#6aa84f')
-            .setTitle('🗳️ Match Vote Submitted')
+            .setTitle('🗳️ Match Result Submitted')
             .setFields([
                 { name: 'Match ID', value: matchId, inline: true },
                 { name: 'Result', value: `${MatchResultType.toString(result)}`, inline: true },
                 { name: '\u200B', value: '\u200B' },
                 { name: 'Voter', value: `${interaction.user}`, inline: true },
-                { name: 'Team', value: `${teamService.formatTeamName(lineup)}`, inline: true }
+                { name: 'Team', value: teamName, inline: true }
             ])
             .setTimestamp()
             .setFooter({ text: `Author: ${interaction.user}` })
         const voteNotificationMessage = { embeds: [voteNotificationMessageEmbed] }
-        const otherLineupChannel = await interaction.client.channels.fetch(opponentLineup.channelId) as BaseGuildTextChannel
-        await otherLineupChannel.send(voteNotificationMessage)
+        if (interaction.channelId !== opponentLineup.channelId) {
+            await otherLineupChannel.send(voteNotificationMessage)
+        }
         await interaction.update({ components: [] })
         await interaction.followUp(voteNotificationMessage)
 
@@ -80,22 +96,25 @@ export default {
                     .setDescription('Team and Players ratings have been updated !')
                     .setTimestamp()
                 const ratingUpdatedMessage = { embeds: [ratingUpdatedEmbed] }
-                await otherLineupChannel.send(ratingUpdatedMessage)
+                if (interaction.channelId !== opponentLineup.channelId) {
+                    await otherLineupChannel.send(ratingUpdatedMessage)
+                }
                 await interaction.followUp(ratingUpdatedMessage)
             } else {
                 await matchmakingService.resetMatchResult(matchId)
                 const inconsistentVotesMessageEmbed = new EmbedBuilder()
                     .setColor('#6aa84f')
-                    .setTitle('⛔ Vote are inconsistent. Please vote again.')
+                    .setTitle('⛔ Results are inconsistent. Please submit again.')
                     .setTimestamp()
                 const inconsistentVotesMessage = { embeds: [inconsistentVotesMessageEmbed] }
-                await otherLineupChannel.send(inconsistentVotesMessage)
+                if (interaction.channelId !== opponentLineup.channelId) {
+                    await otherLineupChannel.send(inconsistentVotesMessage)
+                }
                 await interaction.followUp(inconsistentVotesMessage)
-
-                await interaction.channel?.send(interactionUtils.createMatchResultVoteReply(match.matchId, match.firstLineup.team.region, interaction.user))
-                const opponentTeamCaptainUserId = await matchmakingService.findHighestRatedUserId(opponentLineup)
-                const opponentTeamCaptainUser = await interaction.client.users.fetch(opponentTeamCaptainUserId)
-                await otherLineupChannel.send(interactionUtils.createMatchResultVoteReply(match.matchId, match.firstLineup.team.region, opponentTeamCaptainUser))
+                const firstTeamCaptainUser = await interaction.client.users.fetch(match.result.firstLineup.captainUserId)
+                const opponentTeamCaptainUser = await interaction.client.users.fetch(match.result.secondLineup.captainUserId)
+                await interaction.channel?.send(interactionUtils.createMatchResultVoteMessage(match.matchId, match.firstLineup.team.region, firstTeamCaptainUser))
+                await otherLineupChannel.send(interactionUtils.createMatchResultVoteMessage(match.matchId, match.firstLineup.team.region, opponentTeamCaptainUser))
             }
         }
     }
