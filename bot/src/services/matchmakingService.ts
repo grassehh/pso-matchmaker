@@ -255,7 +255,7 @@ class MatchmakingService {
                 embeds: [
                     new EmbedBuilder()
                         .setColor('#566573')
-                        .setDescription(`No Team is currently seaching for a ${lineup.size}v${lineup.size} match 😪`)
+                        .setDescription(`No Team is currently searching for a ${lineup.size}v${lineup.size} match 😪`)
                 ]
             })
             return
@@ -369,6 +369,11 @@ class MatchmakingService {
             return
         }
 
+        if (lineupQueueToChallenge.ranked && !lineup.allowRanked) {
+            await interaction.reply({ content: `⛔ You are not allowed to play ranked matches`, ephemeral: true })
+            return
+        }
+
         if (!this.isUserAllowedToInteractWithMatchmaking(interaction.user.id, lineup)) {
             await interaction.reply({ content: `⛔ You must be in the lineup in order to challenge a team`, ephemeral: true })
             return
@@ -386,7 +391,7 @@ class MatchmakingService {
 
         const lineupHasAnyMerc = lineup.roles.some(role => role.user?.id === MERC_USER_ID)
         if (lineupHasAnyMerc && lineupQueueToChallenge.ranked) {
-            await interaction.reply({ content: "You can't challenge a ranked team with a merc signed", ephemeral: true })
+            await interaction.reply({ content: "⛔ You can't challenge a ranked team with a merc signed", ephemeral: true })
             return
         }
 

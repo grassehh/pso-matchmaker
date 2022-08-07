@@ -1,13 +1,17 @@
 import { ChannelType, GuildMember, Interaction, PermissionsBitField, Role } from "discord.js";
 import { BOT_ADMIN_ROLE } from "../constants";
 import { ICommandHandler } from "../handlers/commandHandler";
+const dotenv = require("dotenv")
+dotenv.config()
 
 class AuthorizationService {
-    private readonly officialDiscordIds: string[]
+    readonly officialDiscordIds = [
+        process.env.PSO_EU_DISCORD_GUILD_ID,
+        process.env.PSO_NA_DISCORD_GUILD_ID,
+        process.env.PSO_SA_DISCORD_GUILD_ID,
+        process.env.PSO_AS_DISCORD_GUILD_ID
+    ]
 
-    constructor() {
-        this.officialDiscordIds = (process.env.PSO_OFFICIAL_DISCORD_IDS as string).split(',')
-    }
 
     isBotAllowed(interaction: Interaction) {
         if (interaction.channel?.type !== ChannelType.GuildText) {

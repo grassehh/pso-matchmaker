@@ -22,6 +22,8 @@ export default {
             .addFields([
                 { name: 'Name', value: team.name, inline: true },
                 { name: 'Region', value: team.region, inline: true },
+                { name: 'Verified', value: `${team.verified ? '**Yes**' : 'No'}`, inline: true },
+                { name: 'Team ID', value: `${team.guildId}`, inline: true },
                 { name: 'Rating', value: `${team.rating}`, inline: true }
             ])
 

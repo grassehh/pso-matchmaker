@@ -25,6 +25,11 @@ export default {
             return
         }
 
+        if (!lineup.isAllowedToPlayRanked()) {
+            interaction.reply({ content: '⛔ Your team is not allowed to play ranked matchmaking', ephemeral: true })
+            return
+        }
+
         if (!matchmakingService.isLineupAllowedToJoinQueue(lineup)) {
             interaction.reply({ content: '⛔ All outfield positions must be filled before searching', ephemeral: true })
             return

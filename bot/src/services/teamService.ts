@@ -503,6 +503,30 @@ class TeamService {
         return []
     }
 
+    async findChannelIdsByGuildId(guildId: string): Promise<string[]> {
+        const res = await Lineup.aggregate([
+            {
+                $match: {
+                    'team.guildId': guildId
+                }
+            },
+            {
+                $group: {
+                    _id: null,
+                    channelIds: {
+                        $addToSet: '$$ROOT.channelId'
+                    }
+                }
+            }
+        ])
+
+        if (res.length > 0) {
+            return res[0].channelIds
+        }
+
+        return []
+    }
+
     async findAllChannelIdToNotify(region: string, channelId: string, lineupSize: number): Promise<string[]> {
         const res = await Lineup.aggregate([
             {
@@ -591,6 +615,37 @@ class TeamService {
 
         const benchRole = lineup.bench.find(role => role.roles.some(r => (r.name === roleLeft.name || r.name === ROLE_NAME_ANY) && r.lineupNumber === roleLeft.lineupNumber))
         return benchRole ? benchRole.user : null
+    }
+
+    async addCaptain(guildId: string, user: IUser): Promise<ITeam | null> {
+        return Team.findOneAndUpdate({ guildId }, { $push: { captains: user } }, { new: true })
+    }
+
+    async removeCaptain(guildId: string, userId: string): Promise<ITeam | null> {
+        return Team.findOneAndUpdate({ guildId }, { $pull: { captains: { "id": userId } } }, { new: true })
+    }
+
+    async addPlayer(guildId: string, user: IUser): Promise<ITeam | null> {
+        await Lineup.updateMany({ 'team.guildId': guildId }, { $push: { 'team.players': user } })
+        return Team.findOneAndUpdate({ guildId }, { $push: { players: user } }, { new: true })
+    }
+
+    async removePlayer(guildId: string, userId: string): Promise<ITeam | null> {
+        await Lineup.updateMany({ 'team.guildId': guildId }, { $pull: { 'team.players': { "id": userId } } })
+        return Team.findOneAndUpdate({ guildId }, { $pull: { players: { "id": userId } } }, { new: true })
+    }
+
+    async verify(guildId: string, verified: boolean): Promise<ITeam | null> {
+        await Lineup.updateMany({ 'team.guildId': guildId, type: LINEUP_TYPE_TEAM }, { allowRanked: verified, 'team.verified': verified })
+        return await Team.findOneAndUpdate({ guildId }, { verified }, { new: true })
+    }
+
+    async findTeamFromUserId(userId: string): Promise<ITeam | null> {
+        return Team.findOne({ $or: [{ 'captains.id': userId }, { 'players.id': userId }] })
+    }
+
+    async findAllVerifiedTeams(): Promise<ITeam[]> {
+        return Team.find({ verified: true })
     }
 
     private removeSpecialCharacters(name: string): string {
