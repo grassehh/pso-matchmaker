@@ -1,4 +1,4 @@
-import { BaseGuildTextChannel, ButtonInteraction, Client, CommandInteraction, GuildMember, MessageOptions, TextChannel, User } from "discord.js";
+import { BaseGuildTextChannel, ButtonInteraction, Client, CommandInteraction, GuildMember, Interaction, MessageOptions, TextChannel, User } from "discord.js";
 import { DeleteResult } from "mongodb";
 import { UpdateWriteOpResult } from "mongoose";
 import { MAX_LINEUP_NAME_LENGTH, MAX_TEAM_NAME_LENGTH } from "../constants";
@@ -392,7 +392,7 @@ class TeamService {
             description += `\n:inbox_tray: ${benchUserToTransfer.mention} came off the bench and joined the **${roleLeft?.name}** position.`
         }
 
-        let reply = await interactionUtils.createReplyForLineup(interaction, newLineup, autoSearchResult.updatedLineupQueue) as MessageOptions
+        let reply = await interactionUtils.createReplyForLineup(interaction as Interaction, newLineup, autoSearchResult.updatedLineupQueue) as MessageOptions
         const embed = interactionUtils.createInformationEmbed(interaction.user, description)
         reply.embeds = (reply.embeds || []).concat(embed)
         await channel.send(reply)

@@ -64,6 +64,7 @@ export interface ILineup {
     isMixOrCaptains(): boolean,
     isMix(): boolean,
     isCaptains(): boolean,
+    isTeam(): boolean,
     numberOfSignedPlayers(): number,
     moveAllBenchToLineup(lineupNumber?: number, clearLineup?: boolean): ILineup,
     computePlayersAverageRating(lineupNumber?: number): number,
@@ -337,7 +338,7 @@ export interface IMatch {
     matchId: string,
     schedule: Date,
     firstLineup: ILineup,
-    secondLineup?: ILineup | null,
+    secondLineup: ILineup,
     lobbyName: string,
     lobbyPassword: string,
     subs: ISub[],
@@ -359,7 +360,7 @@ const matchSchema = new Schema<IMatch>({
     },
     secondLineup: {
         type: lineupSchema,
-        required: false
+        required: true
     },
     lobbyName: {
         type: String,

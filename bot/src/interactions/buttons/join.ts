@@ -1,10 +1,10 @@
 import { ButtonInteraction, ComponentType, EmbedBuilder, GuildMember, Interaction, MessageOptions } from "discord.js";
+import { IButtonHandler } from "../../handlers/buttonHandler";
+import { ILineup, IRole, IUser } from "../../mongoSchema";
 import { interactionUtils } from "../../services/interactionUtils";
 import { matchmakingService } from "../../services/matchmakingService";
 import { statsService } from "../../services/statsService";
 import { teamService } from "../../services/teamService";
-import { IButtonHandler } from "../../handlers/buttonHandler";
-import { ILineup, IRole, IUser } from "../../mongoSchema";
 import { handle, notEmpty } from "../../utils";
 
 export default {
@@ -23,15 +23,15 @@ export default {
             return
         }
 
-        const signedRole = lineup.roles.find(role => role.user?.id == interaction.user.id)
-        if (signedRole) {
-            if ((signedRole.name.includes('GK') && customId === 'gk') || (!signedRole.name.includes('GK') && customId !== 'gk')) {
-                await interaction.reply({ content: '⛔ You are already in the lineup', ephemeral: true })
-                return
-            }
+        // const signedRole = lineup.roles.find(role => role.user?.id == interaction.user.id)
+        // if (signedRole) {
+        //     if ((signedRole.name.includes('GK') && customId === 'gk') || (!signedRole.name.includes('GK') && customId !== 'gk')) {
+        //         await interaction.reply({ content: '⛔ You are already in the lineup', ephemeral: true })
+        //         return
+        //     }
 
-            lineup = await teamService.removeUserFromLineup(interaction.channelId, interaction.user.id) as ILineup
-        }
+        //     lineup = await teamService.removeUserFromLineup(interaction.channelId, interaction.user.id) as ILineup
+        // }
 
         await interaction.update({ components: [] })
 
