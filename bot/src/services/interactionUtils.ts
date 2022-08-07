@@ -1,7 +1,8 @@
 import { ActionRowBuilder, ButtonBuilder, ButtonInteraction, ButtonStyle, Client, CommandInteraction, EmbedBuilder, Interaction, InteractionReplyOptions, InteractionUpdateOptions, Message, MessageOptions, SelectMenuBuilder, SelectMenuInteraction, User, UserManager } from "discord.js";
-import { DEFAULT_RATING } from "../constants";
+import { BOT_ADMIN_ROLE, DEFAULT_RATING } from "../constants";
 import { IChallenge, ILineup, ILineupQueue, IRole, IRoleBench, IStats, ITeam, IUser, Stats } from "../mongoSchema";
 import { handle } from "../utils";
+import { authorizationService } from "./authorizationService";
 import { matchmakingService, MatchResult, RoleWithDiscordUser } from "./matchmakingService";
 import { statsService } from "./statsService";
 import { ROLE_ATTACKER, ROLE_DEFENDER, ROLE_GOAL_KEEPER, ROLE_MIDFIELDER, teamService } from "./teamService";
@@ -151,7 +152,7 @@ class InteractionUtils {
     }
 
     async replyNotAllowed(interaction: ButtonInteraction | CommandInteraction | SelectMenuInteraction): Promise<void> {
-        await interaction.reply({ content: '⛔ You are not allowed to execute this command', ephemeral: true })
+        await interaction.reply({ content: `⛔ You are not allowed to execute this command. Make sure that you have either admin permissions on the discord, or a role named **${BOT_ADMIN_ROLE}**`, ephemeral: true })
     }
 
     async createStatsEmbeds(interaction: ButtonInteraction | CommandInteraction | SelectMenuInteraction, userId: string, region?: string): Promise<EmbedBuilder[]> {
@@ -557,6 +558,62 @@ class InteractionUtils {
             .setTimestamp()
 
         return { embeds: [matchVoteEmbed] }
+    }
+
+    createTeamManagementReply(interaction: Interaction, team: ITeam): InteractionReplyOptions {
+        const captainsList = team.captains.map(captain => captain.mention).join('\n')
+        const playersList = team.players.map(player => player.mention).join('\n')
+        const teamDescriptionEmbed = new EmbedBuilder()
+            .setTitle('Team Management')
+            .setFooter({ text: "If you add/remove any captains/players, your will need to verify your team again in order to play ranked matches" })
+            .setColor('#566573')
+            .addFields([
+                { name: 'Name', value: team.name, inline: true },
+                { name: 'Verified', value: `${team.verified ? '**Yes**' : 'No'}`, inline: true },
+                { name: '\u200B', value: '\u200B' },
+                { name: 'Captains', value: `${captainsList.length > 0 ? captainsList : '*None*'}`, inline: true },
+                { name: 'Players', value: `${playersList.length > 0 ? playersList : '*None*'}`, inline: true },
+            ])
+
+        const teamManagementActionRow: ActionRowBuilder<ButtonBuilder> = new ActionRowBuilder<ButtonBuilder>()
+            .addComponents(
+                new ButtonBuilder()
+                    .setLabel('Manage captains')
+                    .setCustomId(`team_manage_users_captains_${team.guildId}`)
+                    .setStyle(ButtonStyle.Primary),
+                new ButtonBuilder()
+                    .setLabel('Manage players')
+                    .setCustomId(`team_manage_users_players_${team.guildId}`)
+                    .setStyle(ButtonStyle.Primary)
+            )
+
+        if (authorizationService.isOfficialDiscord(interaction.guildId!)) {
+            if (!team.verified) {
+                teamManagementActionRow.addComponents(
+                    new ButtonBuilder()
+                        .setLabel('Verify')
+                        .setCustomId(`team_manage_state_verify_${team.guildId}`)
+                        .setStyle(ButtonStyle.Success)
+                )
+            } else {
+                teamManagementActionRow.addComponents(
+                    new ButtonBuilder()
+                        .setLabel('Unverify')
+                        .setCustomId(`team_manage_state_unverify_${team.guildId}`)
+                        .setStyle(ButtonStyle.Danger)
+                )
+            }
+
+            teamManagementActionRow.addComponents(
+                new ButtonBuilder()
+                    .setLabel('Ban')
+                    .setCustomId(`team_ban_${team.guildId}`)
+                    .setStyle(ButtonStyle.Danger)
+                    .setDisabled(true)
+            )
+        }
+
+        return { embeds: [teamDescriptionEmbed], components: [teamManagementActionRow] }
     }
 
     private createRoleActionRow(maxRolePos: number, roles: IRole[], isBench: boolean = false): ActionRowBuilder<ButtonBuilder> {

@@ -14,6 +14,10 @@ export default {
         }
 
         const ranked = interaction.customId.split('_')[1] === 'ranked'
+        if (ranked && !lineup.isAllowedToPlayRanked()) {
+            interaction.reply({ content: '⛔ Your team is not allowed to play ranked matchmaking', ephemeral: true })
+            return
+        }
 
         await matchmakingService.listChallenges(interaction, lineup, ranked)
     }

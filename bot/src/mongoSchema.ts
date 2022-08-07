@@ -1,25 +1,9 @@
 import { User } from "discord.js";
 import { model, Schema, Types } from "mongoose";
-import { DEFAULT_RATING, MERC_USER_ID } from "./constants";
+import { DEFAULT_RATING, MERC_USER_ID, MIN_LINEUP_SIZE_FOR_RANKED } from "./constants";
 import { MatchResult } from "./services/matchmakingService";
 import { LINEUP_TYPE_CAPTAINS, LINEUP_TYPE_MIX, LINEUP_TYPE_TEAM, LINEUP_VISIBILITY_PUBLIC, LINEUP_VISIBILITY_TEAM, ROLE_ATTACKER, ROLE_DEFENDER, ROLE_GOAL_KEEPER, ROLE_MIDFIELDER, ROLE_MIX_CAPTAINS, ROLE_NAME_ANY } from "./services/teamService";
 import { notEmpty } from "./utils";
-
-export interface ITeam {
-    guildId: string,
-    name: string,
-    region: string,
-    lastMatchDate?: Date,
-    rating: number
-}
-const teamSchema = new Schema<ITeam>({
-    guildId: { type: String, required: true },
-    name: { type: String, required: true },
-    region: { type: String, required: true },
-    lastMatchDate: { type: Date, required: false, default: () => new Date() },
-    rating: { type: Number, required: true, default: DEFAULT_RATING }
-})
-export const Team = model<ITeam>('Team', teamSchema, 'teams')
 
 export interface IUser {
     id: string,
@@ -35,6 +19,28 @@ const userSchema = new Schema<IUser>({
     emoji: { type: String, required: false },
     rating: { type: Number, required: false, default: DEFAULT_RATING }
 })
+
+export interface ITeam {
+    guildId: string,
+    name: string,
+    region: string,
+    lastMatchDate?: Date,
+    rating: number,
+    verified: boolean,
+    captains: IUser[],
+    players: IUser[]
+}
+const teamSchema = new Schema<ITeam>({
+    guildId: { type: String, required: true },
+    name: { type: String, required: true },
+    region: { type: String, required: true },
+    lastMatchDate: { type: Date, required: false, default: () => new Date() },
+    rating: { type: Number, required: true, default: DEFAULT_RATING },
+    verified: { type: Boolean, required: true, default: false },
+    captains: { type: [userSchema], required: true, default: () => [] },
+    players: { type: [userSchema], required: true, default: () => [] }
+})
+export const Team = model<ITeam>('Team', teamSchema, 'teams')
 
 export interface IRole {
     name: string,
@@ -68,8 +74,8 @@ export interface ILineup {
     numberOfSignedPlayers(): number,
     moveAllBenchToLineup(lineupNumber?: number, clearLineup?: boolean): ILineup,
     getNonMecSignedRoles(): IRole[],
-    
     computePlayersAverageRating(lineupNumber?: number): number,
+    isAllowedToPlayRanked(): boolean,
     channelId: string,
     size: number,
     roles: IRole[],
@@ -225,6 +231,11 @@ lineupSchema.methods.computePlayersAverageRating = function (lineupNumber: numbe
     const signedRoles = this.roles.filter((role: IRole) => role.lineupNumber === lineupNumber && role.user && role.user.id !== MERC_USER_ID)
     const sum = signedRoles.map((role: IRole) => role.user?.rating).reduce((a: number, b: number) => a + b, 0)
     return this.lineupRatingAverage = (sum / signedRoles.length) || 0
+}
+lineupSchema.methods.isAllowedToPlayRanked = function () {
+    const hasAnyMercSigned = this.roles.some((role: IRole) => role.user?.id === MERC_USER_ID)
+    const hasPlayersNotInVerifiedTeam = this.getNonMecSignedRoles().some((role: IRole) => !this.team.players.some((p2: IUser) => role.user?.id === p2.id))
+    return this.team.verified && this.allowRanked && !hasAnyMercSigned && !hasPlayersNotInVerifiedTeam && this.size >= MIN_LINEUP_SIZE_FOR_RANKED
 }
 export const Lineup = model<ILineup>('Lineup', lineupSchema, 'lineups')
 

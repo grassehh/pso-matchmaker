@@ -1,5 +1,5 @@
 import { GuildMember, Interaction, Role } from "discord.js"
-import { MERC_USER_ID, MINIMUM_LINEUP_SIZE_FOR_RANKED } from "../constants"
+import { MERC_USER_ID, MIN_LINEUP_SIZE_FOR_RANKED } from "../constants"
 import { IStats, ITeam, Stats, Team } from "../mongoSchema"
 import { handle } from "../utils"
 import { RankedStats, ROLE_ATTACKER, ROLE_DEFENDER, ROLE_GOAL_KEEPER, ROLE_MIDFIELDER, ROLE_MIX_CAPTAINS } from "./teamService"
@@ -119,7 +119,7 @@ class StatsService {
                 update: {
                     $inc: {
                         numberOfGames: 1,
-                        numberOfRankedGames: lineupSize >= MINIMUM_LINEUP_SIZE_FOR_RANKED ? 1 : 0
+                        numberOfRankedGames: lineupSize >= MIN_LINEUP_SIZE_FOR_RANKED ? 1 : 0
                     },
                     $setOnInsert: {
                         userId,
@@ -131,7 +131,7 @@ class StatsService {
         }))
         await Stats.bulkWrite(bulks)
 
-        if (region === 'EU' && lineupSize >= MINIMUM_LINEUP_SIZE_FOR_RANKED) {
+        if (region === 'EU' && lineupSize >= MIN_LINEUP_SIZE_FOR_RANKED) {
             const psoEuGuild = await interaction.client.guilds.fetch(process.env.PSO_EU_DISCORD_GUILD_ID as string)
             const usersStats = await this.findUsersStats(nonMercUserIds, region)
 
