@@ -170,7 +170,8 @@ class InteractionUtils {
                 attackRating: DEFAULT_RATING,
                 midfieldRating: DEFAULT_RATING,
                 defenseRating: DEFAULT_RATING,
-                goalKeeperRating: DEFAULT_RATING
+                goalKeeperRating: DEFAULT_RATING,
+                mixCaptainsRating: DEFAULT_RATING
             })
         } else {
             stats = foundStats[0]
@@ -181,7 +182,7 @@ class InteractionUtils {
                 .setColor('#566573')
                 .setTitle(`${region ? '⛺ Region' : '🌎 Global'} Stats for ${user?.username}`)
                 .addFields([
-                    { name: '📈 Ratings', value: `**Att:** ${stats.attackRating || DEFAULT_RATING} \n **Mid:** ${stats.midfieldRating || DEFAULT_RATING} \n **Def:** ${stats.defenseRating || DEFAULT_RATING} \n **GK**: ${stats.goalKeeperRating || DEFAULT_RATING}`, inline: true },
+                    { name: '📈 Ratings', value: `**Att:** ${stats.attackRating || DEFAULT_RATING} \n **Mid:** ${stats.midfieldRating || DEFAULT_RATING} \n **Def:** ${stats.defenseRating || DEFAULT_RATING} \n **GK:** ${stats.goalKeeperRating || DEFAULT_RATING} \n **Captains Mix:** ${stats.mixCaptainsRating || DEFAULT_RATING}`, inline: true },
                     { name: '⚽ Ranked Matches', value: `**Wins:** ${stats.numberOfRankedWins} \n **Draws:** ${stats.numberOfRankedDraws} \n **Losses:** ${stats.numberOfRankedLosses}`, inline: true },
                     { name: '\u200B', value: '\u200B' },
                     { name: 'Ranked Games Played *(deprecated)*', value: stats.numberOfRankedGames.toString() },

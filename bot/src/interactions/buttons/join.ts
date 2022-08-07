@@ -4,7 +4,7 @@ import { ILineup, IRole, IUser } from "../../mongoSchema";
 import { interactionUtils } from "../../services/interactionUtils";
 import { matchmakingService } from "../../services/matchmakingService";
 import { statsService } from "../../services/statsService";
-import { teamService } from "../../services/teamService";
+import { GK, ROLE_GOAL_KEEPER, ROLE_MIX_CAPTAINS, teamService } from "../../services/teamService";
 import { handle, notEmpty } from "../../utils";
 
 export default {
@@ -42,11 +42,13 @@ export default {
             roleToSign = lineup.roles.filter(role => !role.name.includes('GK')).find(role => !role.user)!
         }
 
+        const rating = await statsService.findUserStats(interaction.user.id, lineup.team.region)
         const userToAdd = {
             id: interaction.user.id,
             name: interaction.user.username,
             mention: interaction.user.toString(),
-            emoji: statsService.getLevelEmojiFromMember(interaction.member as GuildMember)
+            emoji: statsService.getLevelEmojiFromMember(interaction.member as GuildMember),
+            rating: rating?.getRating(roleToSign.name.includes(GK.name) ? ROLE_GOAL_KEEPER : ROLE_MIX_CAPTAINS)
         } as IUser
 
         lineup = await teamService.addUserToLineup(interaction.channelId, roleToSign.name, userToAdd, roleToSign.lineupNumber) as ILineup

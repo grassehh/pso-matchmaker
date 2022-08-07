@@ -2,7 +2,7 @@ import { GuildMember, Interaction, Role } from "discord.js"
 import { MERC_USER_ID, MINIMUM_LINEUP_SIZE_FOR_RANKED } from "../constants"
 import { IStats, ITeam, Stats, Team } from "../mongoSchema"
 import { handle } from "../utils"
-import { RankedStats, ROLE_ATTACKER, ROLE_DEFENDER, ROLE_GOAL_KEEPER, ROLE_MIDFIELDER } from "./teamService"
+import { RankedStats, ROLE_ATTACKER, ROLE_DEFENDER, ROLE_GOAL_KEEPER, ROLE_MIDFIELDER, ROLE_MIX_CAPTAINS } from "./teamService"
 
 class StatsService {
     getLevelEmojiFromMember(member: GuildMember): string {
@@ -66,6 +66,9 @@ class StatsService {
                     },
                     goalKeeperRating: {
                         $avg: '$goalKeeperRating'
+                    },
+                    mixCaptainsRating: {
+                        $avg: '$mixCaptainsRating'
                     }
                 }
             },
@@ -81,7 +84,8 @@ class StatsService {
                             "$attackRating",
                             "$midfieldRating",
                             "$defenseRating",
-                            "$goalKeeperRating"
+                            "$goalKeeperRating",
+                            "$mixCaptainsRating"
                         ]
                     }
                 }
@@ -187,6 +191,9 @@ class StatsService {
                     },
                     goalKeeperRating: {
                         $avg: '$goalKeeperRating'
+                    },
+                    mixCaptainsRating: {
+                        $avg: '$mixCaptainsRating'
                     }
                 }
             }
@@ -211,6 +218,9 @@ class StatsService {
                 break
             case ROLE_GOAL_KEEPER:
                 ratingField = 'goalKeeperRating'
+                break
+            case ROLE_MIX_CAPTAINS:
+                ratingField = 'mixCaptainsRating'
                 break
         }
         return Stats.findOneAndUpdate(
