@@ -558,7 +558,11 @@ class MatchmakingService {
         let ranked
         if (challenge) {
             initiatingLineup = await teamService.retrieveLineup(challenge.initiatingTeam.lineup.channelId) as ILineup
+            initiatingLineup = Lineup.hydrate((initiatingLineup as any).toObject())
+            initiatingLineup.roles = initiatingLineup.roles.filter(role => role.lineupNumber === 1) as IRole[]
             challengedLineup = await teamService.retrieveLineup(challenge.challengedTeam.lineup.channelId) as ILineup
+            challengedLineup = Lineup.hydrate((challengedLineup as any).toObject())
+            challengedLineup.roles = challengedLineup.roles.filter(role => role.lineupNumber === 1) as IRole[]
             ranked = challenge.initiatingTeam.ranked && challenge.challengedTeam.ranked
             await Promise.all([
                 await this.deleteChallengeById(challenge._id.toString()),
@@ -613,7 +617,8 @@ class MatchmakingService {
             }))
             promises.push(new Promise<void>(async (resolve) => {
                 if (nonNullChallengedLineup.isMix()) {
-                    let newMixLineup = nonNullChallengedLineup.moveAllBenchToLineup()
+                    let newMixLineup = await teamService.retrieveLineup(challenge.challengedTeam.lineup.channelId) as ILineup
+                    newMixLineup = newMixLineup.moveAllBenchToLineup()
                     newMixLineup.roles.filter(role => role.lineupNumber === 2 && role.user)
                         .forEach(roleInSecondLineup => {
                             const roleInFirstLineup = newMixLineup.roles.find(r => r.lineupNumber === 1 && r.name === roleInSecondLineup.name)!!
@@ -735,13 +740,13 @@ class MatchmakingService {
             {
                 $group: {
                     _id: '$userId',
-                    numberOfGames: {
-                        $sum: '$numberOfGames',
+                    rating: {
+                        $avg: '$mixCaptainsRating',
                     }
                 }
             },
             {
-                $sort: { 'numberOfGames': -1 },
+                $sort: { 'rating': -1 },
             },
             {
                 $limit: 4

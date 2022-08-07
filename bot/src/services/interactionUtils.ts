@@ -75,7 +75,7 @@ class InteractionUtils {
     createDecideChallengeReply(interaction: ButtonInteraction | CommandInteraction | SelectMenuInteraction, challenge: IChallenge): InteractionReplyOptions {
         if (challenge.challengedTeam.lineup.isMix()) {
             let reply = this.createReplyForMixLineup(challenge.challengedTeam.lineup, challenge.initiatingTeam.lineup)
-            reply.embeds = reply.embeds?.concat(this.createInformationEmbed(interaction.user, `**${teamService.formatTeamName(challenge.initiatingTeam.lineup), false, true}** is challenging the mix`))
+            reply.embeds = reply.embeds?.concat(this.createInformationEmbed(interaction.user, `${teamService.formatTeamName(challenge.initiatingTeam.lineup)} is challenging the mix`))
             return reply
         } else {
             let description = teamService.formatTeamName(challenge.initiatingTeam.lineup, false, true)
