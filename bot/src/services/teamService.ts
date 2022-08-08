@@ -636,7 +636,7 @@ class TeamService {
     }
 
     async verify(guildId: string, verified: boolean): Promise<ITeam | null> {
-        await Lineup.updateMany({ 'team.guildId': guildId, type: LINEUP_TYPE_TEAM }, { allowRanked: verified, 'team.verified': verified })
+        await Lineup.updateMany({ 'team.guildId': guildId, type: LINEUP_TYPE_TEAM }, { 'team.verified': verified })
         return await Team.findOneAndUpdate({ guildId }, { verified }, { new: true })
     }
 

@@ -27,6 +27,6 @@ export default {
             return
         }
 
-        await matchmakingService.listChallenges(interaction, lineup, lineup.allowRanked)
+        await matchmakingService.listChallenges(interaction, lineup, lineup.isAllowedToPlayRanked())
     }
 } as ICommandHandler

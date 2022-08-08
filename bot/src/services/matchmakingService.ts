@@ -369,7 +369,7 @@ class MatchmakingService {
             return
         }
 
-        if (lineupQueueToChallenge.ranked && !lineup.allowRanked) {
+        if (lineupQueueToChallenge.ranked && !lineup.isAllowedToPlayRanked()) {
             await interaction.reply({ content: `⛔ You are not allowed to play ranked matches`, ephemeral: true })
             return
         }
@@ -469,7 +469,7 @@ class MatchmakingService {
         }
 
         if (lineup.autoSearch === true && this.isLineupAllowedToJoinQueue(lineup) && !lineupQueue) {
-            autoSearchResult.updatedLineupQueue = await this.joinQueue(lineup, lineup.allowRanked)
+            autoSearchResult.updatedLineupQueue = await this.joinQueue(lineup, lineup.isAllowedToPlayRanked())
             autoSearchResult.joinedQueue = true
             return autoSearchResult
         }
