@@ -330,7 +330,7 @@ class MatchmakingService {
         } else {
             let teamLineupEmbedDescription = ''
             for (let lineupQueue of teamLineupQueues) {
-                teamLineupEmbedDescription += `${teamService.formatTeamName(lineupQueue.lineup, false, true)}\n`
+                teamLineupEmbedDescription += `${teamService.formatTeamName(lineupQueue.lineup, false, lineupQueue.lineup.team.verified)}\n`
                 teamLineupEmbedDescription += lineupQueue.lineup.roles.filter(role => role.lineupNumber === 1).filter(role => role.user != null).length + ' players signed'
                 if (!teamService.hasGkSigned(lineupQueue.lineup)) {
                     teamLineupEmbedDescription += ' **(no GK)**'

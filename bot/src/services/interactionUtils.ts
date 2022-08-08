@@ -59,7 +59,7 @@ class InteractionUtils {
         if (challenge.challengedTeam.lineup.isMix()) {
             embed.setDescription(`💬 ${interaction.user} is challenging the mix '${teamService.formatTeamName(challenge.challengedTeam.lineup)}'.\nThe match will start automatically once the mix lineup is full.`)
         } else {
-            embed.setDescription(`💬 ${interaction.user} has sent a challenge request to ${teamService.formatTeamName(challenge.challengedTeam.lineup, false, false)}.\nYou can either wait for their answer, or cancel your request.`)
+            embed.setDescription(`💬 ${interaction.user} has sent a challenge request to ${teamService.formatTeamName(challenge.challengedTeam.lineup)}.\nYou can either wait for their answer, or cancel your request.`)
         }
 
         let cancelChallengeRow = new ActionRowBuilder<ButtonBuilder>()
@@ -79,7 +79,7 @@ class InteractionUtils {
             reply.embeds = reply.embeds?.concat(this.createInformationEmbed(interaction.user, `${teamService.formatTeamName(challenge.initiatingTeam.lineup)} is challenging the mix`))
             return reply
         } else {
-            let description = teamService.formatTeamName(challenge.initiatingTeam.lineup, false, true)
+            let description = teamService.formatTeamName(challenge.initiatingTeam.lineup, false, challenge.initiatingTeam.lineup.team.verified)
             const challengeEmbed = new EmbedBuilder()
                 .setColor('#566573')
                 .setTitle(`A team wants to play against you !`)
@@ -645,10 +645,10 @@ class InteractionUtils {
         const challenge = await matchmakingService.findChallengeByChannelId(lineup.channelId) || undefined
 
         const lineupEmbed = new EmbedBuilder()
-            .setTitle(teamService.formatTeamName(lineup, false, true))
+            .setTitle(teamService.formatTeamName(lineup, false, lineup.team.verified))
             .setColor('#566573')
 
-        this.fillLineupEmbedWithRoles(lineupEmbed, lineup.roles, lineup.bench)
+        this.fillLineupEmbedWithRoles(lineupEmbed, lineup.roles, lineup.bench, lineup.team.verified)
         const components = this.createLineupComponents(lineup, lineupQueue, challenge)
 
         return { embeds: [lineupEmbed], components }
@@ -657,8 +657,8 @@ class InteractionUtils {
     private createReplyForMixLineup(lineup: ILineup, challengingLineup?: ILineup | null): InteractionReplyOptions {
         let firstLineupEmbed = new EmbedBuilder()
             .setColor('#ed4245')
-            .setTitle(`Red Team *(${lineup.computePlayersAverageRating(1)})*`)
-        this.fillLineupEmbedWithRoles(firstLineupEmbed, lineup.roles.filter(role => role.lineupNumber === 1), lineup.bench.filter(benchRole => benchRole.roles[0].lineupNumber === 1))
+            .setTitle(`Red Team${lineup.allowRanked ? ` *(${lineup.computePlayersAverageRating(1)})*` : ''}`)
+        this.fillLineupEmbedWithRoles(firstLineupEmbed, lineup.roles.filter(role => role.lineupNumber === 1), lineup.bench.filter(benchRole => benchRole.roles[0].lineupNumber === 1), lineup.team.verified)
 
         let secondLineupEmbed
         if (challengingLineup) {
@@ -669,13 +669,13 @@ class InteractionUtils {
             if (!teamService.hasGkSigned(challengingLineup)) {
                 fieldValue += ' **(no GK)**'
             }
-            secondLineupEmbed.addFields([{ name: teamService.formatTeamName(challengingLineup, false, true), value: fieldValue }])
+            secondLineupEmbed.addFields([{ name: teamService.formatTeamName(challengingLineup, false, challengingLineup.team.verified), value: fieldValue }])
         } else {
             secondLineupEmbed = new EmbedBuilder()
                 .setColor('#0099ff')
-                .setTitle(`Blue Team *(${lineup.computePlayersAverageRating(2)})*`)
+                .setTitle(`Blue Team${lineup.allowRanked ? ` *(${lineup.computePlayersAverageRating(2)})*` : ''}`)
                 .setFooter({ text: 'If a Team faces the mix, it will replace the Blue Team' })
-            this.fillLineupEmbedWithRoles(secondLineupEmbed, lineup.roles.filter(role => role.lineupNumber === 2), lineup.bench.filter(benchRole => benchRole.roles[0].lineupNumber === 2))
+            this.fillLineupEmbedWithRoles(secondLineupEmbed, lineup.roles.filter(role => role.lineupNumber === 2), lineup.bench.filter(benchRole => benchRole.roles[0].lineupNumber === 2), lineup.team.verified)
         }
 
         const lineupActionsComponent = new ActionRowBuilder<ButtonBuilder>().addComponents(
@@ -708,7 +708,7 @@ class InteractionUtils {
         let lineupEmbed = new EmbedBuilder()
             .setColor('#ed4245')
             .setTitle(`Player Queue`)
-        this.fillLineupEmbedWithRoles(lineupEmbed, lineup.roles, lineup.bench)
+        this.fillLineupEmbedWithRoles(lineupEmbed, lineup.roles, lineup.bench, lineup.team.verified)
 
         const numberOfOutfieldUsers = lineup.roles.filter(role => !role.name.includes('GK') && role.user).length
         const numberOfGkUsers = lineup.roles.filter(role => role.name.includes('GK') && role.user).length
@@ -731,25 +731,28 @@ class InteractionUtils {
         return { embeds: [lineupEmbed], components: [lineupActionsComponent] }
     }
 
-    private fillLineupEmbedWithRoles(lineupEmbed: EmbedBuilder, roles: IRole[], bench: IRoleBench[]): void {
-        let description = roles.map(role => `**${role.name}:** ${this.formatPlayerName(role.user)}`).join('\n')
+    private fillLineupEmbedWithRoles(lineupEmbed: EmbedBuilder, roles: IRole[], bench: IRoleBench[], ranked: boolean): void {
+        let description = roles.map(role => `**${role.name}:** ${this.formatPlayerName(ranked, role.user)}`).join('\n')
 
         if (bench.length > 0) {
             description += '\n\n*Bench: '
-            description += bench.map(benchRole => `${this.formatPlayerName(benchRole.user)} (${benchRole.roles.map(role => role.name).join(', ')})`).join(', ')
+            description += bench.map(benchRole => `${this.formatPlayerName(ranked, benchRole.user)} (${benchRole.roles.map(role => role.name).join(', ')})`).join(', ')
             description += '*\n'
         }
 
         lineupEmbed.setDescription(description)
     }
 
-    private formatPlayerName(user?: IUser) {
+    private formatPlayerName(ranked: boolean, user?: IUser) {
         let playerName = ''
         if (user) {
             if (user.emoji) {
                 playerName += user.emoji
             }
-            playerName += `${user.name} *(${user.rating})*`
+            playerName += `${user.name}`
+            if (ranked) {
+                playerName += ` *(${user.rating})*`
+            }
         } else {
             playerName = '\u200b'
         }
