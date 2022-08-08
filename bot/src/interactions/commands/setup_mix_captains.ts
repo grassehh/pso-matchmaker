@@ -1,6 +1,6 @@
 import { SlashCommandBuilder } from "@discordjs/builders";
 import { ChatInputCommandInteraction } from "discord.js";
-import { BOT_ADMIN_ROLE } from "../../constants";
+import { BOT_ADMIN_ROLE, MIN_LINEUP_SIZE_FOR_RANKED } from "../../constants";
 import { ICommandHandler } from "../../handlers/commandHandler";
 import { authorizationService } from "../../services/authorizationService";
 import { interactionUtils } from "../../services/interactionUtils";
@@ -38,13 +38,20 @@ export default {
             return
         }
 
+        const lineupSize = interaction.options.getInteger("size")!
         const ranked = interaction.options.getBoolean("ranked") === true
-        if (ranked && !authorizationService.isOfficialDiscord(interaction.guildId!)) {
-            await interaction.reply({ content: "⛔ Only official community discords can create ranked mixes", ephemeral: true })
-            return
+        if (ranked) {
+            if (!authorizationService.isOfficialDiscord(interaction.guildId!)) {
+                await interaction.reply({ content: "⛔ Only official community discords can create ranked mixes", ephemeral: true })
+                return
+            }
+
+            if (lineupSize < MIN_LINEUP_SIZE_FOR_RANKED) {
+                await interaction.reply({ content: `⛔ Ranked lineups are only allowed for **${MIN_LINEUP_SIZE_FOR_RANKED}v${MIN_LINEUP_SIZE_FOR_RANKED}**`, ephemeral: true })
+                return
+            }
         }
 
-        const lineupSize = interaction.options.getInteger("size")!
         const lineup = teamService.createLineup(interaction.channelId, lineupSize, undefined, false, ranked, team, LINEUP_TYPE_CAPTAINS, LINEUP_VISIBILITY_TEAM)
         await teamService.upsertLineup(lineup)
 

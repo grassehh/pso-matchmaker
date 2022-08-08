@@ -1,5 +1,5 @@
 import { ActionRowBuilder, ButtonBuilder, ButtonInteraction, ButtonStyle, EmbedBuilder, Guild } from "discord.js";
-import { MIN_LINEUP_SIZE_FOR_RANKED } from "../../constants";
+import { MAX_TEAM_CAPTAINS, MAX_TEAM_PLAYERS, MIN_LINEUP_SIZE_FOR_RANKED } from "../../constants";
 import { IButtonHandler } from "../../handlers/buttonHandler";
 import { interactionUtils } from "../../services/interactionUtils";
 import { teamService } from "../../services/teamService";
@@ -23,10 +23,10 @@ export default {
             searchModeEmbed.setDescription(`
             **In order to play ranked mode:**
              1. Create a lineup with a **${MIN_LINEUP_SIZE_FOR_RANKED}v${MIN_LINEUP_SIZE_FOR_RANKED}** format or more
-             2. Manage your team using **/team_manage** command
+             2. Manage your team using **/team_manage** command and add maximum **${MAX_TEAM_CAPTAINS} captains** and **${MAX_TEAM_PLAYERS} players**
              3. Contact the admins of the official **${officialGuild.name}** discord by providing your team id: **${lineup.team.guildId}**
              4. Do not have any **merc** players signed
-             5. All players in the lineup must have been declared in the **/team_manage** command
+             5. Every player signed in the lineup must have been declared in the **/team_manage** command
             `)
         }
 

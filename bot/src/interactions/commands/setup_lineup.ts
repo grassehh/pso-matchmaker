@@ -1,11 +1,10 @@
 import { SlashCommandBuilder } from "@discordjs/builders";
-import { ChatInputCommandInteraction, Guild } from "discord.js";
+import { ChatInputCommandInteraction } from "discord.js";
 import { BOT_ADMIN_ROLE } from "../../constants";
 import { ICommandHandler } from "../../handlers/commandHandler";
 import { interactionUtils } from "../../services/interactionUtils";
 import { matchmakingService } from "../../services/matchmakingService";
 import { LINEUP_TYPE_TEAM, LINEUP_VISIBILITY_PUBLIC, teamService } from "../../services/teamService";
-import { getOfficialDiscordIdByRegion } from "../../utils";
 
 export default {
     data:
@@ -51,18 +50,9 @@ export default {
 
         const lineupSize = interaction.options.getInteger("size")!
         const autoSearch = interaction.options.getBoolean("auto_search") || false
-        const allowRanked = interaction.options.getBoolean("allow_ranked") === true
-
-        if (allowRanked && !team.verified) {
-            const officialGuild = await interaction.client.guilds.fetch(getOfficialDiscordIdByRegion(team.region)) as Guild
-            await interaction.reply({
-                content: `
-                ⛔ You are not allowed to create a ranked lineup because your team has not been verified. Please:                
-                1. Manage your team using **/team_manage** command
-                2. Contact the admins of the official **${officialGuild.name}** discord by providing your team id: **${team.guildId}**\n`
-                , ephemeral: true
-            })
-            return
+        let allowRanked = true
+        if(interaction.options.getBoolean("allow_ranked") === false) {
+            allowRanked = false
         }
 
         const lineup = teamService.createLineup(interaction.channelId, lineupSize, undefined, autoSearch, allowRanked, team, LINEUP_TYPE_TEAM, LINEUP_VISIBILITY_PUBLIC)

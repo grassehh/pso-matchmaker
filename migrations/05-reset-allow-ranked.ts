@@ -5,7 +5,7 @@ dotenv.config()
 
 async function resetAllowRanked() {
     await mongoose.connect(process.env.MONGO_URI || '', { keepAlive: true })
-    await Lineup.updateMany({ type: 'TEAM' }, { $set: { allowRanked: false } })
+    await Lineup.updateMany({ type: 'TEAM' }, { $set: { allowRanked: true } })
 }
 
 resetAllowRanked()
