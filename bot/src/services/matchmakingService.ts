@@ -96,12 +96,9 @@ class MatchmakingService {
                 return
             }
 
+            const initiatingUser = lineupQueue.lineup.getNonMecSignedRoles()[0].user!
             const challenge = new Challenge({
-                initiatingUser: {
-                    id: client.user?.id,
-                    name: client.user?.username,
-                    mention: client.user?.toString()
-                },
+                initiatingUser,
                 initiatingTeam: lineupQueue,
                 challengedTeam: lineupQueueToChallenge[0]
             })
@@ -644,7 +641,7 @@ class MatchmakingService {
             ranked = mixLineup!.allowRanked
         }
 
-        const lobbyHost = challenge ? await client.users.fetch(challenge.initiatingUser.id) : interaction ? interaction.user : client.user!
+        const lobbyHost = interaction ? interaction.user : await client.users.fetch(challenge!.initiatingUser.id)
         const lobbyName = challenge
             ? `${teamService.formatTeamName(challenge.initiatingTeam.lineup)} vs. ${teamService.formatTeamName(challenge.challengedTeam.lineup)}`
             : `${teamService.formatTeamName(mixLineup!, true)} #${Math.floor(Math.random() * 10000).toString().padStart(4, '0')}`
