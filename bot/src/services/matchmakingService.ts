@@ -1049,7 +1049,7 @@ class LineupRating {
     private readonly zscore: typeof ZScore
     private readonly rankedStatsByUserId: Map<string, RankedStats> = new Map()
     private readonly matchResult: MatchResult
-    private readonly kFactorPerNumberOfGames: Map<string, number> = new Map().set("25", 30).set("250", 20).set("800", 10)
+    private readonly kFactorPerNumberOfGames: Map<string, number> = new Map().set("800", 10).set("250", 20).set("25", 30)
     lineupRatingAverage?: number
 
     constructor(lineup: ILineup, opponentLineup: ILineup, matchResult: MatchResult) {
@@ -1109,7 +1109,7 @@ class LineupRating {
 
         const matchesPlayed = rankedStats.wins + rankedStats.draws + rankedStats.losses
         const zscore = Math.abs(this.zscore.getZScore(rankedStats.rating)) || 0
-        let k = Array.from(this.kFactorPerNumberOfGames.entries()).find(e => matchesPlayed > parseInt(e[0]))?.[1] || 40
+        let k = Array.from(this.kFactorPerNumberOfGames.entries()).find(e => matchesPlayed >= parseInt(e[0]))?.[1] || 40
         k /= Math.max(1, 0.3 * Math.exp(zscore))
 
         let elo = new Elo(k)
