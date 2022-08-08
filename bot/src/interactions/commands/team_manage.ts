@@ -16,7 +16,7 @@ export default {
     async execute(interaction: ChatInputCommandInteraction) {
         let teamId = interaction.options.getString('team_id')!
         if (teamId && !authorizationService.isOfficialDiscord(interaction.guildId!)) {
-            await interaction.reply({ content: '⛔ Only official discords can manager other teams that yours', ephemeral: true })
+            await interaction.reply({ content: '⛔ Only official discords can manage other teams than yours', ephemeral: true })
             return
         }
 
