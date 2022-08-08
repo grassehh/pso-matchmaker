@@ -1,6 +1,6 @@
 {
     "name": "pso-matchmaker",
-    "version": "1.4.0",
+    "version": "1.5.0",
     "types": "build/bot/src/index.d.ts",
     "scripts": {
         "build": "tsc --build",
