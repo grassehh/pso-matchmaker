@@ -1,6 +1,6 @@
 import { User } from "discord.js";
 import { model, Schema, Types } from "mongoose";
-import { DEFAULT_RATING, MERC_USER_ID, MIN_LINEUP_SIZE_FOR_RANKED } from "./constants";
+import { DEFAULT_RATING, MERC_USER_ID } from "./constants";
 import { MatchResult } from "./services/matchmakingService";
 import { LINEUP_TYPE_CAPTAINS, LINEUP_TYPE_MIX, LINEUP_TYPE_TEAM, LINEUP_VISIBILITY_PUBLIC, LINEUP_VISIBILITY_TEAM, ROLE_ATTACKER, ROLE_DEFENDER, ROLE_GOAL_KEEPER, ROLE_MIDFIELDER, ROLE_MIX_CAPTAINS, ROLE_NAME_ANY } from "./services/teamService";
 import { notEmpty } from "./utils";
@@ -233,12 +233,13 @@ lineupSchema.methods.computePlayersAverageRating = function (lineupNumber: numbe
     return this.lineupRatingAverage = (sum / signedRoles.length) || 0
 }
 lineupSchema.methods.isAllowedToPlayRanked = function () {
-    const hasPlayersNotInVerifiedTeam = this.getNonMecSignedRoles().some((role: IRole) => !this.team.players.some((p2: IUser) => role.user?.id === p2.id))
-    return this.team.verified
-        && this.allowRanked
-        && this.getNonMecSignedRoles().length === this.size
-        && !hasPlayersNotInVerifiedTeam
-        && this.size >= MIN_LINEUP_SIZE_FOR_RANKED
+    // const hasPlayersNotInVerifiedTeam = this.getNonMecSignedRoles().some((role: IRole) => !this.team.players.some((p2: IUser) => role.user?.id === p2.id))
+    // return this.team.verified
+    //     && this.allowRanked
+    //     && this.getNonMecSignedRoles().length === this.size
+    //     && !hasPlayersNotInVerifiedTeam
+    //     && this.size >= MIN_LINEUP_SIZE_FOR_RANKED
+    return true
 }
 export const Lineup = model<ILineup>('Lineup', lineupSchema, 'lineups')
 

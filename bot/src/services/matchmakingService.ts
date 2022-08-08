@@ -8,7 +8,7 @@ import { Challenge, IChallenge, ILineup, ILineupMatchResult, ILineupQueue, IMatc
 import { handle, notEmpty } from "../utils";
 import { interactionUtils } from "./interactionUtils";
 import { statsService } from "./statsService";
-import { LINEUP_TYPE_CAPTAINS, LINEUP_TYPE_TEAM, LINEUP_VISIBILITY_PUBLIC, LINEUP_VISIBILITY_TEAM, RankedStats, ROLE_GOAL_KEEPER, teamService } from "./teamService";
+import { LINEUP_TYPE_CAPTAINS, LINEUP_TYPE_TEAM, LINEUP_VISIBILITY_PUBLIC, LINEUP_VISIBILITY_TEAM, RankedStats, ROLE_GOAL_KEEPER, teamService, TEAM_REGION_EU } from "./teamService";
 const ZScore = require("math-z-score");
 
 export enum MatchResult {
@@ -26,6 +26,17 @@ export namespace MatchResultType {
                 return "DRAW"
             case MatchResult.LOSS:
                 return "LOSS"
+        }
+    }
+
+    export function toEmoji(matchResultType: MatchResult) {
+        switch (matchResultType) {
+            case MatchResult.WIN:
+                return '🟩'
+            case MatchResult.DRAW:
+                return ''
+            case MatchResult.LOSS:
+                return '🟥'
         }
     }
 }
@@ -72,7 +83,7 @@ class MatchmakingService {
 
         this.isMakingMatch = true
 
-        let lineupQueues = await LineupQueue.find({ 'lineup.type': LINEUP_TYPE_TEAM, 'lineup.team.region': 'EU' }).sort({ '_id': 1 }).limit(1)
+        let lineupQueues = await LineupQueue.find({ 'lineup.type': LINEUP_TYPE_TEAM, 'lineup.team.region': TEAM_REGION_EU }).sort({ '_id': 1 }).limit(1)
         if (lineupQueues.length === 0) {
             this.isMakingMatch = false
             return
@@ -81,15 +92,14 @@ class MatchmakingService {
         const lineupQueue = lineupQueues[0]
 
         const maxRatingDifference = Array.from(this.ratingDifferenceByAttempts.entries()).find(e => lineupQueue.matchmakingAttempts >= parseInt(e[0]))?.[1] || 0
-        console.log(`LineupQueue ${lineupQueue._id} ; Attempt ${lineupQueue.matchmakingAttempts} ; maxRatingDifference ${maxRatingDifference}`)
         const lineupQueueToChallenge = await LineupQueue.aggregate([
             {
                 $match: {
                     'lineup.channelId': { $ne: lineupQueue.lineup.channelId },
-                    'lineup.team.region': 'EU',
+                    'lineup.team.region': TEAM_REGION_EU,
                     'lineup.type': LINEUP_TYPE_TEAM,
                     challengeId: null,
-                    ranked: lineupQueue!.ranked
+                    ranked: lineupQueue.ranked
                 }
             },
             {

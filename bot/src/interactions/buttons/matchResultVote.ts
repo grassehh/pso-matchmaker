@@ -1,10 +1,25 @@
-import { BaseGuildTextChannel, ButtonInteraction, EmbedBuilder } from "discord.js";
+import { BaseGuildTextChannel, ButtonInteraction, EmbedBuilder, TextChannel } from "discord.js";
 import { IButtonHandler } from "../../handlers/buttonHandler";
 import { ILineupMatchResult } from "../../mongoSchema";
 import { interactionUtils } from "../../services/interactionUtils";
 import { matchmakingService, MatchResult, MatchResultType } from "../../services/matchmakingService";
-import { teamService } from "../../services/teamService";
+import { teamService, TEAM_REGION_AS, TEAM_REGION_EU, TEAM_REGION_NA, TEAM_REGION_SA } from "../../services/teamService";
 import { handle } from "../../utils";
+
+function getMatchResultChanneldIdByRegion(region: string): string | null {
+    switch (region) {
+        case TEAM_REGION_EU:
+            return process.env.PSO_EU_DISCORD_MATCH_RESULTS_CHANNEL_ID as string
+        case TEAM_REGION_NA:
+            return process.env.PSO_NA_DISCORD_MATCH_RESULTS_CHANNEL_ID as string
+        case TEAM_REGION_SA:
+            return process.env.PSO_SA_DISCORD_MATCH_RESULTS_CHANNEL_ID as string
+        case TEAM_REGION_AS:
+            return process.env.PSO_AS_DISCORD_MATCH_RESULTS_CHANNEL_ID as string
+        default:
+            return null
+    }
+}
 
 export default {
     customId: 'match_result_vote_',
@@ -100,6 +115,25 @@ export default {
                     await otherLineupChannel.send(ratingUpdatedMessage)
                 }
                 await interaction.followUp(ratingUpdatedMessage)
+
+                const channelId = getMatchResultChanneldIdByRegion(match.firstLineup.team.region)
+                if (channelId) {
+                    const [channel] = await handle(interaction.client.channels.fetch(channelId))
+                    if (channel instanceof TextChannel) {
+                        const firstLineupEmoji = MatchResultType.toEmoji(match.result.firstLineup.result)
+                        const secondLineupEmoji = MatchResultType.toEmoji(match.result.secondLineup.result)
+
+                        const matchResultEmbed = new EmbedBuilder()
+                            .setTitle(`${match.firstLineup.size}v${match.secondLineup.size}`)
+                            .addFields([
+                                { name: match.firstLineup.team.name, value: `${firstLineupEmoji} ${MatchResultType.toString(match.result.firstLineup.result)} ${firstLineupEmoji}`, inline: true },
+                                { name: match.secondLineup.team.name, value: `${secondLineupEmoji} ${MatchResultType.toString(match.result.secondLineup.result)} ${secondLineupEmoji}`, inline: true }
+                            ])
+                            .setColor('#6aa84f')
+                            .setTimestamp()
+                        handle(channel.send({ embeds: [matchResultEmbed] }))
+                    }
+                }
             } else {
                 await matchmakingService.resetMatchResult(matchId)
                 const inconsistentVotesMessageEmbed = new EmbedBuilder()
