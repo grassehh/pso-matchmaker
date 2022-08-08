@@ -83,7 +83,7 @@ class MatchmakingService {
 
         this.isMakingMatch = true
 
-        let lineupQueues = await LineupQueue.find({ 'lineup.type': LINEUP_TYPE_TEAM, 'lineup.team.region': TEAM_REGION_EU }).sort({ '_id': 1 }).limit(1)
+        let lineupQueues = await LineupQueue.find({ 'lineup.type': LINEUP_TYPE_TEAM, 'lineup.team.region': TEAM_REGION_EU, challengeId: null }).sort({ '_id': 1 }).limit(1)
         if (lineupQueues.length === 0) {
             this.isMakingMatch = false
             return
@@ -145,7 +145,7 @@ class MatchmakingService {
         await new LineupQueue({
             lineup: lineupQueue.lineup,
             ranked: lineupQueue.ranked,
-            matchmakingAttempts: lineupQueue.matchmakingAttempts < this.MAX_ATTEMPTS_BEFORE_WIDE_SEARCH ? lineupQueue.matchmakingAttempts + 1 : lineupQueue.matchmakingAttempts
+            matchmakingAttempts: lineupQueue.matchmakingAttempts < this.MAX_ATTEMPTS_BEFORE_WIDE_SEARCH ? lineupQueue.matchmakingAttempts + 1 : lineupQueue.matchmakingAttempts,
         }).save()
         this.isMakingMatch = false
     }
