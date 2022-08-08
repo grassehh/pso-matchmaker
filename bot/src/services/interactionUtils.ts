@@ -561,8 +561,8 @@ class InteractionUtils {
     }
 
     createTeamManagementReply(interaction: Interaction, team: ITeam): InteractionReplyOptions {
-        const captainsList = team.captains.map(captain => captain.mention).join('\n')
-        const playersList = team.players.map(player => player.mention).join('\n')
+        const captainsList = team.captains.map(captain => `${captain.name} (${captain.mention})`).join('\n')
+        const playersList = team.players.map(player => `${player.name} (${player.mention})`).join('\n')
         const teamDescriptionEmbed = new EmbedBuilder()
             .setTitle('Team Management')
             .setFooter({ text: "If you add/remove any captains/players, your will need to verify your team again in order to play ranked matches" })

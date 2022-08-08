@@ -82,7 +82,6 @@ class MatchmakingService {
                     lineup: 1,
                     ranked: 1,
                     ratingDifference: { $abs: { $subtract: ['$rating', lineupQueue.lineup.team.rating] } }
-
                 }
             },
             {
