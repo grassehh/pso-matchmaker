@@ -3,7 +3,7 @@ export const MERC_USER_ID = "merc"
 
 export const MAX_TEAM_NAME_LENGTH = 30
 export const MAX_TEAM_CAPTAINS = 2
-export const MAX_TEAM_PLAYERS = 16
+export const MAX_TEAM_PLAYERS = 20
 
 export const MAX_LINEUP_NAME_LENGTH = 15
 export const MIN_LINEUP_SIZE_FOR_RANKED = 6

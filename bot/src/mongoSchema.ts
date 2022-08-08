@@ -233,9 +233,12 @@ lineupSchema.methods.computePlayersAverageRating = function (lineupNumber: numbe
     return this.lineupRatingAverage = (sum / signedRoles.length) || 0
 }
 lineupSchema.methods.isAllowedToPlayRanked = function () {
-    const hasAnyMercSigned = this.roles.some((role: IRole) => role.user?.id === MERC_USER_ID)
     const hasPlayersNotInVerifiedTeam = this.getNonMecSignedRoles().some((role: IRole) => !this.team.players.some((p2: IUser) => role.user?.id === p2.id))
-    return this.team.verified && this.allowRanked && !hasAnyMercSigned && !hasPlayersNotInVerifiedTeam && this.size >= MIN_LINEUP_SIZE_FOR_RANKED
+    return this.team.verified
+        && this.allowRanked
+        && this.getNonMecSignedRoles().length === this.size
+        && !hasPlayersNotInVerifiedTeam
+        && this.size >= MIN_LINEUP_SIZE_FOR_RANKED
 }
 export const Lineup = model<ILineup>('Lineup', lineupSchema, 'lineups')
 
