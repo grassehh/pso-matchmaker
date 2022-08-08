@@ -708,7 +708,7 @@ class InteractionUtils {
         let lineupEmbed = new EmbedBuilder()
             .setColor('#ed4245')
             .setTitle(`Player Queue`)
-        this.fillLineupEmbedWithRoles(lineupEmbed, lineup.roles, lineup.bench, lineup.team.verified)
+        this.fillLineupEmbedWithRoles(lineupEmbed, lineup.roles, lineup.bench, lineup.allowRanked)
 
         const numberOfOutfieldUsers = lineup.roles.filter(role => !role.name.includes('GK') && role.user).length
         const numberOfGkUsers = lineup.roles.filter(role => role.name.includes('GK') && role.user).length
