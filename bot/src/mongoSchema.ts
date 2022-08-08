@@ -256,7 +256,8 @@ export interface ILineupQueue {
     lineup: ILineup,
     challengeId: string | null,
     notificationMessages: INotificationMessage[],
-    ranked: boolean
+    ranked: boolean,
+    matchmakingAttempts: number
 }
 const lineupQueueSchema = new Schema<ILineupQueue>({
     lineup: {
@@ -275,6 +276,11 @@ const lineupQueueSchema = new Schema<ILineupQueue>({
         type: Boolean,
         required: true,
         default: false
+    },
+    matchmakingAttempts: {
+        type: Number,
+        required: true,
+        default: 0
     }
 })
 export const LineupQueue = model<ILineupQueue>('LineupQueue', lineupQueueSchema, 'lineup-queues')
@@ -283,7 +289,7 @@ export interface IChallenge {
     _id: Types.ObjectId
     initiatingUser: IUser,
     initiatingTeam: ILineupQueue,
-    initiatingMessageId: string,
+    initiatingMessageId?: string,
     challengedTeam: ILineupQueue,
     challengedMessageId: string
 }

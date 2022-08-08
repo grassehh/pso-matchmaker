@@ -31,7 +31,19 @@ export namespace MatchResultType {
 }
 
 class MatchmakingService {
+    private readonly MAX_ATTEMPTS_BEFORE_WIDE_SEARCH = 33
     private isMakingMatch = false
+    private ratingDifferenceByAttempts = new Map()
+        .set(this.MAX_ATTEMPTS_BEFORE_WIDE_SEARCH, -1)
+        .set(30, 4450)
+        .set(27, 2750)
+        .set(24, 1050)
+        .set(21, 650)
+        .set(18, 400)
+        .set(15, 250)
+        .set(12, 150)
+        .set(9, 100)
+        .set(6, 50)
 
     isLineupAllowedToJoinQueue(lineup: ILineup): boolean {
         let numberOfPlayersSigned = lineup.roles.filter(role => role.user).length
@@ -60,20 +72,24 @@ class MatchmakingService {
 
         this.isMakingMatch = true
 
-        const lineupQueue = await LineupQueue.findOne({ 'lineup.type': LINEUP_TYPE_TEAM, 'lineup.team.region': 'EU' })
-        if (!lineupQueue) {
+        let lineupQueues = await LineupQueue.find({ 'lineup.type': LINEUP_TYPE_TEAM, 'lineup.team.region': 'EU' }).sort({ '_id': 1 }).limit(1)
+        if (lineupQueues.length === 0) {
             this.isMakingMatch = false
             return
         }
 
+        const lineupQueue = lineupQueues[0]
+
+        const maxRatingDifference = Array.from(this.ratingDifferenceByAttempts.entries()).find(e => lineupQueue.matchmakingAttempts >= parseInt(e[0]))?.[1] || 0
+        console.log(`LineupQueue ${lineupQueue._id} ; Attempt ${lineupQueue.matchmakingAttempts} ; maxRatingDifference ${maxRatingDifference}`)
         const lineupQueueToChallenge = await LineupQueue.aggregate([
             {
                 $match: {
                     'lineup.channelId': { $ne: lineupQueue.lineup.channelId },
                     'lineup.team.region': 'EU',
                     'lineup.type': LINEUP_TYPE_TEAM,
-                    'challengeId': null,
-                    'ranked': lineupQueue.ranked
+                    challengeId: null,
+                    ranked: lineupQueue!.ranked
                 }
             },
             {
@@ -81,12 +97,19 @@ class MatchmakingService {
                     _id: 1,
                     lineup: 1,
                     ranked: 1,
-                    ratingDifference: { $abs: { $subtract: ['$rating', lineupQueue.lineup.team.rating] } }
+                    matchmakingAttempts: 1,
+                    ratingDifference: { $abs: { $subtract: ['$lineup.team.rating', lineupQueue.lineup.team.rating] } }
+                }
+            },
+            {
+                $match: {
+                    ratingDifference: { $lte: maxRatingDifference }
                 }
             },
             {
                 $sort: {
-                    ratingDifference: 1
+                    ratingDifference: 1,
+                    matchmakingAttempts: 1
                 }
             }
         ])
@@ -104,8 +127,16 @@ class MatchmakingService {
             })
 
             this.readyMatch(client, undefined, challenge)
+            this.isMakingMatch = false
+            return
         }
 
+        await lineupQueue.deleteOne()
+        await new LineupQueue({
+            lineup: lineupQueue.lineup,
+            ranked: lineupQueue.ranked,
+            matchmakingAttempts: lineupQueue.matchmakingAttempts < this.MAX_ATTEMPTS_BEFORE_WIDE_SEARCH ? lineupQueue.matchmakingAttempts + 1 : lineupQueue.matchmakingAttempts
+        }).save()
         this.isMakingMatch = false
     }
 
@@ -510,7 +541,9 @@ class MatchmakingService {
 
         const [initiatingTeamChannel] = await handle(client.channels.fetch(challenge.initiatingTeam.lineup.channelId))
         if (initiatingTeamChannel?.type === ChannelType.GuildText) {
-            promises.push(initiatingTeamChannel.messages.edit(challenge.initiatingMessageId, { components: [] }))
+            if (challenge.initiatingMessageId) {
+                promises.push(initiatingTeamChannel.messages.edit(challenge.initiatingMessageId, { components: [] }))
+            }
             promises.push(initiatingTeamChannel.send({ embeds: [interactionUtils.createInformationEmbed(user, `❌ ${user} has cancelled the challenge request against ${teamService.formatTeamName(challenge.challengedTeam.lineup)}`)] }))
         }
 
@@ -674,7 +707,9 @@ class MatchmakingService {
                 const reply = await interactionUtils.createReplyForLineup(newInitiatingTeamLineup) as MessageOptions
                 const initiatingTeamChannel = await client.channels.fetch(challenge.initiatingTeam.lineup.channelId) as TextChannel
                 await initiatingTeamChannel.send(reply)
-                await initiatingTeamChannel.messages.edit(challenge.initiatingMessageId, { components: [] })
+                if (challenge.initiatingMessageId) {
+                    await initiatingTeamChannel.messages.edit(challenge.initiatingMessageId, { components: [] })
+                }
                 resolve()
             }))
             promises.push(new Promise<void>(async (resolve) => {

@@ -238,7 +238,7 @@ class StatsService {
     }
 
     async findTeamsStats(page: number, pageSize: number, region?: string): Promise<ITeam[] | null> {
-        let match: any = {}
+        let match: any = { verified: true }
         if (region) {
             match.region = region;
         }
