@@ -25,7 +25,8 @@ export default {
             return
         }
 
-        if (!lineup.isAllowedToPlayRanked()) {
+        const ranked = interaction.customId.split('_')[1] === 'ranked'
+        if (ranked && !lineup.isAllowedToPlayRanked()) {
             interaction.reply({ content: '⛔ Your team is not allowed to play ranked matchmaking', ephemeral: true })
             return
         }
@@ -34,8 +35,6 @@ export default {
             interaction.reply({ content: '⛔ All outfield positions must be filled before searching', ephemeral: true })
             return
         }
-
-        const ranked = interaction.customId.split('_')[1] === 'ranked'
 
         await interaction.deferReply()
         lineupQueue = await matchmakingService.joinQueue(lineup, ranked)
