@@ -27,7 +27,7 @@ class StatsService {
     }
 
     async countNumberOfTeams(region?: string): Promise<number> {
-        return (await Team.count(region ? { region } : {}))
+        return (await Team.count(region ? { region, verified: true } : { verified: true }))
     }
 
     async findPlayersStats(page: number, pageSize: number, region?: string): Promise<IStats[]> {
