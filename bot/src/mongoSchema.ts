@@ -228,7 +228,7 @@ lineupSchema.methods.moveAllBenchToLineup = function (lineupNumber: number = 1, 
     return this
 }
 lineupSchema.methods.computePlayersAverageRating = function (lineupNumber: number = 1) {
-    const signedRoles = this.roles.filter((role: IRole) => role.lineupNumber === lineupNumber && role.user && role.user.id !== MERC_USER_ID)
+    const signedRoles = this.getNonMecSignedRoles().filter((role: IRole) => role.lineupNumber === lineupNumber)
     const sum = signedRoles.map((role: IRole) => role.user?.rating).reduce((a: number, b: number) => a + b, 0)
     return this.lineupRatingAverage = (sum / signedRoles.length) || 0
 }

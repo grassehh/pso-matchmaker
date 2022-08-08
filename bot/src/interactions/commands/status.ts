@@ -52,7 +52,7 @@ export default {
         if (challenge) {
             if (challenge.initiatingTeam.lineup.channelId === lineup.channelId) {
                 const challengedTeamLineup = (await teamService.retrieveLineup(challenge.challengedTeam.lineup.channelId))!
-                let description = teamService.formatTeamName(challengedTeamLineup, false, !challengedTeamLineup.isMix())
+                let description = teamService.formatTeamName(challengedTeamLineup, false, challengedTeamLineup.team.verified)
                 description += `\n${challengedTeamLineup.roles.filter(role => role.user != null).length} players signed`
                 if (!teamService.hasGkSigned(challengedTeamLineup)) {
                     description += ' **(no GK)**'
@@ -61,7 +61,7 @@ export default {
                     .setDescription(description)
             } else {
                 const initiatingTeamLineup = (await teamService.retrieveLineup(challenge.initiatingTeam.lineup.channelId))!
-                let description = teamService.formatTeamName(initiatingTeamLineup, false, true)
+                let description = teamService.formatTeamName(initiatingTeamLineup, false, initiatingTeamLineup.team.verified)
                 description += `\n${initiatingTeamLineup.roles.filter(role => role.user != null).length} players signed`
                 if (!teamService.hasGkSigned(initiatingTeamLineup)) {
                     description += ' **(no GK)**'
