@@ -34,7 +34,9 @@ export default {
         await matchmakingService.freeLineupQueuesByChallengeId(challengeId)
 
         let initiatingTeamChannel = await interaction.client.channels.fetch(challenge.initiatingTeam.lineup.channelId) as TextChannel
-        await initiatingTeamChannel.messages.edit(challenge.initiatingMessageId, { components: [] })
+        if (challenge.initiatingMessageId) {
+            await initiatingTeamChannel.messages.edit(challenge.initiatingMessageId, { components: [] })
+        }
         await initiatingTeamChannel.send({ embeds: [interactionUtils.createInformationEmbed(interaction.user, `❌ **${teamService.formatTeamName(challenge.challengedTeam.lineup)}** has refused your challenge request`)] })
 
         await interaction.update({ components: [] })
