@@ -8,6 +8,11 @@ import { interactionUtils } from "./interactionUtils";
 import { matchmakingService } from "./matchmakingService";
 import { statsService } from "./statsService";
 
+export const TEAM_REGION_EU = 'EU'
+export const TEAM_REGION_NA = 'NA'
+export const TEAM_REGION_SA = 'SA'
+export const TEAM_REGION_AS = 'AS'
+
 export const ROLE_GOAL_KEEPER = 0
 export const ROLE_ATTACKER = 1
 export const ROLE_DEFENDER = 2

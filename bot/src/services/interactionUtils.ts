@@ -5,7 +5,7 @@ import { handle } from "../utils";
 import { authorizationService } from "./authorizationService";
 import { matchmakingService, MatchResult, RoleWithDiscordUser } from "./matchmakingService";
 import { statsService } from "./statsService";
-import { ROLE_ATTACKER, ROLE_DEFENDER, ROLE_GOAL_KEEPER, ROLE_MIDFIELDER, teamService } from "./teamService";
+import { ROLE_ATTACKER, ROLE_DEFENDER, ROLE_GOAL_KEEPER, ROLE_MIDFIELDER, teamService, TEAM_REGION_EU } from "./teamService";
 
 class InteractionUtils {
     createReplyAlreadyQueued(lineupSize: number): InteractionReplyOptions {
@@ -528,7 +528,7 @@ class InteractionUtils {
             .setDescription(
                 `Ranks will be updated **ONLY** if **BOTH TEAMS** votes are consistent.
                 **Be fair and honest and submit real result.** 
-                ${region === 'EU' ? 'If needed, use the [Ticket Tool](https://discord.com/channels/913821068811178045/914202504747688006) on EU server to report any abuse.' : ''}
+                ${region === TEAM_REGION_EU ? 'If needed, use the [Ticket Tool](https://discord.com/channels/913821068811178045/914202504747688006) on EU server to report any abuse.' : ''}
             `)
             .setTimestamp()
         const matchVoteActionRow = new ActionRowBuilder<ButtonBuilder>()

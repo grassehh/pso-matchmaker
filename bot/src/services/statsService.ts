@@ -2,7 +2,7 @@ import { Client, GuildMember, Role } from "discord.js"
 import { MERC_USER_ID, MIN_LINEUP_SIZE_FOR_RANKED } from "../constants"
 import { IStats, ITeam, Stats, Team } from "../mongoSchema"
 import { handle } from "../utils"
-import { RankedStats, ROLE_ATTACKER, ROLE_DEFENDER, ROLE_GOAL_KEEPER, ROLE_MIDFIELDER, ROLE_MIX_CAPTAINS } from "./teamService"
+import { RankedStats, ROLE_ATTACKER, ROLE_DEFENDER, ROLE_GOAL_KEEPER, ROLE_MIDFIELDER, ROLE_MIX_CAPTAINS, TEAM_REGION_EU } from "./teamService"
 
 class StatsService {
     getLevelEmojiFromMember(member: GuildMember): string {
@@ -131,7 +131,7 @@ class StatsService {
         }))
         await Stats.bulkWrite(bulks)
 
-        if (region === 'EU' && lineupSize >= MIN_LINEUP_SIZE_FOR_RANKED) {
+        if (region === TEAM_REGION_EU && lineupSize >= MIN_LINEUP_SIZE_FOR_RANKED) {
             const psoEuGuild = await client.guilds.fetch(process.env.PSO_EU_DISCORD_GUILD_ID as string)
             const usersStats = await this.findUsersStats(nonMercUserIds, region)
 
