@@ -60,7 +60,7 @@ class MatchmakingService {
 
         this.isMakingMatch = true
 
-        const lineupQueue = await LineupQueue.findOne({ 'lineup.type': LINEUP_TYPE_TEAM })
+        const lineupQueue = await LineupQueue.findOne({ 'lineup.type': LINEUP_TYPE_TEAM, 'lineup.team.region': 'EU' })
         if (!lineupQueue) {
             this.isMakingMatch = false
             return
