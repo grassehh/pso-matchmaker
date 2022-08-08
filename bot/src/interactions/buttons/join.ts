@@ -58,7 +58,7 @@ export default {
         if (await matchmakingService.isMixOrCaptainsReadyToStart(lineup)) {
             lineup = await teamService.startPicking(lineup.channelId) as ILineup
 
-            const allUserIds = lineup.roles.map(role => role.user).filter(notEmpty).map(user => user.id)
+            const allUserIds = lineup.roles.filter(role => role.type !== ROLE_GOAL_KEEPER).map(role => role.user).filter(notEmpty).map(user => user.id)
             let captainsIds = (await matchmakingService.findTwoMostRelevantCaptains(allUserIds)).map((result: any) => result._id)
             if (captainsIds.length < 2) {
                 captainsIds = [allUserIds.splice(Math.floor(Math.random() * allUserIds.length), 1)[0], allUserIds.splice(Math.floor(Math.random() * allUserIds.length), 1)[0]]
