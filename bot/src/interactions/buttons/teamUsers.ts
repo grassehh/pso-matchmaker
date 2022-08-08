@@ -58,7 +58,7 @@ export default {
             }
 
             const userTeam = await teamService.findTeamFromUserId(user.id)
-            if (userTeam && userTeam.guildId !== interaction.guildId && action === 'add') {
+            if (userTeam && userTeam.guildId !== guildId && action === 'add') {
                 await interaction.followUp({ content: `⛔ This player already belongs to **${userTeam.name}**`, ephemeral: true })
                 return
             }
