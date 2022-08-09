@@ -1,7 +1,7 @@
 import { ButtonInteraction, InteractionUpdateOptions } from "discord.js";
 import { DEFAULT_LEADERBOARD_PAGE_SIZE } from "../../constants";
 import { IButtonHandler } from "../../handlers/buttonHandler";
-import { interactionUtils, StatsScope, StatsType } from "../../services/interactionUtils";
+import { GameType, interactionUtils, StatsScope, StatsType } from "../../services/interactionUtils";
 import { teamService } from "../../services/teamService";
 
 export default {
@@ -14,10 +14,20 @@ export default {
         }
 
         const split = interaction.customId.split('_')
-        const page = parseInt(split[2])
+        const customIdPage = split[2]
+        let page
+        if (customIdPage === 'last') {
+            page = -1
+        } else if (customIdPage === 'first') {
+            page = 0
+        } else {
+            page = parseInt(customIdPage)
+        }
+
         const statsScope: StatsScope = parseInt(split[3])
         const statsType: StatsType = parseInt(split[4])
-        const reply = await interactionUtils.createLeaderboardReply(interaction, team, { page, pageSize: DEFAULT_LEADERBOARD_PAGE_SIZE, statsScope, statsType })
+        const gameType: GameType = parseInt(split[5])
+        const reply = await interactionUtils.createLeaderboardReply(interaction, team, { page, pageSize: DEFAULT_LEADERBOARD_PAGE_SIZE, statsScope, statsType, gameType })
         await interaction.update(reply as InteractionUpdateOptions)
     }
 } as IButtonHandler
