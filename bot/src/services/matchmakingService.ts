@@ -43,7 +43,6 @@ export namespace MatchResultType {
 
 class MatchmakingService {
     private readonly MAX_ATTEMPTS_BEFORE_WIDE_SEARCH = 33
-    private isMakingMatch = false
     private ratingDifferenceByAttempts = new Map()
         .set(this.MAX_ATTEMPTS_BEFORE_WIDE_SEARCH, -1)
         .set(30, 4450)
@@ -77,12 +76,6 @@ class MatchmakingService {
     }
 
     async makeMatches(client: Client): Promise<void> {
-        if (this.isMakingMatch) {
-            return
-        }
-
-        this.isMakingMatch = true
-
         let lineupQueues = await LineupQueue.find(
             {
                 'lineup.type': LINEUP_TYPE_TEAM,
@@ -91,73 +84,69 @@ class MatchmakingService {
                 challengeId: null
             })
             .sort({ '_id': 1 })
-            .limit(1)
         if (lineupQueues.length === 0) {
-            this.isMakingMatch = false
             return
         }
 
-        const lineupQueue = lineupQueues[0]
+        let i = lineupQueues.length
+        while (i--) {
+            let lineupQueue = lineupQueues[i]
+            const maxRatingDifference = Array.from(this.ratingDifferenceByAttempts.entries()).find(e => lineupQueue.matchmakingAttempts >= parseInt(e[0]))?.[1] || 0
+            const lineupQueueToChallenge = await LineupQueue.aggregate([
+                {
+                    $match: {
+                        'lineup.channelId': { $ne: lineupQueue.lineup.channelId },
+                        'lineup.team.region': lineupQueue.lineup.team.region,
+                        'lineup.autoMatchmaking': true,
+                        'lineup.type': lineupQueue.lineup.type,
+                        'lineup.size': lineupQueue.lineup.size,
+                        challengeId: null,
+                        ranked: lineupQueue.ranked
+                    }
+                },
+                {
+                    $project: {
+                        _id: 1,
+                        lineup: 1,
+                        ranked: 1,
+                        matchmakingAttempts: 1,
+                        ratingDifference: { $abs: { $subtract: ['$lineup.team.rating', lineupQueue.lineup.team.rating] } }
+                    }
+                },
+                {
+                    $match: {
+                        ratingDifference: { $lte: maxRatingDifference }
+                    }
+                },
+                {
+                    $sort: {
+                        ratingDifference: 1,
+                        matchmakingAttempts: 1
+                    }
+                }
+            ])
 
-        const maxRatingDifference = Array.from(this.ratingDifferenceByAttempts.entries()).find(e => lineupQueue.matchmakingAttempts >= parseInt(e[0]))?.[1] || 0
-        const lineupQueueToChallenge = await LineupQueue.aggregate([
-            {
-                $match: {
-                    'lineup.channelId': { $ne: lineupQueue.lineup.channelId },
-                    'lineup.team.region': lineupQueue.lineup.team.region,
-                    'lineup.autoMatchmaking': true,
-                    'lineup.type': lineupQueue.lineup.type,
-                    'lineup.size': lineupQueue.lineup.size,
-                    challengeId: null,
-                    ranked: lineupQueue.ranked
+            if (lineupQueueToChallenge.length > 0) {
+                if (await this.checkForDuplicatedPlayers(client, lineupQueue.lineup, lineupQueueToChallenge[0].lineup)) {
+                    return
                 }
-            },
-            {
-                $project: {
-                    _id: 1,
-                    lineup: 1,
-                    ranked: 1,
-                    matchmakingAttempts: 1,
-                    ratingDifference: { $abs: { $subtract: ['$lineup.team.rating', lineupQueue.lineup.team.rating] } }
-                }
-            },
-            {
-                $match: {
-                    ratingDifference: { $lte: maxRatingDifference }
-                }
-            },
-            {
-                $sort: {
-                    ratingDifference: 1,
-                    matchmakingAttempts: 1
-                }
+
+                const initiatingUser = lineupQueue.lineup.getNonMecSignedRoles()[0].user!
+                const challenge = new Challenge({
+                    initiatingUser,
+                    initiatingTeam: lineupQueue,
+                    challengedTeam: lineupQueueToChallenge[0]
+                })
+
+                this.readyMatch(client, undefined, challenge)
+                i--
+                lineupQueues.splice(i, 1)
+                lineupQueues.splice(lineupQueues.findIndex(lq => lq._id === (lineupQueueToChallenge as any)._id))
+            } else if (lineupQueue.matchmakingAttempts < this.MAX_ATTEMPTS_BEFORE_WIDE_SEARCH) {
+                lineupQueue.matchmakingAttempts++
+                await lineupQueue.save()
             }
-        ])
-        if (lineupQueueToChallenge.length > 0) {
-            if (await this.checkForDuplicatedPlayers(client, lineupQueue.lineup, lineupQueueToChallenge[0].lineup)) {
-                this.isMakingMatch = false
-                return
-            }
-
-            const initiatingUser = lineupQueue.lineup.getNonMecSignedRoles()[0].user!
-            const challenge = new Challenge({
-                initiatingUser,
-                initiatingTeam: lineupQueue,
-                challengedTeam: lineupQueueToChallenge[0]
-            })
-
-            this.readyMatch(client, undefined, challenge)
-            this.isMakingMatch = false
-            return
         }
-
-        await lineupQueue.deleteOne()
-        await new LineupQueue({
-            lineup: lineupQueue.lineup,
-            ranked: lineupQueue.ranked,
-            matchmakingAttempts: lineupQueue.matchmakingAttempts < this.MAX_ATTEMPTS_BEFORE_WIDE_SEARCH ? lineupQueue.matchmakingAttempts + 1 : lineupQueue.matchmakingAttempts,
-        }).save()
-        this.isMakingMatch = false
     }
 
     async findLineupQueueByChannelId(channelId: string): Promise<ILineupQueue | null> {
