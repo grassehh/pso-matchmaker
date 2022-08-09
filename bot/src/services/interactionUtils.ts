@@ -602,8 +602,7 @@ class InteractionUtils {
                 { name: 'Name', value: team.name, inline: true },
                 { name: 'Logo', value: `${team.logo ? `${team.logo}` : '*None*'}`, inline: true },
                 { name: 'Code', value: `${team.code ? `**${team.code}**` : '*None*'}`, inline: true },
-                { name: '\u200B', value: '\u200B' },
-                { name: 'Rating', value: `${team.rating}`, inline: true },
+                { name: 'Rating', value: `${team.rating}`},
                 { name: 'Captains', value: `${captainsList.length > 0 ? captainsList : '*None*'}`, inline: true },
                 { name: 'Players', value: `${playersList.length > 0 ? playersList : '*None*'}`, inline: true },
             ])
