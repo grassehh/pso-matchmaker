@@ -96,8 +96,9 @@ class MatchmakingService {
             {
                 $match: {
                     'lineup.channelId': { $ne: lineupQueue.lineup.channelId },
-                    'lineup.team.region': TEAM_REGION_EU,
-                    'lineup.type': LINEUP_TYPE_TEAM,
+                    'lineup.team.region': lineupQueue.lineup.team.region,
+                    'lineup.type': lineupQueue.lineup.type,
+                    'lineup.size': lineupQueue.lineup.size,
                     challengeId: null,
                     ranked: lineupQueue.ranked
                 }
