@@ -93,6 +93,7 @@ export interface ILineup {
     bench: IRoleBench[] | [],
     name?: string | '',
     autoSearch: boolean,
+    autoMatchmaking: boolean,
     team: ITeam,
     type: string,
     visibility: string,
@@ -126,7 +127,13 @@ const lineupSchema = new Schema<ILineup>({
     },
     autoSearch: {
         type: Boolean,
-        required: true
+        required: true,
+        default: false
+    },
+    autoMatchmaking: {
+        type: Boolean,
+        required: true,
+        default: false
     },
     team: {
         type: teamSchema,

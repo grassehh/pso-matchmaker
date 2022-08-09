@@ -173,6 +173,7 @@ class TeamService {
                 roles: lineup.roles,
                 bench: lineup.bench,
                 name: lineup.name,
+                autoMatchmaking: lineup.autoMatchmaking,
                 autoSearch: lineup.autoSearch,
                 allowRanked: lineup.allowRanked,
                 team: lineup.team,
@@ -590,7 +591,7 @@ class TeamService {
         return []
     }
 
-    createLineup(channelId: string, size: number, name: string = '', autoSearch: boolean, allowRanked: boolean, team: ITeam, type: string, visibility: string): ILineup {
+    createLineup(channelId: string, size: number, name: string = '', autoSearch: boolean, allowRanked: boolean, team: ITeam, type: string, visibility: string, autoMatchmaking: boolean): ILineup {
         const defaultRoles = DEFAULT_PLAYER_ROLES.get(size)!
 
         let roles = defaultRoles.map(obj => ({ ...obj, lineupNumber: 1 }))
@@ -616,6 +617,7 @@ class TeamService {
             roles,
             bench: [],
             name,
+            autoMatchmaking,
             autoSearch,
             allowRanked,
             team,
