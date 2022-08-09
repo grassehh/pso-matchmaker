@@ -208,42 +208,71 @@ class InteractionUtils {
         const leaderboardEmbed: EmbedBuilder = await this.createLeaderboardEmbed(interaction, team, numberOfPages, searchOptions)
         const scopeActionRow = new ActionRowBuilder<SelectMenuBuilder>().addComponents(
             new SelectMenuBuilder()
-                .setCustomId(`leaderboard_scope_select_${searchOptions.statsType}`)
+                .setCustomId(`leaderboard_scope_select_${searchOptions.statsType}_${searchOptions.gameType}`)
                 .setPlaceholder('Stats Scope')
                 .addOptions([
                     {
                         emoji: '🌎',
                         label: 'International',
-                        value: StatsScope.INTERNATIONAL.toString()
+                        value: StatsScope.INTERNATIONAL.toString(),
+                        default: searchOptions.statsScope === StatsScope.INTERNATIONAL
                     },
                     {
                         emoji: '⛺',
                         label: 'Regional',
-                        value: StatsScope.REGIONAL.toString()
+                        value: StatsScope.REGIONAL.toString(),
+                        default: searchOptions.statsScope === StatsScope.REGIONAL
                     }
                 ])
         )
-        const typeActionRow = new ActionRowBuilder<SelectMenuBuilder>().addComponents(
+        const statsTypeActionRow = new ActionRowBuilder<SelectMenuBuilder>().addComponents(
             new SelectMenuBuilder()
-                .setCustomId(`leaderboard_type_select_${searchOptions.statsScope}`)
+                .setCustomId(`leaderboard_type_select_${searchOptions.statsScope}_${searchOptions.gameType}`)
                 .setPlaceholder('Stats Type')
                 .addOptions([
                     {
                         emoji: '👕',
                         label: 'Teams',
-                        value: StatsType.TEAMS.toString()
+                        value: StatsType.TEAMS.toString(),
+                        default: searchOptions.statsType === StatsType.TEAMS
                     },
                     {
                         emoji: '🏅',
                         label: 'Players',
-                        value: StatsType.PLAYERS.toString()
+                        value: StatsType.PLAYERS.toString(),
+                        default: searchOptions.statsType === StatsType.PLAYERS
+                    }
+                ])
+        )
+        const gameTypeActionRow = new ActionRowBuilder<SelectMenuBuilder>().addComponents(
+            new SelectMenuBuilder()
+                .setCustomId(`leaderboard_game_type_select_${searchOptions.statsType}_${searchOptions.statsScope}`)
+                .setPlaceholder('Game Type')
+                .addOptions([
+                    {
+                        emoji: '👕',
+                        label: 'Teams And Mixes',
+                        value: GameType.TEAM_AND_MIX.toString(),
+                        default: searchOptions.gameType === GameType.TEAM_AND_MIX
+                    },
+                    {
+                        emoji: '🤼',
+                        label: 'Captains Mixes',
+                        value: GameType.CAPTAINS_MIX.toString(),
+                        default: searchOptions.gameType === GameType.CAPTAINS_MIX
                     }
                 ])
         )
 
         const paginationActionRow = this.createLeaderboardPaginationActionRow(numberOfPages, searchOptions)
 
-        return { embeds: [leaderboardEmbed], components: [scopeActionRow, typeActionRow, paginationActionRow], ephemeral: true }
+        const components: ActionRowBuilder<ButtonBuilder | SelectMenuBuilder>[] = [scopeActionRow, statsTypeActionRow]
+        if (searchOptions.statsType === StatsType.PLAYERS) {
+            components.push(gameTypeActionRow)
+        }
+        components.push(paginationActionRow)
+
+        return { embeds: [leaderboardEmbed], components, ephemeral: true }
     }
 
     async createLeaderboardEmbed(interaction: Interaction, team: ITeam, numberOfPages: number, searchOptions: StatsSearchOptions): Promise<EmbedBuilder> {
@@ -258,8 +287,7 @@ class InteractionUtils {
 
         let teamStatsEmbed = new EmbedBuilder()
             .setColor('#566573')
-            .setTitle('🏆 Teams Leaderboard 🏆')
-            .setDescription(`**${searchOptions.statsScope === StatsScope.REGIONAL ? '⛺ Regional' : '🌎 Interational'} Stats**`)
+            .setTitle('🏆 Leaderboard 🏆')
         if (teamsStats.length === 0) {
             teamStatsEmbed.addFields([{ name: 'Ooooof', value: 'This looks pretty empty here. Time to get some games lads !' }])
         } else {
@@ -285,11 +313,10 @@ class InteractionUtils {
     }
 
     async createPlayersLeaderboardEmbed(usersManager: UserManager, team: ITeam, numberOfPages: number, searchOptions: StatsSearchOptions): Promise<EmbedBuilder> {
-        let playersStats = await statsService.findPlayersStats(searchOptions.page, searchOptions.pageSize, searchOptions.statsScope === StatsScope.REGIONAL ? team.region : undefined)
+        let playersStats = await statsService.findPlayersStats(searchOptions.page, searchOptions.pageSize, searchOptions.gameType, searchOptions.statsScope === StatsScope.REGIONAL ? team.region : undefined)
         let playersStatsEmbed = new EmbedBuilder()
             .setColor('#566573')
-            .setTitle('🏆 Players Leaderboard 🏆')
-            .setDescription(`**${searchOptions.statsScope === StatsScope.REGIONAL ? '⛺ Regional' : '🌎 Interational'} Stats**`)
+            .setTitle('🏆 Leaderboard 🏆')
         if (playersStats.length === 0) {
             playersStatsEmbed.addFields([{ name: 'Ooooof', value: 'This looks pretty empty here. Time to get some games lads !' }])
         } else {
@@ -322,22 +349,22 @@ class InteractionUtils {
         const paginationActionsRow = new ActionRowBuilder<ButtonBuilder>()
         paginationActionsRow.addComponents(
             new ButtonBuilder()
-                .setCustomId(`leaderboard_page_first_${searchOptions.statsScope}_${searchOptions.statsType}`)
+                .setCustomId(`leaderboard_page_first_${searchOptions.statsScope}_${searchOptions.statsType}_${searchOptions.gameType}`)
                 .setLabel('<<')
                 .setStyle(ButtonStyle.Secondary)
                 .setDisabled(searchOptions.page === 0),
             new ButtonBuilder()
-                .setCustomId(`leaderboard_page_${searchOptions.page - 1}_${searchOptions.statsScope}_${searchOptions.statsType}`)
+                .setCustomId(`leaderboard_page_${searchOptions.page - 1}_${searchOptions.statsScope}_${searchOptions.statsType}_${searchOptions.gameType}`)
                 .setLabel('<')
                 .setStyle(ButtonStyle.Secondary)
                 .setDisabled(searchOptions.page === 0),
             new ButtonBuilder()
-                .setCustomId(`leaderboard_page_${searchOptions.page + 1}_${searchOptions.statsScope}_${searchOptions.statsType}`)
+                .setCustomId(`leaderboard_page_${searchOptions.page + 1}_${searchOptions.statsScope}_${searchOptions.statsType}_${searchOptions.gameType}`)
                 .setLabel('>')
                 .setStyle(ButtonStyle.Secondary)
                 .setDisabled(searchOptions.page >= numberOfPages - 1),
             new ButtonBuilder()
-                .setCustomId(`leaderboard_page_last_${searchOptions.statsScope}_${searchOptions.statsType}`)
+                .setCustomId(`leaderboard_page_last_${searchOptions.statsScope}_${searchOptions.statsType}_${searchOptions.gameType}`)
                 .setLabel('>>')
                 .setStyle(ButtonStyle.Secondary)
                 .setDisabled(searchOptions.page >= numberOfPages - 1)
@@ -613,7 +640,7 @@ class InteractionUtils {
             )
         }
 
-        return { embeds: [teamDescriptionEmbed], components: [teamManagementActionRow] }
+        return { embeds: [teamDescriptionEmbed], components: [teamManagementActionRow], ephemeral: true }
     }
 
     private createRoleActionRow(maxRolePos: number, roles: IRole[], isBench: boolean = false): ActionRowBuilder<ButtonBuilder> {
@@ -765,7 +792,13 @@ export interface StatsSearchOptions {
     page: number,
     pageSize: number,
     statsScope: StatsScope,
-    statsType: StatsType
+    statsType: StatsType,
+    gameType: GameType
+}
+
+export enum GameType {
+    TEAM_AND_MIX,
+    CAPTAINS_MIX
 }
 
 export enum StatsScope {

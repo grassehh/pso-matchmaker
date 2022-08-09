@@ -2,6 +2,7 @@ import { Client, GuildMember, Role } from "discord.js"
 import { MERC_USER_ID, MIN_LINEUP_SIZE_FOR_RANKED } from "../constants"
 import { IStats, ITeam, Stats, Team } from "../mongoSchema"
 import { handle } from "../utils"
+import { GameType } from "./interactionUtils"
 import { RankedStats, ROLE_ATTACKER, ROLE_DEFENDER, ROLE_GOAL_KEEPER, ROLE_MIDFIELDER, ROLE_MIX_CAPTAINS, TEAM_REGION_EU } from "./teamService"
 
 class StatsService {
@@ -30,11 +31,19 @@ class StatsService {
         return (await Team.count(region ? { region, verified: true } : { verified: true }))
     }
 
-    async findPlayersStats(page: number, pageSize: number, region?: string): Promise<IStats[]> {
+    async findPlayersStats(page: number, pageSize: number, gameType: GameType, region?: string): Promise<IStats[]> {
         let match: any = {}
         if (region) {
             match.region = region;
         }
+
+        const ratingsAverage = gameType === GameType.TEAM_AND_MIX ? [
+            "$attackRating",
+            "$midfieldRating",
+            "$defenseRating",
+            "$goalKeeperRating"
+        ] : ["$mixCaptainsRating"]
+
         const pipeline = <any>[
             { $match: match },
             {
@@ -79,15 +88,7 @@ class StatsService {
                     numberOfRankedWins: 1,
                     numberOfRankedDraws: 1,
                     numberOfRankedLosses: 1,
-                    rating: {
-                        $avg: [
-                            "$attackRating",
-                            "$midfieldRating",
-                            "$defenseRating",
-                            "$goalKeeperRating",
-                            "$mixCaptainsRating"
-                        ]
-                    }
+                    rating: { $avg: ratingsAverage }
                 }
             },
             {
