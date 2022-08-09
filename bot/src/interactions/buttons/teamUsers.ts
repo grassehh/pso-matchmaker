@@ -4,7 +4,7 @@ import { IButtonHandler } from "../../handlers/buttonHandler";
 import { ITeam } from "../../mongoSchema";
 import { authorizationService } from "../../services/authorizationService";
 import { interactionUtils } from "../../services/interactionUtils";
-import { teamService } from "../../services/teamService";
+import { teamService, TeamTypeHelper } from "../../services/teamService";
 import { handle } from "../../utils";
 
 export default {
@@ -59,9 +59,9 @@ export default {
                 return
             }
 
-            const userTeam = await teamService.findTeamFromUserId(user.id)
-            if (userTeam && userTeam.guildId !== guildId && action === 'add') {
-                await interaction.followUp({ content: `⛔ This player already belongs to **${userTeam.name}**`, ephemeral: true })
+            const userTeams = await teamService.findTeams(user.id)
+            if (userTeams.filter(t => t.guildId !== guildId).filter(t => t.type === team.type).length > 0 && action === 'add') {
+                await interaction.followUp({ content: `⛔ This player already belongs to another ${TeamTypeHelper.toString(team.type)}`, ephemeral: true })
                 return
             }
 

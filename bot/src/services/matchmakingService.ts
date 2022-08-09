@@ -34,7 +34,7 @@ export namespace MatchResultType {
             case MatchResult.WIN:
                 return '🟩'
             case MatchResult.DRAW:
-                return ''
+                return '🔲'
             case MatchResult.LOSS:
                 return '🟥'
         }
@@ -685,7 +685,7 @@ class MatchmakingService {
 
         const lobbyHost = interaction ? interaction.user : await client.users.fetch(challenge!.initiatingUser.id)
         const lobbyName = challenge ?
-            `**${challenge.initiatingTeam.lineup.prettyPrintName(TeamLogoDisplay.RIGHT)} vs. ${challenge.challengedTeam.lineup.prettyPrintName(TeamLogoDisplay.LEFT)}**`
+            `${challenge.initiatingTeam.lineup.prettyPrintName(TeamLogoDisplay.RIGHT)} **vs.** ${challenge.challengedTeam.lineup.prettyPrintName(TeamLogoDisplay.LEFT)}`
             : `**${mixLineup!.prettyPrintName()} #${Math.floor(Math.random() * 10000).toString().padStart(4, '0')}**`
         const lobbyPassword = Math.random().toString(36).slice(-4)
         const match = await new Match({
@@ -986,7 +986,10 @@ class MatchmakingService {
             embeds.push(new EmbedBuilder()
                 .setColor('#6aa84f')
                 .setTitle(`⚽ Match Ready ⚽`)
-                .setDescription(`** Please join the match as soon as possible **\nThe lobby can be found in the ** "Custom Lobbies" ** menu of the game\n * If you need a sub, please type ** /request_sub** followed by the match id **${match.matchId}***\n\n`)
+                .setDescription(`
+                    **Please join the match as soon as possible**
+                    The lobby can be found in the **"Custom Lobbies"** menu of the game
+                    *If you need a sub, please type **/request_sub** followed by the match id **${match.matchId}***`)
                 .addFields([
                     { name: 'Lobby Name', value: `${match.lobbyName}`, inline: true },
                     { name: 'Lobby Password', value: `${match.lobbyPassword}`, inline: true },
@@ -1027,7 +1030,7 @@ class MatchmakingService {
                     await this.removeUserFromAllLineupQueues(discordUser.id)
                     await teamService.removeUserFromLineupsByChannelIds(discordUser.id, channelIds)
                     await Promise.all(channelIds.map(async (channelId: string) => {
-                        await teamService.notifyChannelForUserLeaving(client, discordUser, channelId, `⚠ ${discordUser} went to play another match with **${lineup.prettyPrintName()}**`)
+                        await teamService.notifyChannelForUserLeaving(client, discordUser, channelId, `⚠ ${discordUser} went to play another match with ${lineup.prettyPrintName()}`)
                     }))
                 }
             })

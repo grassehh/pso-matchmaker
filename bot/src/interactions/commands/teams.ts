@@ -22,10 +22,7 @@ export default {
         const user = interaction.options.getUser('player')
         let teams: ITeam[] = []
         if (user) {
-            const userTeam = await teamService.findTeamFromUserId(user.id)
-            if (userTeam) {
-                teams.push(userTeam)
-            }
+            teams = teams.concat(await teamService.findTeams(user.id))
         } else {
             teams = await teamService.findAllVerifiedTeams()
         }

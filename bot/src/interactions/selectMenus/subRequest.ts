@@ -19,9 +19,9 @@ export default {
             .setColor('#566573')
             .setTitle("📣 A sub is required !")
             .addFields([
-                {name: 'Lobby',value: `${match.lobbyName}`,inline: true},
-                {name: 'Format', value: `${match.firstLineup.size}v${match.firstLineup.size}`,inline: true},
-                {name: 'Position', value: position, inline: true}
+                { name: 'Lobby', value: `${match.lobbyName}`, inline: true },
+                { name: 'Format', value: `${match.firstLineup.size}v${match.firstLineup.size}`, inline: true },
+                { name: 'Position', value: position, inline: true }
             ])
             .setDescription('*Accepting a sub request commits you to play. Doing otherwise can result in warns/bans*')
             .setTimestamp()

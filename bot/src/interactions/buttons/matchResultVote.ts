@@ -3,7 +3,7 @@ import { IButtonHandler } from "../../handlers/buttonHandler";
 import { ILineupMatchResult } from "../../mongoSchema";
 import { interactionUtils } from "../../services/interactionUtils";
 import { matchmakingService, MatchResult, MatchResultType } from "../../services/matchmakingService";
-import { TEAM_REGION_AS, TEAM_REGION_EU, TEAM_REGION_NA, TEAM_REGION_SA } from "../../services/teamService";
+import { TeamLogoDisplay, TEAM_REGION_AS, TEAM_REGION_EU, TEAM_REGION_NA, TEAM_REGION_SA } from "../../services/teamService";
 import { handle } from "../../utils";
 
 function getMatchResultChanneldIdByRegion(region: string): string | null {
@@ -120,15 +120,9 @@ export default {
                 if (channelId) {
                     const [channel] = await handle(interaction.client.channels.fetch(channelId))
                     if (channel instanceof TextChannel) {
-                        const firstLineupEmoji = MatchResultType.toEmoji(match.result.firstLineup.result)
-                        const secondLineupEmoji = MatchResultType.toEmoji(match.result.secondLineup.result)
-
                         const matchResultEmbed = new EmbedBuilder()
                             .setTitle(`${match.firstLineup.size}v${match.secondLineup.size}`)
-                            .addFields([
-                                { name: match.firstLineup.team.name, value: `${firstLineupEmoji} ${MatchResultType.toString(match.result.firstLineup.result)} ${firstLineupEmoji}`, inline: true },
-                                { name: match.secondLineup.team.name, value: `${secondLineupEmoji} ${MatchResultType.toString(match.result.secondLineup.result)} ${secondLineupEmoji}`, inline: true }
-                            ])
+                            .setDescription(`${match.firstLineup.prettyPrintName(TeamLogoDisplay.RIGHT)} ${MatchResultType.toEmoji(match.result.firstLineup.result)} **VS** ${MatchResultType.toEmoji(match.result.secondLineup.result)} ${match.secondLineup.prettyPrintName(TeamLogoDisplay.LEFT)}`)
                             .setColor('#6aa84f')
                             .setTimestamp()
                         handle(channel.send({ embeds: [matchResultEmbed] }))
