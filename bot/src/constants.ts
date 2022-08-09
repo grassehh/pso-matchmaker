@@ -2,6 +2,7 @@ export const BOT_ADMIN_ROLE = "PSO MM ADMIN"
 export const MERC_USER_ID = "merc"
 
 export const MAX_TEAM_NAME_LENGTH = 30
+export const MAX_TEAM_CODE_LENGTH = 4
 export const MAX_TEAM_CAPTAINS = 2
 export const MAX_TEAM_PLAYERS = 20
 

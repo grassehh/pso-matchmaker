@@ -1,9 +1,9 @@
-import { BaseGuildTextChannel, ButtonInteraction, Client, CommandInteraction, GuildMember, MessageOptions, TextChannel, User } from "discord.js";
+import { BaseGuildTextChannel, ButtonInteraction, Client, CommandInteraction, EmbedBuilder, Guild, GuildMember, MessageOptions, TextChannel, User } from "discord.js";
 import { DeleteResult } from "mongodb";
 import { UpdateWriteOpResult } from "mongoose";
-import { MAX_LINEUP_NAME_LENGTH, MAX_TEAM_NAME_LENGTH } from "../constants";
+import { MAX_LINEUP_NAME_LENGTH, MAX_TEAM_CODE_LENGTH, MAX_TEAM_NAME_LENGTH } from "../constants";
 import { Bans, IBan, ILineup, IRole, IRoleBench, ITeam, IUser, Lineup, LineupQueue, Team } from "../mongoSchema";
-import { handle } from "../utils";
+import { getEmojis, getOfficialDiscordIdByRegion, handle } from "../utils";
 import { interactionUtils } from "./interactionUtils";
 import { matchmakingService } from "./matchmakingService";
 import { statsService } from "./statsService";
@@ -12,6 +12,28 @@ export const TEAM_REGION_EU = 'EU'
 export const TEAM_REGION_NA = 'NA'
 export const TEAM_REGION_SA = 'SA'
 export const TEAM_REGION_AS = 'AS'
+
+export enum TeamLogoDisplay {
+    NONE = -1,
+    LEFT = 0,
+    RIGHT = 1
+}
+
+export enum TeamType {
+    CLUB = 0,
+    NATION = 1
+}
+
+export namespace TeamTypeHelper {
+    export function toString(teamType: TeamType) {
+        switch (teamType) {
+            case TeamType.CLUB:
+                return "Club"
+            case TeamType.NATION:
+                return "Nation"
+        }
+    }
+}
 
 export const ROLE_GOAL_KEEPER = 0
 export const ROLE_ATTACKER = 1
@@ -62,26 +84,34 @@ const DEFAULT_PLAYER_ROLES = new Map([
 ])
 
 class TeamService {
-    validateTeamName(name: string): boolean {
+    validateTeamName(name: string): string | null {
         const filteredName = this.removeSpecialCharacters(name)
-        return filteredName.length > 0 && filteredName.length <= MAX_TEAM_NAME_LENGTH
+        if (filteredName.length === 0 || filteredName.length > MAX_TEAM_NAME_LENGTH) {
+            return null
+        }
+
+        if (getEmojis(filteredName).length !== 0) {
+            return null
+        }
+
+        return filteredName
+    }
+
+    validateTeamCode(code: string): string | null {
+        const filteredName = this.removeSpecialCharacters(code)
+        if (filteredName.length === 0 || filteredName.length > MAX_TEAM_CODE_LENGTH) {
+            return null
+        }
+
+        if (getEmojis(filteredName).length !== 0) {
+            return null
+        }
+
+        return filteredName
     }
 
     validateLineupName(name: string): boolean {
         return name.length > 0 && name.length <= MAX_LINEUP_NAME_LENGTH
-    }
-
-    formatTeamName(lineup: ILineup, filterName: boolean = false, includeRating: boolean = false): string {
-        let name = `**${lineup.team.name}`
-        if (lineup.name) {
-            name += ` *(${lineup.name})*`
-        }
-        name += `**`
-        if (includeRating) {
-            name += ` (${lineup.team.rating})`
-        }
-
-        return filterName ? this.removeSpecialCharacters(name) : name
     }
 
     hasGkSigned(lineup: ILineup): boolean {
@@ -97,11 +127,11 @@ class TeamService {
     }
 
     async findTeamByRegionAndName(region: string, name: string): Promise<ITeam | null> {
-        return Team.findOne({ region, name })
+        return Team.findOne({ region, nameUpperCase: name.toUpperCase() })
     }
 
-    async updateTeamNameByGuildId(guildId: string, name: string): Promise<void> {
-        await Promise.all([Team.updateOne({ guildId }, { name }), Lineup.updateMany({ 'team.guildId': guildId }, { 'team.name': name })])
+    async findTeamByRegionAndCode(region: string, code: string): Promise<ITeam | null> {
+        return Team.findOne({ region, codeUpperCase: code.toUpperCase() })
     }
 
     async updateTeamLastMatchDateByGuildId(guildId: string, date: Date): Promise<UpdateWriteOpResult> {
@@ -624,21 +654,43 @@ class TeamService {
     }
 
     async addCaptain(guildId: string, user: IUser): Promise<ITeam | null> {
-        return Team.findOneAndUpdate({ guildId }, { $push: { captains: user } }, { new: true })
+        await Lineup.updateMany({ 'team.guildId': guildId }, { $push: { 'team.captains': user }, 'team.verified': false })
+        return Team.findOneAndUpdate({ guildId }, { $push: { captains: user }, verified: false }, { new: true })
     }
 
     async removeCaptain(guildId: string, userId: string): Promise<ITeam | null> {
-        return Team.findOneAndUpdate({ guildId }, { $pull: { captains: { "id": userId } } }, { new: true })
+        await Lineup.updateMany({ 'team.guildId': guildId }, { $pull: { 'team.captains': { "id": userId } }, 'team.verified': false })
+        return Team.findOneAndUpdate({ guildId }, { $pull: { captains: { "id": userId } }, verified: false }, { new: true })
     }
 
     async addPlayer(guildId: string, user: IUser): Promise<ITeam | null> {
-        await Lineup.updateMany({ 'team.guildId': guildId }, { $push: { 'team.players': user } })
-        return Team.findOneAndUpdate({ guildId }, { $push: { players: user } }, { new: true })
+        await Lineup.updateMany({ 'team.guildId': guildId }, { $push: { 'team.players': user }, 'team.verified': false })
+        return Team.findOneAndUpdate({ guildId }, { $push: { players: user }, verified: false }, { new: true })
     }
 
     async removePlayer(guildId: string, userId: string): Promise<ITeam | null> {
-        await Lineup.updateMany({ 'team.guildId': guildId }, { $pull: { 'team.players': { "id": userId } } })
-        return Team.findOneAndUpdate({ guildId }, { $pull: { players: { "id": userId } } }, { new: true })
+        await Lineup.updateMany({ 'team.guildId': guildId }, { $pull: { 'team.players': { "id": userId } }, 'team.verified': false })
+        return Team.findOneAndUpdate({ guildId }, { $pull: { players: { "id": userId } }, verified: false }, { new: true })
+    }
+
+    async updateTeamType(guildId: string, type: TeamType): Promise<ITeam | null> {
+        await Lineup.updateMany({ 'team.guildId': guildId }, { 'team.type': type, 'team.verified': false })
+        return Team.findOneAndUpdate({ guildId }, { type, verified: false }, { new: true })
+    }
+
+    async updateTeamLogo(guildId: string, logo: string): Promise<ITeam | null> {
+        await Lineup.updateMany({ 'team.guildId': guildId }, { 'team.logo': logo, 'team.verified': false })
+        return Team.findOneAndUpdate({ guildId }, { logo, verified: false }, { new: true })
+    }
+
+    async updateTeamName(guildId: string, name: string): Promise<ITeam | null> {
+        await Lineup.updateMany({ 'team.guildId': guildId }, { 'team.name': name, 'team.nameUpperCase': name.toUpperCase(), 'team.verified': false })
+        return Team.findOneAndUpdate({ guildId }, { name, nameUpperCase: name.toUpperCase(), verified: false }, { new: true })
+    }
+
+    async updateTeamCode(guildId: string, code: string): Promise<ITeam | null> {
+        await Lineup.updateMany({ 'team.guildId': guildId }, { 'team.code': code, 'team.codeUpperCase': code.toUpperCase(), 'team.verified': false })
+        return Team.findOneAndUpdate({ guildId }, { code: code, codeUpperCase: code.toUpperCase(), verified: false }, { new: true })
     }
 
     async verify(guildId: string, verified: boolean): Promise<ITeam | null> {
@@ -652,6 +704,15 @@ class TeamService {
 
     async findAllVerifiedTeams(): Promise<ITeam[]> {
         return Team.find({ verified: true })
+    }
+
+    async notifyNoLongerVerified(client: Client, team: ITeam) {
+        const officialGuild = await client.guilds.fetch(getOfficialDiscordIdByRegion(team.region)) as Guild
+        const informationEmbed = new EmbedBuilder()
+            .setColor('#566573')
+            .setTimestamp()
+            .setDescription(`🛑 Your team is now unverified as you have made changes. \nPlease contact the admins of the official **${officialGuild.name}** discord to get your team verified by providing your team id: **${team.guildId}**.`)
+        teamService.sendMessage(client, team.guildId, { embeds: [informationEmbed] })
     }
 
     async sendMessage(client: Client, guildId: string, messageOptions: MessageOptions): Promise<void> {

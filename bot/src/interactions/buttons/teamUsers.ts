@@ -1,11 +1,11 @@
-import { ButtonInteraction, EmbedBuilder, Guild, Message, User } from "discord.js";
+import { ButtonInteraction, Message, User } from "discord.js";
 import { MAX_TEAM_CAPTAINS, MAX_TEAM_PLAYERS } from "../../constants";
 import { IButtonHandler } from "../../handlers/buttonHandler";
 import { ITeam } from "../../mongoSchema";
 import { authorizationService } from "../../services/authorizationService";
 import { interactionUtils } from "../../services/interactionUtils";
 import { teamService } from "../../services/teamService";
-import { getOfficialDiscordIdByRegion, handle } from "../../utils";
+import { handle } from "../../utils";
 
 export default {
     customId: 'team_users_',
@@ -16,6 +16,7 @@ export default {
         const guildId = split[4]
 
         let team: ITeam = await teamService.findTeamByGuildId(guildId) as ITeam
+        const teamWasVerified = team.verified
 
         await interaction.reply({ content: `Type the ids or the mentions (@user) of the users you want to ${action} ?\nType **end** once you have finished.`, ephemeral: true })
 
@@ -90,20 +91,13 @@ export default {
         })
 
         collector.on('end', async () => {
-            await interaction.followUp({ content: "✅ Captains edition finished", components: [], ephemeral: true })
             if (teamChanged) {
-                const teamWasVerified = team.verified
-                team = await teamService.verify(team.guildId, false) as ITeam
                 await interaction.followUp(interactionUtils.createTeamManagementReply(interaction, team))
-
                 if (teamWasVerified) {
-                    const officialGuild = await interaction.client.guilds.fetch(getOfficialDiscordIdByRegion(team.region)) as Guild
-                    const informationEmbed = new EmbedBuilder()
-                        .setColor('#566573')
-                        .setTimestamp()
-                        .setDescription(`🛑 Your team is now unverified as you have made changes. \nPlease contact the admins of the official **${officialGuild.name}** discord to get your team verified by providing your team id: **${team.guildId}**.`)
-                    teamService.sendMessage(interaction.client, team.guildId, { embeds: [informationEmbed] })
+                    teamService.notifyNoLongerVerified(interaction.client, team)
                 }
+            } else {
+                await interaction.followUp({ content: "Captains edition timed out...", ephemeral: true })
             }
         })
     }

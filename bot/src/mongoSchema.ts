@@ -2,7 +2,7 @@ import { User } from "discord.js";
 import { model, Schema, Types } from "mongoose";
 import { DEFAULT_RATING, MERC_USER_ID, MIN_LINEUP_SIZE_FOR_RANKED } from "./constants";
 import { MatchResult } from "./services/matchmakingService";
-import { LINEUP_TYPE_CAPTAINS, LINEUP_TYPE_MIX, LINEUP_TYPE_TEAM, LINEUP_VISIBILITY_PUBLIC, LINEUP_VISIBILITY_TEAM, ROLE_ATTACKER, ROLE_DEFENDER, ROLE_GOAL_KEEPER, ROLE_MIDFIELDER, ROLE_MIX_CAPTAINS, ROLE_NAME_ANY } from "./services/teamService";
+import { LINEUP_TYPE_CAPTAINS, LINEUP_TYPE_MIX, LINEUP_TYPE_TEAM, LINEUP_VISIBILITY_PUBLIC, LINEUP_VISIBILITY_TEAM, ROLE_ATTACKER, ROLE_DEFENDER, ROLE_GOAL_KEEPER, ROLE_MIDFIELDER, ROLE_MIX_CAPTAINS, ROLE_NAME_ANY, TeamLogoDisplay, TeamType } from "./services/teamService";
 import { notEmpty } from "./utils";
 
 export interface IUser {
@@ -23,6 +23,11 @@ const userSchema = new Schema<IUser>({
 export interface ITeam {
     guildId: string,
     name: string,
+    nameUpperCase: string,
+    code?: string,
+    codeUpperCase?: string,
+    logo?: string,
+    type: TeamType,
     region: string,
     lastMatchDate?: Date,
     rating: number,
@@ -33,6 +38,11 @@ export interface ITeam {
 const teamSchema = new Schema<ITeam>({
     guildId: { type: String, required: true },
     name: { type: String, required: true },
+    nameUpperCase: { type: String, required: true },
+    code: { type: String, required: false },
+    codeUpperCase: { type: String, required: false },
+    logo: { type: String, required: false },
+    type: { type: Number, enum: TeamType, required: true, default: TeamType.CLUB },
     region: { type: String, required: true },
     lastMatchDate: { type: Date, required: false, default: () => new Date() },
     rating: { type: Number, required: true, default: DEFAULT_RATING },
@@ -76,6 +86,7 @@ export interface ILineup {
     getNonMecSignedRoles(): IRole[],
     computePlayersAverageRating(lineupNumber?: number): number,
     isAllowedToPlayRanked(): boolean,
+    prettyPrintName(teamLogoDisplay?: TeamLogoDisplay, includeRating?: boolean): string,
     channelId: string,
     size: number,
     roles: IRole[],
@@ -239,6 +250,31 @@ lineupSchema.methods.isAllowedToPlayRanked = function () {
         && this.getNonMecSignedRoles().length === this.size
         && !hasPlayersNotInVerifiedTeam
         && this.size >= MIN_LINEUP_SIZE_FOR_RANKED
+}
+lineupSchema.methods.prettyPrintName = function (teamLogoDisplay: TeamLogoDisplay = TeamLogoDisplay.LEFT, includeRating: boolean = false) {
+    let name: string = ''
+    if (teamLogoDisplay === TeamLogoDisplay.LEFT) {
+        name += `${this.team.logo ? `${this.team.logo} ` : ''}`
+    }
+    name += `**${this.team.name}**`
+    if (teamLogoDisplay === TeamLogoDisplay.RIGHT) {
+        name += ` ${this.team.logo ? `${this.team.logo}` : ''}`
+    }
+
+    if (this.name) {
+        name += ` - *${this.name}*`
+    }
+
+    if (includeRating) {
+        let rating
+        if (this.isMixOrCaptains()) {
+            rating = this.computePlayersAverageRating()
+        } else {
+            rating = this.team.rating
+        }
+        name += ` *(${rating})*`
+    }
+    return name
 }
 export const Lineup = model<ILineup>('Lineup', lineupSchema, 'lineups')
 
