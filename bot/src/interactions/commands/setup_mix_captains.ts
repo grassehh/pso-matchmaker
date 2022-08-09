@@ -52,7 +52,7 @@ export default {
             }
         }
 
-        const lineup = teamService.createLineup(interaction.channelId, lineupSize, undefined, false, ranked, team, LINEUP_TYPE_CAPTAINS, LINEUP_VISIBILITY_TEAM)
+        const lineup = teamService.createLineup(interaction.channelId, lineupSize, undefined, false, ranked, team, LINEUP_TYPE_CAPTAINS, LINEUP_VISIBILITY_TEAM, false)
         await teamService.upsertLineup(lineup)
 
         await matchmakingService.deleteLineupQueuesByChannelId(interaction.channelId)

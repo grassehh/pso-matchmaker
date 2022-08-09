@@ -28,12 +28,15 @@ export default {
                     { name: '11', value: 11 }
                 )
             )
+            .addBooleanOption(option => option.setName('auto_matchmaking')
+                .setRequired(false)
+                .setDescription('If true, matches will automatically start when searchin'))
             .addBooleanOption(option => option.setName('auto_search')
                 .setRequired(false)
                 .setDescription('Indicates if this lineup should automatically search for a team once it is filled'))
             .addBooleanOption(option => option.setName('allow_ranked')
                 .setRequired(false)
-                .setDescription('Indicates if this lineup allows to play ranked matches that would influence the team rating')),
+                .setDescription('Indicates if this lineup allow to play ranked matches that would influence the team rating')),
     authorizedRoles: [BOT_ADMIN_ROLE],
     async execute(interaction: ChatInputCommandInteraction) {
         let team = await teamService.findTeamByGuildId(interaction.guildId!)
@@ -49,13 +52,11 @@ export default {
         }
 
         const lineupSize = interaction.options.getInteger("size")!
-        const autoSearch = interaction.options.getBoolean("auto_search") || false
-        let allowRanked = true
-        if(interaction.options.getBoolean("allow_ranked") === false) {
-            allowRanked = false
-        }
+        const autoSearch = interaction.options.getBoolean("auto_search") === true
+        const autoMatchmaking = interaction.options.getBoolean("auto_matchmaking") !== null ? interaction.options.getBoolean("auto_matchmaking")! : true
+        const allowRanked = interaction.options.getBoolean("allow_ranked") !== null ? interaction.options.getBoolean("allow_ranked")! : true
 
-        const lineup = teamService.createLineup(interaction.channelId, lineupSize, undefined, autoSearch, allowRanked, team, LINEUP_TYPE_TEAM, LINEUP_VISIBILITY_PUBLIC)
+        const lineup = teamService.createLineup(interaction.channelId, lineupSize, undefined, autoSearch, allowRanked, team, LINEUP_TYPE_TEAM, LINEUP_VISIBILITY_PUBLIC, autoMatchmaking)
         await teamService.upsertLineup(lineup)
 
         let reply = await interactionUtils.createReplyForLineup(lineup, lineupQueue)

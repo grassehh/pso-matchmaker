@@ -83,7 +83,15 @@ class MatchmakingService {
 
         this.isMakingMatch = true
 
-        let lineupQueues = await LineupQueue.find({ 'lineup.type': LINEUP_TYPE_TEAM, 'lineup.team.region': TEAM_REGION_EU, challengeId: null }).sort({ '_id': 1 }).limit(1)
+        let lineupQueues = await LineupQueue.find(
+            {
+                'lineup.type': LINEUP_TYPE_TEAM,
+                'lineup.team.region': TEAM_REGION_EU,
+                'lineup.autoMatchmaking': true,
+                challengeId: null
+            })
+            .sort({ '_id': 1 })
+            .limit(1)
         if (lineupQueues.length === 0) {
             this.isMakingMatch = false
             return
@@ -97,6 +105,7 @@ class MatchmakingService {
                 $match: {
                     'lineup.channelId': { $ne: lineupQueue.lineup.channelId },
                     'lineup.team.region': lineupQueue.lineup.team.region,
+                    'lineup.autoMatchmaking': true,
                     'lineup.type': lineupQueue.lineup.type,
                     'lineup.size': lineupQueue.lineup.size,
                     challengeId: null,
@@ -764,7 +773,7 @@ class MatchmakingService {
             const allUsers = mixLineup!.roles.map(role => role.user).filter(notEmpty)
             let newMixLineup = mixLineup!
             if (newMixLineup.isCaptains()) {
-                newMixLineup = teamService.createLineup(newMixLineup.channelId, newMixLineup.size, "", false, newMixLineup.allowRanked, newMixLineup.team, LINEUP_TYPE_CAPTAINS, LINEUP_VISIBILITY_TEAM)
+                newMixLineup = teamService.createLineup(newMixLineup.channelId, newMixLineup.size, "", false, newMixLineup.allowRanked, newMixLineup.team, LINEUP_TYPE_CAPTAINS, LINEUP_VISIBILITY_TEAM, false)
             } else {
                 newMixLineup = newMixLineup.moveAllBenchToLineup(1).moveAllBenchToLineup(2)
             }
