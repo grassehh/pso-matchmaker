@@ -700,8 +700,8 @@ class TeamService {
         return await Team.findOneAndUpdate({ guildId }, { verified }, { new: true })
     }
 
-    async findTeamFromUserId(userId: string): Promise<ITeam | null> {
-        return Team.findOne({ $or: [{ 'captains.id': userId }, { 'players.id': userId }] })
+    async findTeams(userId: string): Promise<ITeam[]> {
+        return Team.find({ $or: [{ 'captains.id': userId }, { 'players.id': userId }] })
     }
 
     async findAllVerifiedTeams(): Promise<ITeam[]> {

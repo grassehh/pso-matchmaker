@@ -303,7 +303,7 @@ class InteractionUtils {
                     emoji = '🥉'
                 }
                 let isTop3 = pos <= 3
-                fieldValue += `${isTop3 ? '**' : ''}${pos}. ${emoji} ${teamStats.name} *(${teamStats.rating || DEFAULT_RATING})* ${emoji}${isTop3 ? '**' : ''}\n`
+                fieldValue += `${isTop3 ? '**' : ''}${pos}. ${emoji} ${teamStats.logo ? `${teamStats.logo} ` : ''}${teamStats.name} *(${teamStats.rating || DEFAULT_RATING})* ${emoji}${isTop3 ? '**' : ''}\n`
                 pos++
             }
             teamStatsEmbed.addFields([{ name: `Page ${searchOptions.page + 1}/${numberOfPages}`, value: fieldValue }])

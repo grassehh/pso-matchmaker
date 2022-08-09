@@ -21,6 +21,7 @@ const userSchema = new Schema<IUser>({
 })
 
 export interface ITeam {
+    prettyPrintName(teamLogoDisplay?: TeamLogoDisplay): string,
     guildId: string,
     name: string,
     nameUpperCase: string,
@@ -50,6 +51,18 @@ const teamSchema = new Schema<ITeam>({
     captains: { type: [userSchema], required: true, default: () => [] },
     players: { type: [userSchema], required: true, default: () => [] }
 })
+teamSchema.methods.prettyPrintName = function (teamLogoDisplay: TeamLogoDisplay = TeamLogoDisplay.LEFT) {
+    let name: string = ''
+    if (teamLogoDisplay === TeamLogoDisplay.LEFT) {
+        name += `${this.team.logo ? `${this.team.logo} ` : ''}`
+    }
+    name += `**${this.team.name}**`
+    if (teamLogoDisplay === TeamLogoDisplay.RIGHT) {
+        name += ` ${this.team.logo ? `${this.team.logo}` : ''}`
+    }
+
+    return name
+}
 export const Team = model<ITeam>('Team', teamSchema, 'teams')
 
 export interface IRole {
@@ -259,18 +272,7 @@ lineupSchema.methods.isAllowedToPlayRanked = function () {
         && this.size >= MIN_LINEUP_SIZE_FOR_RANKED
 }
 lineupSchema.methods.prettyPrintName = function (teamLogoDisplay: TeamLogoDisplay = TeamLogoDisplay.LEFT, includeRating: boolean = false) {
-    let name: string = ''
-    if (teamLogoDisplay === TeamLogoDisplay.LEFT) {
-        name += `${this.team.logo ? `${this.team.logo} ` : ''}`
-    }
-    name += `**${this.team.name}**`
-    if (teamLogoDisplay === TeamLogoDisplay.RIGHT) {
-        name += ` ${this.team.logo ? `${this.team.logo}` : ''}`
-    }
-
-    if (this.name) {
-        name += ` - *${this.name}*`
-    }
+    let name: string = this.team.prettyPrintName(teamLogoDisplay)
 
     if (includeRating) {
         let rating
@@ -281,6 +283,7 @@ lineupSchema.methods.prettyPrintName = function (teamLogoDisplay: TeamLogoDispla
         }
         name += ` *(${rating})*`
     }
+    
     return name
 }
 export const Lineup = model<ILineup>('Lineup', lineupSchema, 'lineups')
