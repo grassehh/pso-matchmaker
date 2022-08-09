@@ -40,3 +40,8 @@ export function getEmojis(text: string): string[] {
 
     return emojis
 }
+
+const customEmojiRegex = /(<a?)?:\w+:(\d{18}>)?/
+export function isCustomEmoji(text: string): boolean {
+    return customEmojiRegex.exec(text) !== null
+}
