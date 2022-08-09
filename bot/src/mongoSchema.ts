@@ -54,11 +54,11 @@ const teamSchema = new Schema<ITeam>({
 teamSchema.methods.prettyPrintName = function (teamLogoDisplay: TeamLogoDisplay = TeamLogoDisplay.LEFT) {
     let name: string = ''
     if (teamLogoDisplay === TeamLogoDisplay.LEFT) {
-        name += `${this.team.logo ? `${this.team.logo} ` : ''}`
+        name += `${this.logo ? `${this.logo} ` : ''}`
     }
-    name += `**${this.team.name}**`
+    name += `**${this.name}**`
     if (teamLogoDisplay === TeamLogoDisplay.RIGHT) {
-        name += ` ${this.team.logo ? `${this.team.logo}` : ''}`
+        name += ` ${this.logo ? `${this.logo}` : ''}`
     }
 
     return name
@@ -283,7 +283,7 @@ lineupSchema.methods.prettyPrintName = function (teamLogoDisplay: TeamLogoDispla
         }
         name += ` *(${rating})*`
     }
-    
+
     return name
 }
 export const Lineup = model<ILineup>('Lineup', lineupSchema, 'lineups')
