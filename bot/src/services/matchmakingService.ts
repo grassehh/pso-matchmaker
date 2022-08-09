@@ -8,7 +8,7 @@ import { Challenge, IChallenge, ILineup, ILineupMatchResult, ILineupQueue, IMatc
 import { handle, notEmpty } from "../utils";
 import { interactionUtils } from "./interactionUtils";
 import { statsService } from "./statsService";
-import { LINEUP_TYPE_CAPTAINS, LINEUP_TYPE_TEAM, LINEUP_VISIBILITY_PUBLIC, LINEUP_VISIBILITY_TEAM, RankedStats, ROLE_GOAL_KEEPER, teamService, TEAM_REGION_EU } from "./teamService";
+import { LINEUP_TYPE_CAPTAINS, LINEUP_TYPE_TEAM, LINEUP_VISIBILITY_PUBLIC, LINEUP_VISIBILITY_TEAM, RankedStats, ROLE_GOAL_KEEPER, TeamLogoDisplay, teamService, TEAM_REGION_EU } from "./teamService";
 const ZScore = require("math-z-score");
 
 export enum MatchResult {
@@ -372,7 +372,7 @@ class MatchmakingService {
         } else {
             let teamLineupEmbedDescription = ''
             for (let lineupQueue of teamLineupQueues) {
-                teamLineupEmbedDescription += `${teamService.formatTeamName(lineupQueue.lineup, false, lineupQueue.lineup.team.verified)}\n`
+                teamLineupEmbedDescription += `${lineupQueue.lineup.prettyPrintName(TeamLogoDisplay.LEFT, lineupQueue.lineup.team.verified)}\n`
                 teamLineupEmbedDescription += lineupQueue.lineup.roles.filter(role => role.lineupNumber === 1).filter(role => role.user != null).length + ' players signed'
                 if (!teamService.hasGkSigned(lineupQueue.lineup)) {
                     teamLineupEmbedDescription += ' **(no GK)**'
@@ -386,7 +386,7 @@ class MatchmakingService {
                     teamsActionRow.addComponents(
                         new ButtonBuilder()
                             .setCustomId(`challenge_${lineupQueue._id}`)
-                            .setLabel(teamService.formatTeamName(lineupQueue.lineup, true))
+                            .setLabel(lineupQueue.lineup.prettyPrintName(TeamLogoDisplay.NONE))
                             .setStyle(ButtonStyle.Primary)
                     )
                 }
@@ -395,7 +395,7 @@ class MatchmakingService {
                     .setCustomId(`select_challenge`)
                     .setPlaceholder('Select a Team to challenge')
                 for (let lineupQueue of teamLineupQueues) {
-                    challengesSelectMenu.addOptions([{ label: teamService.formatTeamName(lineupQueue.lineup, true), value: lineupQueue._id.toString() }])
+                    challengesSelectMenu.addOptions([{ label: lineupQueue.lineup.prettyPrintName(), value: lineupQueue._id.toString() }])
                 }
                 teamsActionRow.addComponents(challengesSelectMenu)
             }
@@ -415,7 +415,7 @@ class MatchmakingService {
                 if (!teamService.hasGkSigned(lineupQueue.lineup)) {
                     lineupFieldValue += ' **(no GK)**'
                 }
-                mixLineupsEmbed.addFields([{ name: `${teamService.formatTeamName(lineupQueue.lineup, false)} *(${lineupQueue.lineup.computePlayersAverageRating()})*`, value: lineupFieldValue }])
+                mixLineupsEmbed.addFields([{ name: `${lineupQueue.lineup.prettyPrintName(TeamLogoDisplay.LEFT, false)} *(${lineupQueue.lineup.computePlayersAverageRating()})*`, value: lineupFieldValue }])
             }
             let mixesActionRow = new ActionRowBuilder<ButtonBuilder | SelectMenuBuilder>()
             if (mixLineupQueues.length < 6) {
@@ -423,7 +423,7 @@ class MatchmakingService {
                     mixesActionRow.addComponents(
                         new ButtonBuilder()
                             .setCustomId(`challenge_${lineupQueue._id}`)
-                            .setLabel(teamService.formatTeamName(lineupQueue.lineup, true))
+                            .setLabel(lineupQueue.lineup.prettyPrintName(TeamLogoDisplay.NONE))
                             .setStyle(ButtonStyle.Secondary)
                     )
                 }
@@ -432,7 +432,7 @@ class MatchmakingService {
                     .setCustomId(`select_challenge`)
                     .setPlaceholder('Select a Mix to challenge')
                 for (let lineupQueue of mixLineupQueues) {
-                    challengesSelectMenu.addOptions([{ label: teamService.formatTeamName(lineupQueue.lineup, true), value: lineupQueue._id.toString() }])
+                    challengesSelectMenu.addOptions([{ label: lineupQueue.lineup.prettyPrintName(), value: lineupQueue._id.toString() }])
                 }
                 mixesActionRow.addComponents(challengesSelectMenu)
             }
@@ -547,7 +547,7 @@ class MatchmakingService {
             if (!challenge.challengedTeam.lineup.isMix()) {
                 promises.push(challengedTeamChannel.messages.edit(challenge.challengedMessageId, { components: [] }))
             }
-            promises.push(challengedTeamChannel.send({ embeds: [interactionUtils.createInformationEmbed(user, `❌ **${teamService.formatTeamName(challenge.initiatingTeam.lineup)}** has cancelled the challenge request`)] }))
+            promises.push(challengedTeamChannel.send({ embeds: [interactionUtils.createInformationEmbed(user, `❌ ${challenge.initiatingTeam.lineup.prettyPrintName()} has cancelled the challenge request`)] }))
         }
 
         const [initiatingTeamChannel] = await handle(client.channels.fetch(challenge.initiatingTeam.lineup.channelId))
@@ -555,7 +555,7 @@ class MatchmakingService {
             if (challenge.initiatingMessageId) {
                 promises.push(initiatingTeamChannel.messages.edit(challenge.initiatingMessageId, { components: [] }))
             }
-            promises.push(initiatingTeamChannel.send({ embeds: [interactionUtils.createInformationEmbed(user, `❌ ${user} has cancelled the challenge request against ${teamService.formatTeamName(challenge.challengedTeam.lineup)}`)] }))
+            promises.push(initiatingTeamChannel.send({ embeds: [interactionUtils.createInformationEmbed(user, `❌ ${user} has cancelled the challenge request against ${challenge.challengedTeam.lineup.prettyPrintName()}`)] }))
         }
 
         await Promise.all(promises)
@@ -686,9 +686,9 @@ class MatchmakingService {
         }
 
         const lobbyHost = interaction ? interaction.user : await client.users.fetch(challenge!.initiatingUser.id)
-        const lobbyName = challenge
-            ? `${teamService.formatTeamName(challenge.initiatingTeam.lineup)} vs. ${teamService.formatTeamName(challenge.challengedTeam.lineup)}`
-            : `${teamService.formatTeamName(mixLineup!, true)} #${Math.floor(Math.random() * 10000).toString().padStart(4, '0')}`
+        const lobbyName = challenge ?
+            `**${challenge.initiatingTeam.lineup.prettyPrintName(TeamLogoDisplay.RIGHT)} vs. ${challenge.challengedTeam.lineup.prettyPrintName(TeamLogoDisplay.LEFT)}**`
+            : `**${mixLineup!.prettyPrintName()} #${Math.floor(Math.random() * 10000).toString().padStart(4, '0')}**`
         const lobbyPassword = Math.random().toString(36).slice(-4)
         const match = await new Match({
             matchId: uuidv4().substring(0, 8),
@@ -988,7 +988,7 @@ class MatchmakingService {
             embeds.push(new EmbedBuilder()
                 .setColor('#6aa84f')
                 .setTitle(`⚽ Match Ready ⚽`)
-                .setDescription(`**Please join the match as soon as possible**\nThe lobby can be found in the **"Custom Lobbies"** menu of the game\n*If you need a sub, please type **/request_sub** followed by the match id **${match.matchId}***\n\n`)
+                .setDescription(`** Please join the match as soon as possible **\nThe lobby can be found in the ** "Custom Lobbies" ** menu of the game\n * If you need a sub, please type ** /request_sub** followed by the match id **${match.matchId}***\n\n`)
                 .addFields([
                     { name: 'Lobby Name', value: `${match.lobbyName}`, inline: true },
                     { name: 'Lobby Password', value: `${match.lobbyPassword}`, inline: true },
@@ -1029,7 +1029,7 @@ class MatchmakingService {
                     await this.removeUserFromAllLineupQueues(discordUser.id)
                     await teamService.removeUserFromLineupsByChannelIds(discordUser.id, channelIds)
                     await Promise.all(channelIds.map(async (channelId: string) => {
-                        await teamService.notifyChannelForUserLeaving(client, discordUser, channelId, `⚠ ${discordUser} went to play another match with **${teamService.formatTeamName(lineup)}**`)
+                        await teamService.notifyChannelForUserLeaving(client, discordUser, channelId, `⚠ ${discordUser} went to play another match with **${lineup.prettyPrintName()}**`)
                     }))
                 }
             })

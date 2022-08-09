@@ -5,7 +5,7 @@ import { handle } from "../utils";
 import { authorizationService } from "./authorizationService";
 import { matchmakingService, MatchResult, RoleWithDiscordUser } from "./matchmakingService";
 import { statsService } from "./statsService";
-import { ROLE_ATTACKER, ROLE_DEFENDER, ROLE_GOAL_KEEPER, ROLE_MIDFIELDER, teamService, TEAM_REGION_EU } from "./teamService";
+import { ROLE_ATTACKER, ROLE_DEFENDER, ROLE_GOAL_KEEPER, ROLE_MIDFIELDER, TeamLogoDisplay, teamService, TeamTypeHelper, TEAM_REGION_EU } from "./teamService";
 
 class InteractionUtils {
     createReplyAlreadyQueued(lineupSize: number): InteractionReplyOptions {
@@ -38,7 +38,7 @@ class InteractionUtils {
 
     createReplyAlreadyChallenging(challenge: IChallenge): InteractionReplyOptions {
         return {
-            content: `⛔ Your team is negotiating a challenge between the teams '${teamService.formatTeamName(challenge.initiatingTeam.lineup)}' and '${teamService.formatTeamName(challenge.challengedTeam.lineup)}'`,
+            content: `⛔ Your team is negotiating a challenge between the teams ${challenge.initiatingTeam.lineup.prettyPrintName()} and ${challenge.challengedTeam.lineup.prettyPrintName()}`,
             ephemeral: true
         }
     }
@@ -57,9 +57,9 @@ class InteractionUtils {
             .setTimestamp()
 
         if (challenge.challengedTeam.lineup.isMix()) {
-            embed.setDescription(`💬 ${interaction.user} is challenging the mix '${teamService.formatTeamName(challenge.challengedTeam.lineup)}'.\nThe match will start automatically once the mix lineup is full.`)
+            embed.setDescription(`💬 ${interaction.user} is challenging the mix ${challenge.challengedTeam.lineup.prettyPrintName()}.\nThe match will start automatically once the mix lineup is full.`)
         } else {
-            embed.setDescription(`💬 ${interaction.user} has sent a challenge request to ${teamService.formatTeamName(challenge.challengedTeam.lineup)}.\nYou can either wait for their answer, or cancel your request.`)
+            embed.setDescription(`💬 ${interaction.user} has sent a challenge request to ${challenge.challengedTeam.lineup.prettyPrintName()}.\nYou can either wait for their answer, or cancel your request.`)
         }
 
         let cancelChallengeRow = new ActionRowBuilder<ButtonBuilder>()
@@ -76,10 +76,10 @@ class InteractionUtils {
     createDecideChallengeReply(interaction: ButtonInteraction | CommandInteraction | SelectMenuInteraction, challenge: IChallenge): InteractionReplyOptions {
         if (challenge.challengedTeam.lineup.isMix()) {
             let reply = this.createReplyForMixLineup(challenge.challengedTeam.lineup, challenge.initiatingTeam.lineup)
-            reply.embeds = reply.embeds?.concat(this.createInformationEmbed(interaction.user, `${teamService.formatTeamName(challenge.initiatingTeam.lineup)} is challenging the mix`))
+            reply.embeds = reply.embeds?.concat(this.createInformationEmbed(interaction.user, `${challenge.initiatingTeam.lineup.prettyPrintName()} is challenging the mix`))
             return reply
         } else {
-            let description = teamService.formatTeamName(challenge.initiatingTeam.lineup, false, challenge.initiatingTeam.lineup.team.verified)
+            let description = challenge.initiatingTeam.lineup.prettyPrintName(TeamLogoDisplay.LEFT, challenge.initiatingTeam.lineup.team.verified)
             const challengeEmbed = new EmbedBuilder()
                 .setColor('#566573')
                 .setTitle(`A team wants to play against you !`)
@@ -374,7 +374,7 @@ class InteractionUtils {
     }
 
     createLineupEmbed(rolesWithDiscordUsers: RoleWithDiscordUser[], lineup: ILineup): EmbedBuilder {
-        let embedTitle = `${teamService.formatTeamName(lineup)} Lineup`
+        let embedTitle = lineup.prettyPrintName()
         let lineupEmbed = new EmbedBuilder()
             .setColor('#6aa84f')
             .setTitle(embedTitle)
@@ -595,9 +595,15 @@ class InteractionUtils {
             .setFooter({ text: "If you add/remove any captains/players, your will need to verify your team again in order to play ranked matches" })
             .setColor('#566573')
             .addFields([
+                { name: 'Verified', value: `${team.verified ? '**✅ Yes**' : '❌ No'}` },
+                { name: 'Team ID', value: team.guildId, inline: true },
+                { name: 'Region', value: team.region, inline: true },
+                { name: 'Type', value: `${TeamTypeHelper.toString(team.type)}`, inline: true },
                 { name: 'Name', value: team.name, inline: true },
-                { name: 'Verified', value: `${team.verified ? '**Yes**' : 'No'}`, inline: true },
+                { name: 'Logo', value: `${team.logo ? `${team.logo}` : '*None*'}`, inline: true },
+                { name: 'Code', value: `${team.code ? `**${team.code}**` : '*None*'}`, inline: true },
                 { name: '\u200B', value: '\u200B' },
+                { name: 'Rating', value: `${team.rating}`, inline: true },
                 { name: 'Captains', value: `${captainsList.length > 0 ? captainsList : '*None*'}`, inline: true },
                 { name: 'Players', value: `${playersList.length > 0 ? playersList : '*None*'}`, inline: true },
             ])
@@ -605,25 +611,48 @@ class InteractionUtils {
         const teamManagementActionRow: ActionRowBuilder<ButtonBuilder> = new ActionRowBuilder<ButtonBuilder>()
             .addComponents(
                 new ButtonBuilder()
-                    .setLabel('Manage captains')
-                    .setCustomId(`team_manage_users_captains_${team.guildId}`)
+                    .setLabel('Team Type')
+                    .setCustomId(`team_manage_type_${team.guildId}`)
                     .setStyle(ButtonStyle.Primary),
                 new ButtonBuilder()
-                    .setLabel('Manage players')
-                    .setCustomId(`team_manage_users_players_${team.guildId}`)
+                    .setLabel('Team Logo')
+                    .setCustomId(`team_manage_logo_${team.guildId}`)
+                    .setStyle(ButtonStyle.Primary),
+                new ButtonBuilder()
+                    .setLabel('Team Name')
+                    .setCustomId(`team_manage_name_${team.guildId}`)
+                    .setStyle(ButtonStyle.Primary),
+                new ButtonBuilder()
+                    .setLabel('Team Code')
+                    .setCustomId(`team_manage_code_${team.guildId}`)
                     .setStyle(ButtonStyle.Primary)
             )
 
+        const playersManagementActionRow: ActionRowBuilder<ButtonBuilder> = new ActionRowBuilder<ButtonBuilder>()
+            .addComponents(
+                new ButtonBuilder()
+                    .setLabel('Manage captains')
+                    .setCustomId(`team_manage_captains_${team.guildId}`)
+                    .setStyle(ButtonStyle.Primary),
+                new ButtonBuilder()
+                    .setLabel('Manage players')
+                    .setCustomId(`team_manage_players_${team.guildId}`)
+                    .setStyle(ButtonStyle.Primary)
+            )
+
+        let components = [teamManagementActionRow, playersManagementActionRow
+        ]
         if (authorizationService.isOfficialDiscord(interaction.guildId!)) {
+            const adminTeamManagementActionRow: ActionRowBuilder<ButtonBuilder> = new ActionRowBuilder<ButtonBuilder>()
             if (!team.verified) {
-                teamManagementActionRow.addComponents(
+                adminTeamManagementActionRow.addComponents(
                     new ButtonBuilder()
                         .setLabel('Verify')
                         .setCustomId(`team_manage_state_verify_${team.guildId}`)
                         .setStyle(ButtonStyle.Success)
                 )
             } else {
-                teamManagementActionRow.addComponents(
+                adminTeamManagementActionRow.addComponents(
                     new ButtonBuilder()
                         .setLabel('Unverify')
                         .setCustomId(`team_manage_state_unverify_${team.guildId}`)
@@ -631,16 +660,17 @@ class InteractionUtils {
                 )
             }
 
-            teamManagementActionRow.addComponents(
+            adminTeamManagementActionRow.addComponents(
                 new ButtonBuilder()
                     .setLabel('Ban')
                     .setCustomId(`team_ban_${team.guildId}`)
                     .setStyle(ButtonStyle.Danger)
                     .setDisabled(true)
             )
+            components.push(adminTeamManagementActionRow)
         }
 
-        return { embeds: [teamDescriptionEmbed], components: [teamManagementActionRow], ephemeral: true }
+        return { embeds: [teamDescriptionEmbed], components, ephemeral: true }
     }
 
     private createRoleActionRow(maxRolePos: number, roles: IRole[], isBench: boolean = false): ActionRowBuilder<ButtonBuilder> {
@@ -672,7 +702,7 @@ class InteractionUtils {
         const challenge = await matchmakingService.findChallengeByChannelId(lineup.channelId) || undefined
 
         const lineupEmbed = new EmbedBuilder()
-            .setTitle(teamService.formatTeamName(lineup, false, lineup.team.verified))
+            .setTitle(lineup.prettyPrintName(TeamLogoDisplay.LEFT, lineup.team.verified))
             .setColor('#566573')
 
         this.fillLineupEmbedWithRoles(lineupEmbed, lineup.roles, lineup.bench, lineup.team.verified)
@@ -696,7 +726,7 @@ class InteractionUtils {
             if (!teamService.hasGkSigned(challengingLineup)) {
                 fieldValue += ' **(no GK)**'
             }
-            secondLineupEmbed.addFields([{ name: teamService.formatTeamName(challengingLineup, false, challengingLineup.team.verified), value: fieldValue }])
+            secondLineupEmbed.addFields([{ name: challengingLineup.prettyPrintName(TeamLogoDisplay.LEFT, lineup.team.verified), value: fieldValue }])
         } else {
             secondLineupEmbed = new EmbedBuilder()
                 .setColor('#0099ff')

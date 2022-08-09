@@ -2,7 +2,7 @@ import { SlashCommandBuilder } from "@discordjs/builders";
 import { ChatInputCommandInteraction } from "discord.js";
 import { BOT_ADMIN_ROLE, MAX_TEAM_NAME_LENGTH } from "../../constants";
 import { ICommandHandler } from "../../handlers/commandHandler";
-import { Team } from "../../mongoSchema";
+import { ITeam, Team } from "../../mongoSchema";
 import { interactionUtils } from "../../services/interactionUtils";
 import { teamService, TEAM_REGION_AS, TEAM_REGION_EU, TEAM_REGION_NA, TEAM_REGION_SA } from "../../services/teamService";
 
@@ -26,7 +26,7 @@ export default {
         ),
     authorizedRoles: [BOT_ADMIN_ROLE],
     async execute(interaction: ChatInputCommandInteraction) {
-        const team = await teamService.findTeamByGuildId(interaction.guildId!)
+        let team = await teamService.findTeamByGuildId(interaction.guildId!)
         if (team != null) {
             await interaction.reply({
                 content: `⛔ You team is already registered as '${team.name}'. Use the /team_name command if you wish to change the name of your team.`,
@@ -35,8 +35,8 @@ export default {
             return
         }
 
-        const name = interaction.options.getString('team_name')!
-        if (!teamService.validateTeamName(name)) {
+        const name = teamService.validateTeamName(interaction.options.getString('team_name')!)
+        if (name === null) {
             await interaction.reply({
                 content: `⛔ Please choose a name with less than ${MAX_TEAM_NAME_LENGTH} characters.`,
                 ephemeral: true
@@ -54,14 +54,13 @@ export default {
             return
         }
 
-        await new Team({
+        team = await new Team({
             guildId: interaction.guildId,
-            name: interaction.options.getString('team_name'),
-            region: interaction.options.getString('team_region')
-        }).save()
-        await interaction.reply({
-            embeds: [interactionUtils.createInformationEmbed(interaction.user, '✅ Your team has been registered ! Use the /help command for more information about how to set up the lineups and use the matchmaking')],
-            ephemeral: true
-        })
+            name,
+            region,
+            nameUpperCase: name.toUpperCase()
+        }).save() as ITeam
+        await interaction.reply({ embeds: [interactionUtils.createInformationEmbed(interaction.user, '✅ Your team has been registered !')], ephemeral: true })
+        await interaction.followUp(interactionUtils.createTeamManagementReply(interaction, team))
     }
 } as ICommandHandler

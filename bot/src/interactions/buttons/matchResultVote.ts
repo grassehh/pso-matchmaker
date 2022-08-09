@@ -3,7 +3,7 @@ import { IButtonHandler } from "../../handlers/buttonHandler";
 import { ILineupMatchResult } from "../../mongoSchema";
 import { interactionUtils } from "../../services/interactionUtils";
 import { matchmakingService, MatchResult, MatchResultType } from "../../services/matchmakingService";
-import { teamService, TEAM_REGION_AS, TEAM_REGION_EU, TEAM_REGION_NA, TEAM_REGION_SA } from "../../services/teamService";
+import { TEAM_REGION_AS, TEAM_REGION_EU, TEAM_REGION_NA, TEAM_REGION_SA } from "../../services/teamService";
 import { handle } from "../../utils";
 
 function getMatchResultChanneldIdByRegion(region: string): string | null {
@@ -62,7 +62,7 @@ export default {
             opponentLineup = interaction.channelId === match.firstLineup.channelId ? match.secondLineup : match.firstLineup
             otherLineupChannel = await interaction.client.channels.fetch(opponentLineup.channelId) as BaseGuildTextChannel
             existingLineupResult = interaction.channelId === match.firstLineup.channelId ? match.result.firstLineup : match.result.secondLineup
-            teamName = teamService.formatTeamName(lineup)
+            teamName = lineup.prettyPrintName()
             lineupToUpdate = interaction.channelId === match.firstLineup.channelId ? 1 : 2
         }
 

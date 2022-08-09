@@ -1,4 +1,5 @@
 import { TEAM_REGION_AS, TEAM_REGION_EU, TEAM_REGION_NA, TEAM_REGION_SA } from "./services/teamService";
+const emojiRegex = require('emoji-regex');
 
 export async function handle<T>(promise: Promise<T>): Promise<[T | undefined, any]> {
     try {
@@ -27,4 +28,15 @@ export function getOfficialDiscordIdByRegion(region: string): string {
         default:
             throw new Error(`Unknown region: ${region}`);
     }
+}
+
+export function getEmojis(text: string): string[] {
+    const regex = emojiRegex();
+    let match;
+    let emojis = [];
+    while ((match = regex.exec(text)) != null) {
+        emojis.push(match[0]);
+    }
+
+    return emojis
 }
