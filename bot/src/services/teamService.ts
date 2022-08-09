@@ -654,6 +654,16 @@ class TeamService {
         return Team.find({ verified: true })
     }
 
+    async sendMessage(client: Client, guildId: string, messageOptions: MessageOptions): Promise<void> {
+        const channelIds = await this.findChannelIdsByGuildId(guildId)
+        await Promise.all(channelIds.map(async channelId => {
+            const [channel] = await handle(client.channels.fetch(channelId))
+            if (channel instanceof TextChannel) {
+                channel?.send(messageOptions)
+            }
+        }))
+    }
+
     private removeSpecialCharacters(name: string): string {
         return name.replace(/(:[^:]*:)|(<.*>)|\*/ig, '');
     }
