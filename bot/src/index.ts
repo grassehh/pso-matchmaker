@@ -66,9 +66,16 @@ for (const file of eventFiles) {
 	}
 }
 
-schedule('*/5 * * * *', () => matchmakingService.updateBanList(client).catch(console.error));
+schedule('*/5 * * * *', async () => await matchmakingService.updateBanList(client).catch(console.error));
 
-schedule('*/10 * * * * *', () => matchmakingService.makeMatches(client).catch(console.error));
+let makingMatches = false
+schedule('*/10 * * * * *', async () => {
+	if (makingMatches) {
+		return
+	}
+	makingMatches = true
+	await matchmakingService.makeMatches(client).catch(console.error).finally(() => makingMatches = false)
+});
 
 console.log("Logging into discord...")
 client.login(process.env.TOKEN)
