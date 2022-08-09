@@ -13,21 +13,25 @@ async function editTeamLogo(interaction: ButtonInteraction, guildId: string) {
     const teamWasVerified = team.verified
     let teamChanged = false
     collector.on('collect', async m => {
-        let logo
-        const emojis = getEmojis(m.content)
-        if (emojis.length > 0) {
-            logo = emojis[0]
-        } else if (isCustomEmoji(m.content)) {
-            logo = m.content
-        }
-        if (!logo) {
-            collector.resetTimer()
-            await interaction.followUp({ content: '⛔ Only emojis are allowed (example: :flag_eu:)', ephemeral: true })
-            return
+        if (m.content === 'delete') {
+            team = await teamService.updateTeamLogo(guildId, null) as ITeam
+        } else {
+            let logo
+            const emojis = getEmojis(m.content)
+            if (emojis.length > 0) {
+                logo = emojis[0]
+            } else if (isCustomEmoji(m.content)) {
+                logo = m.content
+            }
+            if (!logo) {
+                collector.resetTimer()
+                await interaction.followUp({ content: '⛔ Only emojis are allowed (example: :flag_eu:)', ephemeral: true })
+                return
+            }
+            team = await teamService.updateTeamLogo(guildId, logo) as ITeam
         }
 
         teamChanged = true
-        team = await teamService.updateTeamLogo(guildId, logo) as ITeam
         collector.stop()
     })
 
@@ -41,7 +45,7 @@ async function editTeamLogo(interaction: ButtonInteraction, guildId: string) {
             await interaction.followUp({ content: "Logo edition timed out...", ephemeral: true })
         }
     })
-    await interaction.reply({ content: 'Enter your team logo (must be an emoji. Example: :flag_eu:)', ephemeral: true })
+    await interaction.reply({ content: 'Enter your team logo (must be an emoji. Example: :flag_eu:)\nType **delete** to delete your logo.', ephemeral: true })
 }
 
 async function editTeamName(interaction: ButtonInteraction, guildId: string) {

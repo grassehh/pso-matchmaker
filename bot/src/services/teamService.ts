@@ -678,7 +678,7 @@ class TeamService {
         return Team.findOneAndUpdate({ guildId }, { type, verified: false }, { new: true })
     }
 
-    async updateTeamLogo(guildId: string, logo: string): Promise<ITeam | null> {
+    async updateTeamLogo(guildId: string, logo: string | null): Promise<ITeam | null> {
         await Lineup.updateMany({ 'team.guildId': guildId }, { 'team.logo': logo, 'team.verified': false })
         return Team.findOneAndUpdate({ guildId }, { logo, verified: false }, { new: true })
     }

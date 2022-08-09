@@ -32,7 +32,7 @@ export default {
 
         const verifiedTeamsEmbed = new EmbedBuilder()
             .setTitle(user ? `${user.username} Team` : 'Verified Teams')
-            .setDescription(teams.length === 0 ? 'No team found' : teams.map(team => `**${team.name}** - ${team.guildId}`).join('\n'))
+            .setDescription(teams.length === 0 ? 'No team found' : teams.map(team => `${team.logo} **${team.name}** - ${team.guildId}`).join('\n'))
             .setColor('#566573')
 
         await interaction.reply({ embeds: [verifiedTeamsEmbed] })
