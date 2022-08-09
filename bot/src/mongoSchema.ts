@@ -274,6 +274,10 @@ lineupSchema.methods.isAllowedToPlayRanked = function () {
 lineupSchema.methods.prettyPrintName = function (teamLogoDisplay: TeamLogoDisplay = TeamLogoDisplay.LEFT, includeRating: boolean = false) {
     let name: string = this.team.prettyPrintName(teamLogoDisplay)
 
+    if (this.name) {
+        name += ` - *${this.name}*`
+    }
+
     if (includeRating) {
         let rating
         if (this.isMixOrCaptains()) {
