@@ -132,6 +132,9 @@ class StatsService {
         }))
         await Stats.bulkWrite(bulks)
 
+        /**
+         * This is deprecated but we will keep it just for information
+         */
         if (region === TEAM_REGION_EU && lineupSize >= MIN_LINEUP_SIZE_FOR_RANKED) {
             const psoEuGuild = await client.guilds.fetch(process.env.PSO_EU_DISCORD_GUILD_ID as string)
             const usersStats = await this.findUsersStats(nonMercUserIds, region)

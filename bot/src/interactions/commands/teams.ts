@@ -4,6 +4,7 @@ import { ICommandHandler } from "../../handlers/commandHandler";
 import { ITeam } from "../../mongoSchema";
 import { authorizationService } from "../../services/authorizationService";
 import { teamService } from "../../services/teamService";
+import { getRegionByGuildId } from "../../utils";
 
 export default {
     data: new SlashCommandBuilder()
@@ -24,7 +25,7 @@ export default {
         if (user) {
             teams = teams.concat(await teamService.findTeams(user.id))
         } else {
-            teams = await teamService.findAllVerifiedTeams()
+            teams = await teamService.findAllVerifiedTeams(getRegionByGuildId(interaction.guildId!))
         }
 
         const verifiedTeamsEmbed = new EmbedBuilder()

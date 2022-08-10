@@ -8,7 +8,7 @@ import { Challenge, IChallenge, ILineup, ILineupMatchResult, ILineupQueue, IMatc
 import { handle, notEmpty } from "../utils";
 import { interactionUtils } from "./interactionUtils";
 import { statsService } from "./statsService";
-import { LINEUP_TYPE_CAPTAINS, LINEUP_TYPE_TEAM, LINEUP_VISIBILITY_PUBLIC, LINEUP_VISIBILITY_TEAM, RankedStats, ROLE_GOAL_KEEPER, TeamLogoDisplay, teamService, TEAM_REGION_EU } from "./teamService";
+import { LINEUP_TYPE_CAPTAINS, LINEUP_TYPE_TEAM, LINEUP_VISIBILITY_PUBLIC, LINEUP_VISIBILITY_TEAM, RankedStats, ROLE_GOAL_KEEPER, TeamLogoDisplay, teamService } from "./teamService";
 const ZScore = require("math-z-score");
 
 export enum MatchResult {
@@ -79,7 +79,6 @@ class MatchmakingService {
         let lineupQueues = await LineupQueue.find(
             {
                 'lineup.type': LINEUP_TYPE_TEAM,
-                'lineup.team.region': TEAM_REGION_EU,
                 'lineup.autoMatchmaking': true,
                 challengeId: null
             })
@@ -100,8 +99,8 @@ class MatchmakingService {
                         'lineup.autoMatchmaking': true,
                         'lineup.type': lineupQueue.lineup.type,
                         'lineup.size': lineupQueue.lineup.size,
-                        challengeId: null,
-                        ranked: lineupQueue.ranked
+                        ranked: lineupQueue.ranked,
+                        challengeId: null
                     }
                 },
                 {
