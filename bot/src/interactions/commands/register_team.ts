@@ -4,7 +4,8 @@ import { BOT_ADMIN_ROLE, MAX_TEAM_NAME_LENGTH } from "../../constants";
 import { ICommandHandler } from "../../handlers/commandHandler";
 import { ITeam, Team } from "../../mongoSchema";
 import { interactionUtils } from "../../services/interactionUtils";
-import { teamService, TEAM_REGION_AS, TEAM_REGION_EU, TEAM_REGION_NA, TEAM_REGION_SA } from "../../services/teamService";
+import { Region, regionService } from "../../services/regionService";
+import { teamService } from "../../services/teamService";
 
 export default {
     data: new SlashCommandBuilder()
@@ -18,10 +19,10 @@ export default {
             .setRequired(true)
             .setDescription('The region of your team')
             .addChoices(
-                { name: 'Europe', value: TEAM_REGION_EU },
-                { name: 'North America', value: TEAM_REGION_NA },
-                { name: 'South America', value: TEAM_REGION_SA },
-                { name: 'East Asia', value: TEAM_REGION_AS }
+                { name: regionService.getRegionData(Region.EUROPE).label, value: Region.EUROPE },
+                { name: regionService.getRegionData(Region.NORTH_AMERICA).label, value: Region.NORTH_AMERICA },
+                { name: regionService.getRegionData(Region.SOUTH_AMERICA).label, value: Region.SOUTH_AMERICA },
+                { name: regionService.getRegionData(Region.EAST_ASIA).label, value: Region.EAST_ASIA }
             )
         ),
     authorizedRoles: [BOT_ADMIN_ROLE],
@@ -44,7 +45,7 @@ export default {
             return
         }
 
-        const region = interaction.options.getString('team_region')!
+        const region = interaction.options.getString('team_region')! as Region
         const duplicatedTeam = await teamService.findTeamByRegionAndName(region, name)
         if (duplicatedTeam) {
             await interaction.reply({

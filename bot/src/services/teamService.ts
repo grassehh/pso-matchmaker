@@ -3,15 +3,11 @@ import { DeleteResult } from "mongodb";
 import { UpdateWriteOpResult } from "mongoose";
 import { MAX_LINEUP_NAME_LENGTH, MAX_TEAM_CODE_LENGTH, MAX_TEAM_NAME_LENGTH } from "../constants";
 import { Bans, IBan, ILineup, IRole, IRoleBench, ITeam, IUser, Lineup, LineupQueue, Team } from "../mongoSchema";
-import { getEmojis, getOfficialDiscordIdByRegion, handle } from "../utils";
+import { getEmojis, handle } from "../utils";
 import { interactionUtils } from "./interactionUtils";
 import { matchmakingService } from "./matchmakingService";
+import { regionService } from "./regionService";
 import { statsService } from "./statsService";
-
-export const TEAM_REGION_EU = 'EU'
-export const TEAM_REGION_NA = 'NA'
-export const TEAM_REGION_SA = 'SA'
-export const TEAM_REGION_AS = 'AS'
 
 export enum TeamLogoDisplay {
     NONE = -1,
@@ -707,7 +703,7 @@ class TeamService {
     }
 
     async notifyNoLongerVerified(client: Client, team: ITeam) {
-        const officialGuild = await client.guilds.fetch(getOfficialDiscordIdByRegion(team.region)) as Guild
+        const officialGuild = await client.guilds.fetch(regionService.getRegionData(team.region).guildId) as Guild
         const informationEmbed = new EmbedBuilder()
             .setColor('#566573')
             .setTimestamp()

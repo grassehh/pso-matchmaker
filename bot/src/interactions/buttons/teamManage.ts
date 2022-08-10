@@ -3,8 +3,9 @@ import { MAX_TEAM_CODE_LENGTH, MAX_TEAM_NAME_LENGTH } from "../../constants";
 import { IButtonHandler } from "../../handlers/buttonHandler";
 import { ITeam } from "../../mongoSchema";
 import { interactionUtils } from "../../services/interactionUtils";
+import { regionService } from "../../services/regionService";
 import { teamService, TeamType, TeamTypeHelper } from "../../services/teamService";
-import { getEmojis, getOfficialDiscordIdByRegion, isCustomEmoji } from "../../utils";
+import { getEmojis, isCustomEmoji } from "../../utils";
 
 async function editTeamLogo(interaction: ButtonInteraction, guildId: string) {
     const filter = (m: Message) => interaction.user.id === m.author.id
@@ -179,7 +180,7 @@ async function editTeamVerification(interaction: ButtonInteraction) {
     if (verify) {
         description = "✅ Congratulations ! Your team has been verified and is now allowed to use ranked matchmaking."
     } else {
-        const officialGuild = await interaction.client.guilds.fetch(getOfficialDiscordIdByRegion(team.region)) as Guild
+        const officialGuild = await interaction.client.guilds.fetch(regionService.getRegionData(team.region).guildId) as Guild
         description = `🛑 Your team has been unverified by the admins. You can no longer participate in ranked matches.\nPlease contact the admins of the official ** ${officialGuild.name} ** discord to get your team verified by providing your team id: ** ${team.guildId} **.`
     }
     const informationEmbed = new EmbedBuilder()

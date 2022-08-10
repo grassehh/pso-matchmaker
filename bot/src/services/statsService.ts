@@ -3,7 +3,8 @@ import { MERC_USER_ID, MIN_LINEUP_SIZE_FOR_RANKED } from "../constants"
 import { IStats, ITeam, Stats, Team } from "../mongoSchema"
 import { handle } from "../utils"
 import { GameType } from "./interactionUtils"
-import { RankedStats, ROLE_ATTACKER, ROLE_DEFENDER, ROLE_GOAL_KEEPER, ROLE_MIDFIELDER, ROLE_MIX_CAPTAINS, TEAM_REGION_EU } from "./teamService"
+import { Region } from "./regionService"
+import { RankedStats, ROLE_ATTACKER, ROLE_DEFENDER, ROLE_GOAL_KEEPER, ROLE_MIDFIELDER, ROLE_MIX_CAPTAINS } from "./teamService"
 
 class StatsService {
     getLevelEmojiFromMember(member: GuildMember): string {
@@ -135,7 +136,7 @@ class StatsService {
         /**
          * This is deprecated but we will keep it just for information
          */
-        if (region === TEAM_REGION_EU && lineupSize >= MIN_LINEUP_SIZE_FOR_RANKED) {
+        if (region === Region.EUROPE && lineupSize >= MIN_LINEUP_SIZE_FOR_RANKED) {
             const psoEuGuild = await client.guilds.fetch(process.env.PSO_EU_DISCORD_GUILD_ID as string)
             const usersStats = await this.findUsersStats(nonMercUserIds, region)
 

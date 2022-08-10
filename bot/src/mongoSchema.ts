@@ -2,6 +2,7 @@ import { User } from "discord.js";
 import { model, Schema, Types } from "mongoose";
 import { DEFAULT_RATING, MERC_USER_ID, MIN_LINEUP_SIZE_FOR_RANKED } from "./constants";
 import { MatchResult } from "./services/matchmakingService";
+import { Region } from "./services/regionService";
 import { LINEUP_TYPE_CAPTAINS, LINEUP_TYPE_MIX, LINEUP_TYPE_TEAM, LINEUP_VISIBILITY_PUBLIC, LINEUP_VISIBILITY_TEAM, ROLE_ATTACKER, ROLE_DEFENDER, ROLE_GOAL_KEEPER, ROLE_MIDFIELDER, ROLE_MIX_CAPTAINS, ROLE_NAME_ANY, TeamLogoDisplay, TeamType } from "./services/teamService";
 import { notEmpty } from "./utils";
 
@@ -29,7 +30,7 @@ export interface ITeam {
     codeUpperCase?: string,
     logo?: string,
     type: TeamType,
-    region: string,
+    region: Region,
     lastMatchDate?: Date,
     rating: number,
     verified: boolean,
@@ -44,7 +45,7 @@ const teamSchema = new Schema<ITeam>({
     codeUpperCase: { type: String, required: false },
     logo: { type: String, required: false },
     type: { type: Number, enum: TeamType, required: true, default: TeamType.CLUB },
-    region: { type: String, required: true },
+    region: { type: String, enum: Region, required: true },
     lastMatchDate: { type: Date, required: false, default: () => new Date() },
     rating: { type: Number, required: true, default: DEFAULT_RATING },
     verified: { type: Boolean, required: true, default: false },

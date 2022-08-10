@@ -2,10 +2,10 @@ import { ActionRowBuilder, ButtonBuilder, ButtonInteraction, ButtonStyle, Client
 import { BOT_ADMIN_ROLE, DEFAULT_RATING, MAX_TEAM_CAPTAINS, MAX_TEAM_PLAYERS } from "../constants";
 import { IChallenge, ILineup, ILineupQueue, IRole, IRoleBench, IStats, ITeam, IUser, Stats } from "../mongoSchema";
 import { handle } from "../utils";
-import { authorizationService } from "./authorizationService";
 import { matchmakingService, MatchResult, RoleWithDiscordUser } from "./matchmakingService";
+import { Region, regionService } from "./regionService";
 import { statsService } from "./statsService";
-import { LINEUP_VISIBILITY_PUBLIC, ROLE_ATTACKER, ROLE_DEFENDER, ROLE_GOAL_KEEPER, ROLE_MIDFIELDER, TeamLogoDisplay, teamService, TeamTypeHelper, TEAM_REGION_EU } from "./teamService";
+import { LINEUP_VISIBILITY_PUBLIC, ROLE_ATTACKER, ROLE_DEFENDER, ROLE_GOAL_KEEPER, ROLE_MIDFIELDER, TeamLogoDisplay, teamService, TeamTypeHelper } from "./teamService";
 
 class InteractionUtils {
     createReplyAlreadyQueued(lineupSize: number): InteractionReplyOptions {
@@ -555,7 +555,7 @@ class InteractionUtils {
             .setDescription(
                 `Ranks will be updated **ONLY** if **BOTH TEAMS** votes are consistent.
                 **Be fair and honest and submit real result.** 
-                ${region === TEAM_REGION_EU ? 'If needed, use the [Ticket Tool](https://discord.com/channels/913821068811178045/914202504747688006) on EU server to report any abuse.' : ''}
+                ${region === Region.EUROPE ? 'If needed, use the [Ticket Tool](https://discord.com/channels/913821068811178045/914202504747688006) on EU server to report any abuse.' : ''}
             `)
             .setTimestamp()
         const matchVoteActionRow = new ActionRowBuilder<ButtonBuilder>()
@@ -641,7 +641,7 @@ class InteractionUtils {
 
         let components = [teamManagementActionRow, playersManagementActionRow
         ]
-        if (authorizationService.isOfficialDiscord(interaction.guildId!)) {
+        if (regionService.isOfficialDiscord(interaction.guildId!)) {
             const adminTeamManagementActionRow: ActionRowBuilder<ButtonBuilder> = new ActionRowBuilder<ButtonBuilder>()
             if (!team.verified) {
                 adminTeamManagementActionRow.addComponents(
