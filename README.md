@@ -12,7 +12,7 @@ Use the **/help** command to see a list of useful commands and how to use the bo
 The ratings are region-specific (4 regions exist so far: Europe, North America, South America and East Asia).<br>
 You can display the teams and players leaderboard by using the **/leaderboard** command.<br>
 To see your own stats, use the **/player_stats** command.<br>
-Every game mode supports ranked mode *(read [Game modes section](./README.md#game-modes) for more information)*. However, only the **official community discords** are allowed to create a ranked line-up. 
+Every game mode supports ranked mode *(read [Game modes section](#game-modes) for more information)*. However, only the **official community discords** are allowed to create a ranked line-up. 
 
 ![Example](./doc/images/leaderboard_teams.png)<br>
 *(Team leaderboard)*
@@ -42,7 +42,7 @@ The 2 most important things to understand are:
 
 A Team is made of 1 or multiple line-ups.<br>
 To create your team, invite **pso-matchmaker** on your discord, then use **/register_team** command.
-To create a new line-up, use **/setup_lineup**, **/setup_mix** or **/setup_mix_captains** commands depending on the game mode you want to play with this line-up *(read [Game modes section](./README.md#game-modes) for more information)*
+To create a new line-up, use **/setup_lineup**, **/setup_mix** or **/setup_mix_captains** commands depending on the game mode you want to play with this line-up *(read [Game modes section](#game-modes) for more information)*
 
 Once you create your team, you can use the **/team_manage** command to edit various information.
 
