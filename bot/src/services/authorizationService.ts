@@ -12,7 +12,6 @@ class AuthorizationService {
         process.env.PSO_AS_DISCORD_GUILD_ID
     ]
 
-
     isBotAllowed(interaction: Interaction) {
         if (interaction.channel?.type !== ChannelType.GuildText) {
             return false
