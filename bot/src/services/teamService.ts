@@ -150,11 +150,9 @@ class TeamService {
         return Lineup.updateOne({ channelId }, { name })
     }
 
-    async updateTeamRegionByGuildId(guildId: string, region: string): Promise<void> {
-        await Promise.all([
-            Team.updateOne({ guildId }, { region }),
-            Lineup.updateMany({ 'team.guildId': guildId }, { 'team.region': region })
-        ])
+    async updateTeamRegionByGuildId(guildId: string, region: string): Promise<ITeam | null> {
+        await Lineup.updateMany({ 'team.guildId': guildId }, { 'team.region': region, verified: false })
+        return Team.findOneAndUpdate({ guildId }, { region, verified: false }, { new: true })
     }
 
     async deleteLineup(channelId: string): Promise<DeleteResult> {
@@ -704,8 +702,8 @@ class TeamService {
         return Team.find({ $or: [{ 'captains.id': userId }, { 'players.id': userId }] })
     }
 
-    async findAllVerifiedTeams(): Promise<ITeam[]> {
-        return Team.find({ verified: true })
+    async findAllVerifiedTeams(region: string): Promise<ITeam[]> {
+        return Team.find({ region, verified: true })
     }
 
     async notifyNoLongerVerified(client: Client, team: ITeam) {

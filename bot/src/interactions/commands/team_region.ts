@@ -2,6 +2,7 @@ import { SlashCommandBuilder } from "@discordjs/builders";
 import { ChatInputCommandInteraction } from "discord.js";
 import { BOT_ADMIN_ROLE } from "../../constants";
 import { ICommandHandler } from "../../handlers/commandHandler";
+import { ITeam } from "../../mongoSchema";
 import { interactionUtils } from "../../services/interactionUtils";
 import { teamService, TEAM_REGION_AS, TEAM_REGION_EU, TEAM_REGION_NA, TEAM_REGION_SA } from "../../services/teamService";
 
@@ -21,13 +22,19 @@ export default {
         ),
     authorizedRoles: [BOT_ADMIN_ROLE],
     async execute(interaction: ChatInputCommandInteraction) {
-        let team = await teamService.findTeamByGuildId(interaction.guildId!)
+        let team = await teamService.findTeamByGuildId(interaction.guildId!) as ITeam
         if (!team) {
             await interaction.reply(interactionUtils.createReplyTeamNotRegistered())
             return
         }
 
         const newRegion = interaction.options.getString('region')!
+
+        if (newRegion === team.region) {
+            await interaction.reply({ content: `⛔ Your team is already in the ${newRegion} region`, ephemeral: true })
+            return
+        }
+
         const duplicatedTeam = await teamService.findTeamByRegionAndName(newRegion, team.name)
         if (duplicatedTeam) {
             await interaction.reply({
@@ -37,7 +44,11 @@ export default {
             return
         }
 
-        await teamService.updateTeamRegionByGuildId(team.guildId, newRegion)
+        const teamWasVerified = team.verified
+        team = await teamService.updateTeamRegionByGuildId(team.guildId, newRegion) as ITeam
+        if (teamWasVerified) {
+            await teamService.notifyNoLongerVerified(interaction.client, team)
+        }
         await interaction.reply(`✅ Your new team region is **${newRegion}**`)
     },
 } as ICommandHandler

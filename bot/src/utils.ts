@@ -30,6 +30,21 @@ export function getOfficialDiscordIdByRegion(region: string): string {
     }
 }
 
+export function getRegionByGuildId(guildId: string): string {
+    switch (guildId) {
+        case process.env.PSO_EU_DISCORD_GUILD_ID:
+            return TEAM_REGION_EU
+        case process.env.PSO_NA_DISCORD_GUILD_ID:
+            return TEAM_REGION_NA
+        case process.env.PSO_SA_DISCORD_GUILD_ID:
+            return TEAM_REGION_SA
+        case process.env.PSO_AS_DISCORD_GUILD_ID:
+            return TEAM_REGION_AS
+        default:
+            throw new Error(`Unknown guildId: ${guildId}`);
+    }
+}
+
 export function getEmojis(text: string): string[] {
     const regex = emojiRegex();
     let match;
