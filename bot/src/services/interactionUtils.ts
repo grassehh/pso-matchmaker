@@ -1,5 +1,5 @@
 import { ActionRowBuilder, ButtonBuilder, ButtonInteraction, ButtonStyle, Client, CommandInteraction, EmbedBuilder, Interaction, InteractionReplyOptions, InteractionUpdateOptions, Message, MessageOptions, SelectMenuBuilder, SelectMenuInteraction, User, UserManager } from "discord.js";
-import { BOT_ADMIN_ROLE, DEFAULT_RATING } from "../constants";
+import { BOT_ADMIN_ROLE, DEFAULT_RATING, MAX_TEAM_CAPTAINS, MAX_TEAM_PLAYERS } from "../constants";
 import { IChallenge, ILineup, ILineupQueue, IRole, IRoleBench, IStats, ITeam, IUser, Stats } from "../mongoSchema";
 import { handle } from "../utils";
 import { authorizationService } from "./authorizationService";
@@ -592,7 +592,7 @@ class InteractionUtils {
         const playersList = team.players.map(player => `${player.name} (${player.mention})`).join('\n')
         const teamDescriptionEmbed = new EmbedBuilder()
             .setTitle('Team Management')
-            .setFooter({ text: "If you add/remove any captains/players, your will need to verify your team again in order to play ranked matches" })
+            .setDescription("***Warning:** Any changes will require your team to be verified again*")
             .setColor('#566573')
             .addFields([
                 { name: 'Verified', value: `${team.verified ? '**✅ Yes**' : '❌ No'}` },
@@ -603,8 +603,8 @@ class InteractionUtils {
                 { name: 'Logo', value: `${team.logo ? `${team.logo}` : '*None*'}`, inline: true },
                 { name: 'Code', value: `${team.code ? `**${team.code}**` : '*None*'}`, inline: true },
                 { name: 'Rating', value: `${team.rating}` },
-                { name: 'Captains', value: `${captainsList.length > 0 ? captainsList : '*None*'}`, inline: true },
-                { name: 'Players', value: `${playersList.length > 0 ? playersList : '*None*'}`, inline: true },
+                { name: `Captains *(${team.captains.length}/${MAX_TEAM_CAPTAINS})*`, value: `${captainsList.length > 0 ? captainsList : '*None*'}`, inline: true },
+                { name: `Players *(${team.players.length}/${MAX_TEAM_PLAYERS})*`, value: `${playersList.length > 0 ? playersList : '*None*'}`, inline: true },
             ])
 
         const teamManagementActionRow: ActionRowBuilder<ButtonBuilder> = new ActionRowBuilder<ButtonBuilder>()
