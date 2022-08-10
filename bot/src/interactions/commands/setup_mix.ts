@@ -33,13 +33,9 @@ export default {
             .addStringOption(option => option.setName('name')
                 .setRequired(false)
                 .setDescription('Sets a name for this mix. Useful if you have multiple mixes inside your team'))
-            .addStringOption(option => option.setName('visibility')
+            .addBooleanOption(option => option.setName('allow_teams')
                 .setRequired(false)
-                .setDescription('If you set the visibility to public, you mix will be visible in the whole region')
-                .addChoices(
-                    { name: 'Team', value: LINEUP_VISIBILITY_TEAM },
-                    { name: 'Public', value: LINEUP_VISIBILITY_PUBLIC }
-                ))
+                .setDescription('If true, teams will be able to challenge the mix (replacing the blue blue)'))
             .addBooleanOption(option => option.setName('ranked')
                 .setRequired(false)
                 .setDescription('Indicates if this lineup is ranked and should update ratings')),
@@ -74,12 +70,17 @@ export default {
             }
         }
 
-        const visibility = interaction.options.getString("visibility") || LINEUP_VISIBILITY_TEAM
+        const allowTeams = interaction.options.getBoolean("allow_teams") === true
+        const visibility = allowTeams ? LINEUP_VISIBILITY_PUBLIC : LINEUP_VISIBILITY_TEAM
         const lineup = teamService.createLineup(interaction.channelId, lineupSize, lineupName, true, ranked, team, LINEUP_TYPE_MIX, visibility, false)
         await teamService.upsertLineup(lineup)
 
         await matchmakingService.deleteLineupQueuesByChannelId(interaction.channelId)
-        const lineupQueue = await new LineupQueue({ lineup, ranked }).save()
+
+        let lineupQueue
+        if (allowTeams) {
+            lineupQueue = await new LineupQueue({ lineup, ranked }).save()
+        }
 
         let reply = await interactionUtils.createReplyForLineup(lineup, lineupQueue)
         reply.embeds?.splice(0, 0, interactionUtils.createInformationEmbed(interaction.user, '✅ New mix lineup configured'))
