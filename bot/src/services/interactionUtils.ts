@@ -155,7 +155,7 @@ class InteractionUtils {
         await interaction.reply({ content: `⛔ You are not allowed to execute this command. Make sure that you have either admin permissions on the discord, or a role named **${BOT_ADMIN_ROLE}**`, ephemeral: true })
     }
 
-    async createStatsEmbeds(interaction: ButtonInteraction | CommandInteraction | SelectMenuInteraction, userId: string, region?: string): Promise<EmbedBuilder[]> {
+    async createStatsEmbeds(interaction: ButtonInteraction | CommandInteraction | SelectMenuInteraction, userId: string, region: Region): Promise<EmbedBuilder[]> {
         const user = interaction.client.users.resolve(userId)
         const foundStats = await statsService.findUsersStats([userId], region)
         let stats: IStats
@@ -192,12 +192,12 @@ class InteractionUtils {
         ]
     }
 
-    async createLeaderboardReply(interaction: Interaction, team: ITeam, searchOptions: StatsSearchOptions): Promise<InteractionReplyOptions | InteractionUpdateOptions> {
+    async createLeaderboardReply(interaction: Interaction, searchOptions: StatsSearchOptions): Promise<InteractionReplyOptions | InteractionUpdateOptions> {
         let numberOfItems
         if (searchOptions.statsType === StatsType.TEAMS) {
-            numberOfItems = await statsService.countNumberOfTeams(team.region)
+            numberOfItems = await statsService.countNumberOfTeams(searchOptions.region)
         } else {
-            numberOfItems = await statsService.countNumberOfPlayers(team.region)
+            numberOfItems = await statsService.countNumberOfPlayers(searchOptions.region)
         }
         const numberOfPages = Math.ceil(numberOfItems / searchOptions.pageSize)
 
@@ -205,7 +205,7 @@ class InteractionUtils {
             searchOptions.page = numberOfPages - 1
         }
 
-        const leaderboardEmbed: EmbedBuilder = await this.createLeaderboardEmbed(interaction, team, numberOfPages, searchOptions)
+        const leaderboardEmbed: EmbedBuilder = await this.createLeaderboardEmbed(interaction, numberOfPages, searchOptions)
         const scopeActionRow = new ActionRowBuilder<SelectMenuBuilder>().addComponents(
             new SelectMenuBuilder()
                 .setCustomId(`leaderboard_scope_select_${searchOptions.statsType}_${searchOptions.gameType}`)
@@ -214,20 +214,38 @@ class InteractionUtils {
                     {
                         emoji: '🌎',
                         label: 'International',
-                        value: StatsScope.INTERNATIONAL.toString(),
-                        default: searchOptions.statsScope === StatsScope.INTERNATIONAL
+                        value: Region.INTERNATIONAL,
+                        default: searchOptions.region === Region.INTERNATIONAL
                     },
                     {
-                        emoji: '⛺',
-                        label: 'Regional',
-                        value: StatsScope.REGIONAL.toString(),
-                        default: searchOptions.statsScope === StatsScope.REGIONAL
+                        emoji: '🇪🇺',
+                        label: 'Europe',
+                        value: Region.EUROPE,
+                        default: searchOptions.region === Region.EUROPE
+                    },
+                    {
+                        emoji: '🇺🇸',
+                        label: 'North America',
+                        value: Region.NORTH_AMERICA,
+                        default: searchOptions.region === Region.NORTH_AMERICA
+                    },
+                    {
+                        emoji: '🇧🇷',
+                        label: 'South America',
+                        value: Region.SOUTH_AMERICA,
+                        default: searchOptions.region === Region.SOUTH_AMERICA
+                    },
+                    {
+                        emoji: '🇰🇷',
+                        label: 'East Asia',
+                        value: Region.EAST_ASIA,
+                        default: searchOptions.region === Region.EAST_ASIA
                     }
                 ])
         )
         const statsTypeActionRow = new ActionRowBuilder<SelectMenuBuilder>().addComponents(
             new SelectMenuBuilder()
-                .setCustomId(`leaderboard_type_select_${searchOptions.statsScope}_${searchOptions.gameType}`)
+                .setCustomId(`leaderboard_type_select_${searchOptions.region}_${searchOptions.gameType}`)
                 .setPlaceholder('Stats Type')
                 .addOptions([
                     {
@@ -246,7 +264,7 @@ class InteractionUtils {
         )
         const gameTypeActionRow = new ActionRowBuilder<SelectMenuBuilder>().addComponents(
             new SelectMenuBuilder()
-                .setCustomId(`leaderboard_game_type_select_${searchOptions.statsType}_${searchOptions.statsScope}`)
+                .setCustomId(`leaderboard_game_type_select_${searchOptions.statsType}_${searchOptions.region}`)
                 .setPlaceholder('Game Type')
                 .addOptions([
                     {
@@ -265,7 +283,6 @@ class InteractionUtils {
         )
 
         const paginationActionRow = this.createLeaderboardPaginationActionRow(numberOfPages, searchOptions)
-
         const components: ActionRowBuilder<ButtonBuilder | SelectMenuBuilder>[] = [scopeActionRow, statsTypeActionRow]
         if (searchOptions.statsType === StatsType.PLAYERS) {
             components.push(gameTypeActionRow)
@@ -275,15 +292,15 @@ class InteractionUtils {
         return { embeds: [leaderboardEmbed], components, ephemeral: true }
     }
 
-    async createLeaderboardEmbed(interaction: Interaction, team: ITeam, numberOfPages: number, searchOptions: StatsSearchOptions): Promise<EmbedBuilder> {
+    async createLeaderboardEmbed(interaction: Interaction, numberOfPages: number, searchOptions: StatsSearchOptions): Promise<EmbedBuilder> {
         if (searchOptions.statsType === StatsType.TEAMS) {
-            return this.createTeamLeaderboardEmbed(team, numberOfPages, searchOptions)
+            return this.createTeamLeaderboardEmbed(numberOfPages, searchOptions)
         }
-        return this.createPlayersLeaderboardEmbed(interaction.client.users, team, numberOfPages, searchOptions)
+        return this.createPlayersLeaderboardEmbed(interaction.client.users, numberOfPages, searchOptions)
     }
 
-    async createTeamLeaderboardEmbed(team: ITeam, numberOfPages: number, searchOptions: StatsSearchOptions): Promise<EmbedBuilder> {
-        const teamsStats = await statsService.findTeamsStats(searchOptions.page, searchOptions.pageSize, searchOptions.statsScope === StatsScope.REGIONAL ? team.region : undefined) as ITeam[]
+    async createTeamLeaderboardEmbed(numberOfPages: number, searchOptions: StatsSearchOptions): Promise<EmbedBuilder> {
+        const teamsStats = await statsService.findTeamsStats(searchOptions.page, searchOptions.pageSize, searchOptions.region) as ITeam[]
 
         let teamStatsEmbed = new EmbedBuilder()
             .setColor('#566573')
@@ -312,8 +329,8 @@ class InteractionUtils {
         return teamStatsEmbed
     }
 
-    async createPlayersLeaderboardEmbed(usersManager: UserManager, team: ITeam, numberOfPages: number, searchOptions: StatsSearchOptions): Promise<EmbedBuilder> {
-        let playersStats = await statsService.findPlayersStats(searchOptions.page, searchOptions.pageSize, searchOptions.gameType, searchOptions.statsScope === StatsScope.REGIONAL ? team.region : undefined)
+    async createPlayersLeaderboardEmbed(usersManager: UserManager, numberOfPages: number, searchOptions: StatsSearchOptions): Promise<EmbedBuilder> {
+        let playersStats = await statsService.findPlayersStats(searchOptions.page, searchOptions.pageSize, searchOptions.gameType, searchOptions.region)
         let playersStatsEmbed = new EmbedBuilder()
             .setColor('#566573')
             .setTitle('🏆 Leaderboard 🏆')
@@ -349,22 +366,22 @@ class InteractionUtils {
         const paginationActionsRow = new ActionRowBuilder<ButtonBuilder>()
         paginationActionsRow.addComponents(
             new ButtonBuilder()
-                .setCustomId(`leaderboard_page_first_${searchOptions.statsScope}_${searchOptions.statsType}_${searchOptions.gameType}`)
+                .setCustomId(`leaderboard_page_first_${searchOptions.region}_${searchOptions.statsType}_${searchOptions.gameType}`)
                 .setLabel('<<')
                 .setStyle(ButtonStyle.Secondary)
                 .setDisabled(searchOptions.page === 0),
             new ButtonBuilder()
-                .setCustomId(`leaderboard_page_${searchOptions.page - 1}_${searchOptions.statsScope}_${searchOptions.statsType}_${searchOptions.gameType}`)
+                .setCustomId(`leaderboard_page_${searchOptions.page - 1}_${searchOptions.region}_${searchOptions.statsType}_${searchOptions.gameType}`)
                 .setLabel('<')
                 .setStyle(ButtonStyle.Secondary)
                 .setDisabled(searchOptions.page === 0),
             new ButtonBuilder()
-                .setCustomId(`leaderboard_page_${searchOptions.page + 1}_${searchOptions.statsScope}_${searchOptions.statsType}_${searchOptions.gameType}`)
+                .setCustomId(`leaderboard_page_${searchOptions.page + 1}_${searchOptions.region}_${searchOptions.statsType}_${searchOptions.gameType}`)
                 .setLabel('>')
                 .setStyle(ButtonStyle.Secondary)
                 .setDisabled(searchOptions.page >= numberOfPages - 1),
             new ButtonBuilder()
-                .setCustomId(`leaderboard_page_last_${searchOptions.statsScope}_${searchOptions.statsType}_${searchOptions.gameType}`)
+                .setCustomId(`leaderboard_page_last_${searchOptions.region}_${searchOptions.statsType}_${searchOptions.gameType}`)
                 .setLabel('>>')
                 .setStyle(ButtonStyle.Secondary)
                 .setDisabled(searchOptions.page >= numberOfPages - 1)
@@ -544,7 +561,7 @@ class InteractionUtils {
         return rolesActionRows
     }
 
-    createMatchResultVoteMessage(matchId: string, region: string, user: User): MessageOptions {
+    createMatchResultVoteMessage(matchId: string, region: Region, user: User): MessageOptions {
         const matchVoteEmbed = new EmbedBuilder()
             .setColor('#6aa84f')
             .setTitle(":bangbang::bangbang: Submit for you team result ! :bangbang::bangbang:")
@@ -822,7 +839,7 @@ class InteractionUtils {
 export interface StatsSearchOptions {
     page: number,
     pageSize: number,
-    statsScope: StatsScope,
+    region: Region,
     statsType: StatsType,
     gameType: GameType
 }
@@ -830,11 +847,6 @@ export interface StatsSearchOptions {
 export enum GameType {
     TEAM_AND_MIX,
     CAPTAINS_MIX
-}
-
-export enum StatsScope {
-    INTERNATIONAL,
-    REGIONAL
 }
 
 export enum StatsType {

@@ -7,6 +7,7 @@ import { DEFAULT_RATING, MERC_USER_ID } from "../constants";
 import { Challenge, IChallenge, ILineup, ILineupMatchResult, ILineupQueue, IMatch, IRole, IStats, ISub, IUser, Lineup, LineupQueue, Match, Stats } from "../mongoSchema";
 import { handle, notEmpty } from "../utils";
 import { interactionUtils } from "./interactionUtils";
+import { Region } from "./regionService";
 import { statsService } from "./statsService";
 import { LINEUP_TYPE_CAPTAINS, LINEUP_TYPE_TEAM, LINEUP_VISIBILITY_PUBLIC, LINEUP_VISIBILITY_TEAM, RankedStats, ROLE_GOAL_KEEPER, TeamLogoDisplay, teamService } from "./teamService";
 const ZScore = require("math-z-score");
@@ -178,7 +179,7 @@ class MatchmakingService {
     }
 
 
-    async findAvailableLineupQueues(region: string, channelId: string, lineupSize: number, guildId: string, ranked: boolean): Promise<ILineupQueue[]> {
+    async findAvailableLineupQueues(region: Region, channelId: string, lineupSize: number, guildId: string, ranked: boolean): Promise<ILineupQueue[]> {
         let match: any = {
             'lineup.channelId': { '$ne': channelId },
             'lineup.team.region': region,

@@ -480,7 +480,7 @@ export interface IStats {
     getRating(roleType: number): number,
     _id: Types.ObjectId,
     userId: string,
-    region: string,
+    region: Region,
     numberOfGames: number,
     numberOfRankedGames: number,
     numberOfRankedWins: number,
@@ -499,6 +499,7 @@ const statsSchema = new Schema<IStats>({
     },
     region: {
         type: String,
+        enum: Region,
         required: true
     },
     numberOfGames: {
