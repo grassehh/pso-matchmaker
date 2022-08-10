@@ -5,7 +5,7 @@ import { handle } from "../utils";
 import { authorizationService } from "./authorizationService";
 import { matchmakingService, MatchResult, RoleWithDiscordUser } from "./matchmakingService";
 import { statsService } from "./statsService";
-import { ROLE_ATTACKER, ROLE_DEFENDER, ROLE_GOAL_KEEPER, ROLE_MIDFIELDER, TeamLogoDisplay, teamService, TeamTypeHelper, TEAM_REGION_EU } from "./teamService";
+import { LINEUP_VISIBILITY_PUBLIC, ROLE_ATTACKER, ROLE_DEFENDER, ROLE_GOAL_KEEPER, ROLE_MIDFIELDER, TeamLogoDisplay, teamService, TeamTypeHelper, TEAM_REGION_EU } from "./teamService";
 
 class InteractionUtils {
     createReplyAlreadyQueued(lineupSize: number): InteractionReplyOptions {
@@ -602,7 +602,7 @@ class InteractionUtils {
                 { name: 'Name', value: team.name, inline: true },
                 { name: 'Logo', value: `${team.logo ? `${team.logo}` : '*None*'}`, inline: true },
                 { name: 'Code', value: `${team.code ? `**${team.code}**` : '*None*'}`, inline: true },
-                { name: 'Rating', value: `${team.rating}`},
+                { name: 'Rating', value: `${team.rating}` },
                 { name: 'Captains', value: `${captainsList.length > 0 ? captainsList : '*None*'}`, inline: true },
                 { name: 'Players', value: `${playersList.length > 0 ? playersList : '*None*'}`, inline: true },
             ])
@@ -730,7 +730,9 @@ class InteractionUtils {
             secondLineupEmbed = new EmbedBuilder()
                 .setColor('#0099ff')
                 .setTitle(`Blue Team${lineup.allowRanked ? ` *(${lineup.computePlayersAverageRating(2)})*` : ''}`)
-                .setFooter({ text: 'If a Team faces the mix, it will replace the Blue Team' })
+            if (lineup.visibility === LINEUP_VISIBILITY_PUBLIC) {
+                secondLineupEmbed.setFooter({ text: 'If a Team faces the mix, it will replace the Blue Team' })
+            }
             this.fillLineupEmbedWithRoles(secondLineupEmbed, lineup.roles.filter(role => role.lineupNumber === 2), lineup.bench.filter(benchRole => benchRole.roles[0].lineupNumber === 2), lineup.team.verified)
         }
 

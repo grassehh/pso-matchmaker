@@ -4,6 +4,7 @@ import { ICommandHandler } from "../../handlers/commandHandler";
 import { authorizationService } from "../../services/authorizationService";
 import { interactionUtils } from "../../services/interactionUtils";
 import { teamService } from "../../services/teamService";
+import { getRegionByGuildId } from "../../utils";
 
 export default {
     data: new SlashCommandBuilder()
@@ -24,6 +25,11 @@ export default {
         const team = await teamService.findTeamByGuildId(teamId)
         if (!team) {
             await interaction.reply({ content: '⛔ This team does not exist', ephemeral: true })
+            return
+        }
+
+        if (getRegionByGuildId(interaction.guildId!) !== team.region) {
+            await interaction.reply({ content: '⛔ You cannot manage teams that are in other regions', ephemeral: true })
             return
         }
 
