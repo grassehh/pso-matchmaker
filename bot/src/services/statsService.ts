@@ -24,17 +24,17 @@ class StatsService {
         return ''
     }
 
-    async countNumberOfPlayers(region?: string): Promise<number> {
-        return (await Stats.distinct('userId', region ? { region } : {})).length
+    async countNumberOfPlayers(region: Region): Promise<number> {
+        return (await Stats.distinct('userId', region !== Region.INTERNATIONAL ? { region } : {})).length
     }
 
-    async countNumberOfTeams(region?: string): Promise<number> {
-        return (await Team.count(region ? { region, verified: true, rating: { $exists: true } } : { verified: true }))
+    async countNumberOfTeams(region: Region): Promise<number> {
+        return (await Team.count(region !== Region.INTERNATIONAL ? { region, verified: true, rating: { $exists: true } } : { verified: true, rating: { $exists: true } }))
     }
 
-    async findPlayersStats(page: number, pageSize: number, gameType: GameType, region?: string): Promise<IStats[]> {
+    async findPlayersStats(page: number, pageSize: number, gameType: GameType, region?: Region): Promise<IStats[]> {
         let match: any = {}
-        if (region) {
+        if (region !== Region.INTERNATIONAL) {
             match.region = region;
         }
 
@@ -106,7 +106,7 @@ class StatsService {
         return Stats.aggregate(pipeline)
     }
 
-    async updateStats(client: Client, region: string, lineupSize: number, userIds: string[]): Promise<void> {
+    async updateStats(client: Client, region: Region, lineupSize: number, userIds: string[]): Promise<void> {
         const nonMercUserIds = userIds.filter(userId => userId !== MERC_USER_ID)
         if (nonMercUserIds.length === 0) {
             return
@@ -157,9 +157,9 @@ class StatsService {
         }
     }
 
-    async findUsersStats(userIds: string[], region?: string): Promise<IStats[]> {
+    async findUsersStats(userIds: string[], region: Region): Promise<IStats[]> {
         let match: any = { userId: { $in: userIds } }
-        if (region) {
+        if (region !== Region.INTERNATIONAL) {
             match.region = region;
         }
 
@@ -205,11 +205,11 @@ class StatsService {
         ])
     }
 
-    async findUserStats(userId: string, region: string): Promise<IStats | null> {
+    async findUserStats(userId: string, region: Region): Promise<IStats | null> {
         return Stats.findOne({ userId, region })
     }
 
-    async updatePlayerRating(userId: string, region: string, newRating: RankedStats): Promise<IStats | null> {
+    async updatePlayerRating(userId: string, region: Region, newRating: RankedStats): Promise<IStats | null> {
         let ratingField
         switch (newRating.role.type) {
             case ROLE_ATTACKER:
@@ -242,9 +242,9 @@ class StatsService {
         )
     }
 
-    async findTeamsStats(page: number, pageSize: number, region?: string): Promise<ITeam[] | null> {
+    async findTeamsStats(page: number, pageSize: number, region: Region): Promise<ITeam[] | null> {
         let match: any = { verified: true, rating: { $exists: true } }
-        if (region) {
+        if (region !== Region.INTERNATIONAL) {
             match.region = region;
         }
 

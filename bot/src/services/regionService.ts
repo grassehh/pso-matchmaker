@@ -5,7 +5,8 @@ export enum Region {
     EUROPE = 'EU',
     NORTH_AMERICA = 'NA',
     SOUTH_AMERICA = 'SA',
-    EAST_ASIA = 'AS'
+    EAST_ASIA = 'AS',
+    INTERNATIONAL = 'INTERNATIONAL'
 }
 
 interface RegionData {

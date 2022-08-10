@@ -6,7 +6,7 @@ import { Bans, IBan, ILineup, IRole, IRoleBench, ITeam, IUser, Lineup, LineupQue
 import { getEmojis, handle } from "../utils";
 import { interactionUtils } from "./interactionUtils";
 import { matchmakingService } from "./matchmakingService";
-import { regionService } from "./regionService";
+import { Region, regionService } from "./regionService";
 import { statsService } from "./statsService";
 
 export enum TeamLogoDisplay {
@@ -122,11 +122,11 @@ class TeamService {
         return Team.findOne({ guildId })
     }
 
-    async findTeamByRegionAndName(region: string, name: string): Promise<ITeam | null> {
+    async findTeamByRegionAndName(region: Region, name: string): Promise<ITeam | null> {
         return Team.findOne({ region, nameUpperCase: name.toUpperCase() })
     }
 
-    async findTeamByRegionAndCode(region: string, code: string): Promise<ITeam | null> {
+    async findTeamByRegionAndCode(region: Region, code: string): Promise<ITeam | null> {
         return Team.findOne({ region, codeUpperCase: code.toUpperCase() })
     }
 
@@ -146,7 +146,7 @@ class TeamService {
         return Lineup.updateOne({ channelId }, { name })
     }
 
-    async updateTeamRegionByGuildId(guildId: string, region: string): Promise<ITeam | null> {
+    async updateTeamRegionByGuildId(guildId: string, region: Region): Promise<ITeam | null> {
         await Lineup.updateMany({ 'team.guildId': guildId }, { 'team.region': region, verified: false })
         return Team.findOneAndUpdate({ guildId }, { region, verified: false }, { new: true })
     }
@@ -558,7 +558,7 @@ class TeamService {
         return []
     }
 
-    async findAllChannelIdToNotify(region: string, channelId: string, lineupSize: number): Promise<string[]> {
+    async findAllChannelIdToNotify(region: Region, channelId: string, lineupSize: number): Promise<string[]> {
         const res = await Lineup.aggregate([
             {
                 $match: {
@@ -698,7 +698,7 @@ class TeamService {
         return Team.find({ $or: [{ 'captains.id': userId }, { 'players.id': userId }] })
     }
 
-    async findAllVerifiedTeams(region: string): Promise<ITeam[]> {
+    async findAllVerifiedTeams(region: Region): Promise<ITeam[]> {
         return Team.find({ region, verified: true })
     }
 

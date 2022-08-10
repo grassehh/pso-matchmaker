@@ -2,6 +2,7 @@ import { SlashCommandBuilder } from "@discordjs/builders";
 import { ActionRowBuilder, ChatInputCommandInteraction, SelectMenuBuilder } from "discord.js";
 import { ICommandHandler } from "../../handlers/commandHandler";
 import { interactionUtils } from "../../services/interactionUtils";
+import { Region } from "../../services/regionService";
 import { teamService } from "../../services/teamService";
 
 export default {
@@ -13,10 +14,7 @@ export default {
             .setDescription('The player you to see the stats')),
     async execute(interaction: ChatInputCommandInteraction) {
         let team = await teamService.findTeamByGuildId(interaction.guildId!)
-        if (!team) {
-            await interaction.reply(interactionUtils.createReplyTeamNotRegistered())
-            return
-        }
+        const region = team ? team.region : Region.INTERNATIONAL
 
         let player = interaction.options.getUser('player')
         let user = player ? player : interaction.user
@@ -26,17 +24,39 @@ export default {
                 .setPlaceholder('Stats Type')
                 .addOptions([
                     {
-                        label: '🌎 Global Stats',
-                        value: 'global'
+                        emoji: '🌎',
+                        label: 'International',
+                        value: Region.INTERNATIONAL,
+                        default: region === Region.INTERNATIONAL
                     },
                     {
-                        label: '⛺ Region Stats',
-                        value: `region,${team.region}`
+                        emoji: '🇪🇺',
+                        label: 'Europe',
+                        value: Region.EUROPE,
+                        default: region === Region.EUROPE
+                    },
+                    {
+                        emoji: '🇺🇸',
+                        label: 'North America',
+                        value: Region.NORTH_AMERICA,
+                        default: region === Region.NORTH_AMERICA
+                    },
+                    {
+                        emoji: '🇧🇷',
+                        label: 'South America',
+                        value: Region.SOUTH_AMERICA,
+                        default: region === Region.SOUTH_AMERICA
+                    },
+                    {
+                        emoji: '🇰🇷',
+                        label: 'East Asia',
+                        value: Region.EAST_ASIA,
+                        default: region === Region.EAST_ASIA
                     }
                 ])
         )
 
-        let statsEmbeds = await interactionUtils.createStatsEmbeds(interaction, user.id, team.region)
+        let statsEmbeds = await interactionUtils.createStatsEmbeds(interaction, user.id, region)
         await interaction.reply({ embeds: statsEmbeds, components: [statsTypeComponent], ephemeral: true })
     }
 } as ICommandHandler;

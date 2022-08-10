@@ -1,18 +1,12 @@
 import { ButtonInteraction, InteractionUpdateOptions } from "discord.js";
 import { DEFAULT_LEADERBOARD_PAGE_SIZE } from "../../constants";
 import { IButtonHandler } from "../../handlers/buttonHandler";
-import { GameType, interactionUtils, StatsScope, StatsType } from "../../services/interactionUtils";
-import { teamService } from "../../services/teamService";
+import { GameType, interactionUtils, StatsType } from "../../services/interactionUtils";
+import { Region } from "../../services/regionService";
 
 export default {
     customId: 'leaderboard_page_',
     async execute(interaction: ButtonInteraction) {
-        const team = await teamService.findTeamByGuildId(interaction.guildId!)
-        if (!team) {
-            await interaction.reply(interactionUtils.createReplyTeamNotRegistered())
-            return
-        }
-
         const split = interaction.customId.split('_')
         const customIdPage = split[2]
         let page
@@ -24,10 +18,10 @@ export default {
             page = parseInt(customIdPage)
         }
 
-        const statsScope: StatsScope = parseInt(split[3])
+        const region: Region = split[3] as Region
         const statsType: StatsType = parseInt(split[4])
         const gameType: GameType = parseInt(split[5])
-        const reply = await interactionUtils.createLeaderboardReply(interaction, team, { page, pageSize: DEFAULT_LEADERBOARD_PAGE_SIZE, statsScope, statsType, gameType })
+        const reply = await interactionUtils.createLeaderboardReply(interaction, { page, pageSize: DEFAULT_LEADERBOARD_PAGE_SIZE, region, statsType, gameType })
         await interaction.update(reply as InteractionUpdateOptions)
     }
 } as IButtonHandler
