@@ -189,6 +189,13 @@ async function editTeamVerification(interaction: ButtonInteraction) {
     teamService.sendMessage(interaction.client, team.guildId, { embeds: [informationEmbed] })
 
     await interaction.update(interactionUtils.createTeamManagementReply(interaction, team) as InteractionUpdateOptions)
+
+    if (verify) {
+        informationEmbed.setDescription(`✅ ${team.prettyPrintName()} has been verified`)
+    } else {
+        informationEmbed.setDescription(`🛑 ${team.prettyPrintName()} has been unverified`)
+    }
+    await interaction.followUp({ embeds: [informationEmbed] })
 }
 
 async function editTeamUsers(interaction: ButtonInteraction, guildId: string, category: string) {
