@@ -2,9 +2,8 @@ import { ChatInputCommandInteraction, EmbedBuilder, SlashCommandBuilder } from "
 import { BOT_ADMIN_ROLE } from "../../constants";
 import { ICommandHandler } from "../../handlers/commandHandler";
 import { ITeam } from "../../mongoSchema";
-import { authorizationService } from "../../services/authorizationService";
+import { regionService } from "../../services/regionService";
 import { teamService } from "../../services/teamService";
-import { getRegionByGuildId } from "../../utils";
 
 export default {
     data: new SlashCommandBuilder()
@@ -15,7 +14,7 @@ export default {
             .setDescription('Only display the team in which the given player is')),
     authorizedRoles: [BOT_ADMIN_ROLE],
     async execute(interaction: ChatInputCommandInteraction) {
-        if (!authorizationService.isOfficialDiscord(interaction.guildId!)) {
+        if (!regionService.isOfficialDiscord(interaction.guildId!)) {
             await interaction.reply({ content: '⛔ Only official discords can use this command', ephemeral: true })
             return
         }
@@ -25,7 +24,7 @@ export default {
         if (user) {
             teams = teams.concat(await teamService.findTeams(user.id))
         } else {
-            teams = await teamService.findAllVerifiedTeams(getRegionByGuildId(interaction.guildId!))
+            teams = await teamService.findAllVerifiedTeams(regionService.getRegionByGuildId(interaction.guildId!)!)
         }
 
         const verifiedTeamsEmbed = new EmbedBuilder()

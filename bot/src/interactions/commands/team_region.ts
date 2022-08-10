@@ -4,7 +4,8 @@ import { BOT_ADMIN_ROLE } from "../../constants";
 import { ICommandHandler } from "../../handlers/commandHandler";
 import { ITeam } from "../../mongoSchema";
 import { interactionUtils } from "../../services/interactionUtils";
-import { teamService, TEAM_REGION_AS, TEAM_REGION_EU, TEAM_REGION_NA, TEAM_REGION_SA } from "../../services/teamService";
+import { Region, regionService } from "../../services/regionService";
+import { teamService } from "../../services/teamService";
 
 export default {
     data: new SlashCommandBuilder()
@@ -14,10 +15,10 @@ export default {
             .setRequired(true)
             .setDescription('The region of your team')
             .addChoices(
-                { name: 'Europe', value: TEAM_REGION_EU },
-                { name: 'North America', value: TEAM_REGION_NA },
-                { name: 'South America', value: TEAM_REGION_SA },
-                { name: 'East Asia', value: TEAM_REGION_AS }
+                { name: regionService.getRegionData(Region.EUROPE).label, value: Region.EUROPE },
+                { name: regionService.getRegionData(Region.NORTH_AMERICA).label, value: Region.NORTH_AMERICA },
+                { name: regionService.getRegionData(Region.SOUTH_AMERICA).label, value: Region.SOUTH_AMERICA },
+                { name: regionService.getRegionData(Region.EAST_ASIA).label, value: Region.EAST_ASIA }
             )
         ),
     authorizedRoles: [BOT_ADMIN_ROLE],
@@ -28,7 +29,7 @@ export default {
             return
         }
 
-        const newRegion = interaction.options.getString('region')!
+        const newRegion = interaction.options.getString('region')! as Region
 
         if (newRegion === team.region) {
             await interaction.reply({ content: `⛔ Your team is already in the ${newRegion} region`, ephemeral: true })
@@ -49,6 +50,6 @@ export default {
         if (teamWasVerified) {
             await teamService.notifyNoLongerVerified(interaction.client, team)
         }
-        await interaction.reply(`✅ Your new team region is **${newRegion}**`)
+        await interaction.reply(`✅ Your team is now in the **${regionService.getRegionData(newRegion).label}** region`)
     },
 } as ICommandHandler

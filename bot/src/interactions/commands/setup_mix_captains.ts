@@ -2,9 +2,9 @@ import { SlashCommandBuilder } from "@discordjs/builders";
 import { ChatInputCommandInteraction } from "discord.js";
 import { BOT_ADMIN_ROLE, MIN_LINEUP_SIZE_FOR_RANKED } from "../../constants";
 import { ICommandHandler } from "../../handlers/commandHandler";
-import { authorizationService } from "../../services/authorizationService";
 import { interactionUtils } from "../../services/interactionUtils";
 import { matchmakingService } from "../../services/matchmakingService";
+import { regionService } from "../../services/regionService";
 import { LINEUP_TYPE_CAPTAINS, LINEUP_VISIBILITY_TEAM, teamService } from "../../services/teamService";
 
 export default {
@@ -41,7 +41,7 @@ export default {
         const lineupSize = interaction.options.getInteger("size")!
         const ranked = interaction.options.getBoolean("ranked") === true
         if (ranked) {
-            if (!authorizationService.isOfficialDiscord(interaction.guildId!)) {
+            if (!regionService.isOfficialDiscord(interaction.guildId!)) {
                 await interaction.reply({ content: "⛔ Only official community discords can create ranked mixes", ephemeral: true })
                 return
             }

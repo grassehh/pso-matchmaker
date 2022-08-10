@@ -2,8 +2,8 @@ import { ActionRowBuilder, ButtonBuilder, ButtonInteraction, ButtonStyle, EmbedB
 import { MAX_TEAM_CAPTAINS, MAX_TEAM_PLAYERS, MIN_LINEUP_SIZE_FOR_RANKED } from "../../constants";
 import { IButtonHandler } from "../../handlers/buttonHandler";
 import { interactionUtils } from "../../services/interactionUtils";
+import { regionService } from "../../services/regionService";
 import { teamService } from "../../services/teamService";
-import { getOfficialDiscordIdByRegion } from "../../utils";
 
 export default {
     customId: 'startSearch',
@@ -19,7 +19,7 @@ export default {
 
         const isAllowedToPlayRanked = lineup.isAllowedToPlayRanked()
         if (!isAllowedToPlayRanked) {
-            const officialGuild = await interaction.client.guilds.fetch(getOfficialDiscordIdByRegion(lineup.team.region)) as Guild
+            const officialGuild = await interaction.client.guilds.fetch(regionService.getRegionData(lineup.team.region).guildId) as Guild
             searchModeEmbed.setDescription(`
             **In order to play ranked mode:**
              1. Create a lineup with a **${MIN_LINEUP_SIZE_FOR_RANKED}v${MIN_LINEUP_SIZE_FOR_RANKED}** format or more

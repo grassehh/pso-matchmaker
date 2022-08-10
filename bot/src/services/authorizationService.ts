@@ -5,13 +5,6 @@ const dotenv = require("dotenv")
 dotenv.config()
 
 class AuthorizationService {
-    readonly officialDiscordIds = [
-        process.env.PSO_EU_DISCORD_GUILD_ID,
-        process.env.PSO_NA_DISCORD_GUILD_ID,
-        process.env.PSO_SA_DISCORD_GUILD_ID,
-        process.env.PSO_AS_DISCORD_GUILD_ID
-    ]
-
     isBotAllowed(interaction: Interaction) {
         if (interaction.channel?.type !== ChannelType.GuildText) {
             return false
@@ -33,10 +26,6 @@ class AuthorizationService {
     isMatchmakingAdmin(member: GuildMember) {
         return member.permissions.has(PermissionsBitField.Flags.Administrator)
             || member.roles.cache.some((role: Role) => role.name.toUpperCase() === BOT_ADMIN_ROLE);
-    }
-
-    isOfficialDiscord(guildId: string) {
-        return this.officialDiscordIds.includes(guildId)
     }
 }
 

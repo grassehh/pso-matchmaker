@@ -3,23 +3,9 @@ import { IButtonHandler } from "../../handlers/buttonHandler";
 import { ILineupMatchResult } from "../../mongoSchema";
 import { interactionUtils } from "../../services/interactionUtils";
 import { matchmakingService, MatchResult, MatchResultType } from "../../services/matchmakingService";
-import { TeamLogoDisplay, TEAM_REGION_AS, TEAM_REGION_EU, TEAM_REGION_NA, TEAM_REGION_SA } from "../../services/teamService";
+import { regionService } from "../../services/regionService";
+import { TeamLogoDisplay } from "../../services/teamService";
 import { handle } from "../../utils";
-
-function getMatchResultChanneldIdByRegion(region: string): string | null {
-    switch (region) {
-        case TEAM_REGION_EU:
-            return process.env.PSO_EU_DISCORD_MATCH_RESULTS_CHANNEL_ID as string
-        case TEAM_REGION_NA:
-            return process.env.PSO_NA_DISCORD_MATCH_RESULTS_CHANNEL_ID as string
-        case TEAM_REGION_SA:
-            return process.env.PSO_SA_DISCORD_MATCH_RESULTS_CHANNEL_ID as string
-        case TEAM_REGION_AS:
-            return process.env.PSO_AS_DISCORD_MATCH_RESULTS_CHANNEL_ID as string
-        default:
-            return null
-    }
-}
 
 export default {
     customId: 'match_result_vote_',
@@ -116,7 +102,7 @@ export default {
                 }
                 await interaction.followUp(ratingUpdatedMessage)
 
-                const channelId = getMatchResultChanneldIdByRegion(match.firstLineup.team.region)
+                const channelId = regionService.getRegionData(match.firstLineup.team.region).matchResultsChannelId
                 if (channelId) {
                     const [channel] = await handle(interaction.client.channels.fetch(channelId))
                     if (channel instanceof TextChannel) {

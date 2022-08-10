@@ -2,8 +2,8 @@ import { ButtonInteraction, Message, User } from "discord.js";
 import { MAX_TEAM_CAPTAINS, MAX_TEAM_PLAYERS } from "../../constants";
 import { IButtonHandler } from "../../handlers/buttonHandler";
 import { ITeam } from "../../mongoSchema";
-import { authorizationService } from "../../services/authorizationService";
 import { interactionUtils } from "../../services/interactionUtils";
+import { regionService } from "../../services/regionService";
 import { teamService, TeamTypeHelper } from "../../services/teamService";
 import { handle } from "../../utils";
 
@@ -45,7 +45,7 @@ export default {
             let user: User | undefined
             if (m.mentions.users.size === 1) {
                 user = m.mentions.users.first()
-            } else if (authorizationService.isOfficialDiscord(interaction.guildId!)) {
+            } else if (regionService.isOfficialDiscord(interaction.guildId!)) {
                 [user] = await handle(interaction.client.users.fetch(m.content))
             }
 
