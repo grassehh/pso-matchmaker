@@ -852,9 +852,7 @@ class InteractionUtils {
         let description = roles.map(role => `**${role.name}:** ${this.formatPlayerName(ranked, role.user)}`).join('\n')
 
         if (bench.length > 0) {
-            description += '\n\n*Bench: '
-            description += bench.map(benchRole => `${this.formatPlayerName(ranked, benchRole.user)} (${benchRole.roles.map(role => role.name).join(', ')})`).join(', ')
-            description += '*\n'
+            lineupEmbed.setFooter({ text: `Bench: ${bench.map(benchRole => `${benchRole.user.name} (${benchRole.roles.map(role => role.name).join(', ')})`).join(', ')}` })
         }
 
         lineupEmbed.setDescription(description)
