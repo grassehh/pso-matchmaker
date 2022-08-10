@@ -155,14 +155,56 @@ class InteractionUtils {
         await interaction.reply({ content: `⛔ You are not allowed to execute this command. Make sure that you have either admin permissions on the discord, or a role named **${BOT_ADMIN_ROLE}**`, ephemeral: true })
     }
 
-    async createStatsEmbeds(interaction: ButtonInteraction | CommandInteraction | SelectMenuInteraction, userId: string, region: Region): Promise<EmbedBuilder[]> {
-        const user = interaction.client.users.resolve(userId)
-        const foundStats = await statsService.findUsersStats([userId], region)
+    async createPlayerStatsReply(user: User, region: Region): Promise<InteractionReplyOptions | InteractionUpdateOptions> {
+        const statsTypeComponent = new ActionRowBuilder<SelectMenuBuilder>().addComponents(
+            new SelectMenuBuilder()
+                .setCustomId(`stats_scope_select_${user.id}`)
+                .setPlaceholder('Stats Type')
+                .addOptions([
+                    {
+                        emoji: '🌎',
+                        label: 'International',
+                        value: Region.INTERNATIONAL,
+                        default: region === Region.INTERNATIONAL
+                    },
+                    {
+                        emoji: '🇪🇺',
+                        label: 'Europe',
+                        value: Region.EUROPE,
+                        default: region === Region.EUROPE
+                    },
+                    {
+                        emoji: '🇺🇸',
+                        label: 'North America',
+                        value: Region.NORTH_AMERICA,
+                        default: region === Region.NORTH_AMERICA
+                    },
+                    {
+                        emoji: '🇧🇷',
+                        label: 'South America',
+                        value: Region.SOUTH_AMERICA,
+                        default: region === Region.SOUTH_AMERICA
+                    },
+                    {
+                        emoji: '🇰🇷',
+                        label: 'East Asia',
+                        value: Region.EAST_ASIA,
+                        default: region === Region.EAST_ASIA
+                    }
+                ])
+        )
+
+        let statsEmbeds = await interactionUtils.createPlayerStatsEmbed(user, region)
+        return { embeds: statsEmbeds, components: [statsTypeComponent], ephemeral: true }
+    }
+
+    async createPlayerStatsEmbed(user: User, region: Region): Promise<EmbedBuilder[]> {
+        const foundStats = await statsService.findUsersStats([user.id], region)
         let stats: IStats
         if (foundStats.length === 0) {
             stats = new Stats({
-                userId,
-                region: 'Europe',
+                userId: user.id,
+                region,
                 numberOfGames: 0,
                 numberOfRankedGames: 0,
                 numberOfRankedWins: 0,
@@ -181,7 +223,7 @@ class InteractionUtils {
         return [
             new EmbedBuilder()
                 .setColor('#566573')
-                .setTitle(`${region ? '⛺ Region' : '🌎 Global'} Stats for ${user?.username}`)
+                .setTitle(`Stats for ${user.username}`)
                 .addFields([
                     { name: '📈 Ratings', value: `**Att:** ${stats.attackRating || DEFAULT_RATING} \n **Mid:** ${stats.midfieldRating || DEFAULT_RATING} \n **Def:** ${stats.defenseRating || DEFAULT_RATING} \n **GK:** ${stats.goalKeeperRating || DEFAULT_RATING} \n **Captains Mix:** ${stats.mixCaptainsRating || DEFAULT_RATING}`, inline: true },
                     { name: '⚽ Ranked Matches', value: `**Wins:** ${stats.numberOfRankedWins} \n **Draws:** ${stats.numberOfRankedDraws} \n **Losses:** ${stats.numberOfRankedLosses}`, inline: true },
