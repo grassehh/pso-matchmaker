@@ -3,8 +3,7 @@ import { MERC_USER_ID, MIN_LINEUP_SIZE_FOR_RANKED } from "../constants"
 import { IStats, ITeam, Stats, Team } from "../mongoSchema"
 import { handle } from "../utils"
 import { GameType } from "./interactionUtils"
-import { Region } from "./regionService"
-import { RankedStats, ROLE_ATTACKER, ROLE_DEFENDER, ROLE_GOAL_KEEPER, ROLE_MIDFIELDER, ROLE_MIX_CAPTAINS } from "./teamService"
+import { Region, regionService } from "./regionService"
 
 class StatsService {
     getLevelEmojiFromMember(member: GuildMember): string {
@@ -139,19 +138,10 @@ class StatsService {
         if (region === Region.EUROPE && lineupSize >= MIN_LINEUP_SIZE_FOR_RANKED) {
             const psoEuGuild = await client.guilds.fetch(process.env.PSO_EU_DISCORD_GUILD_ID as string)
             const usersStats = await this.findUsersStats(nonMercUserIds, region)
-
             await Promise.all(usersStats.map(async (userStats: IStats) => {
-                const levelingRoleId = this.getLevelingRoleIdFromStats(userStats)
                 const [member] = await handle(psoEuGuild.members.fetch(userStats._id.toString()))
                 if (member instanceof GuildMember) {
-                    await handle(member.roles.add(levelingRoleId))
-                    if (levelingRoleId === process.env.PSO_EU_DISCORD_REGULAR_ROLE_ID) {
-                        await handle(member.roles.remove(process.env.PSO_EU_DISCORD_CASUAL_ROLE_ID as string))
-                    } else if (levelingRoleId === process.env.PSO_EU_DISCORD_SENIOR_ROLE_ID) {
-                        await handle(member.roles.remove(process.env.PSO_EU_DISCORD_REGULAR_ROLE_ID as string))
-                    } else if (levelingRoleId === process.env.PSO_EU_DISCORD_VETERAN_ROLE_ID) {
-                        await handle(member.roles.remove(process.env.PSO_EU_DISCORD_SENIOR_ROLE_ID as string))
-                    }
+                    regionService.updateActivityMemberRole(member, userStats.numberOfRankedGames)
                 }
             }))
         }
@@ -209,33 +199,19 @@ class StatsService {
         return Stats.findOne({ userId, region })
     }
 
-    async updatePlayerRating(userId: string, region: Region, newRating: RankedStats): Promise<IStats | null> {
-        let ratingField
-        switch (newRating.role.type) {
-            case ROLE_ATTACKER:
-                ratingField = 'attackRating'
-                break
-            case ROLE_DEFENDER:
-                ratingField = 'defenseRating'
-                break
-            case ROLE_MIDFIELDER:
-                ratingField = 'midfieldRating'
-                break
-            case ROLE_GOAL_KEEPER:
-                ratingField = 'goalKeeperRating'
-                break
-            case ROLE_MIX_CAPTAINS:
-                ratingField = 'mixCaptainsRating'
-                break
-        }
+    async updatePlayerRating(userId: string, region: Region, newStats: IStats): Promise<IStats | null> {
         return Stats.findOneAndUpdate(
             { userId, region },
             {
                 $set: {
-                    numberOfRankedWins: newRating.wins,
-                    numberOfRankedDraws: newRating.draws,
-                    numberOfRankedLosses: newRating.losses,
-                    [`${ratingField}`]: newRating.rating
+                    numberOfRankedWins: newStats.numberOfRankedWins,
+                    numberOfRankedDraws: newStats.numberOfRankedDraws,
+                    numberOfRankedLosses: newStats.numberOfRankedLosses,
+                    attackRating: newStats.attackRating,
+                    defenseRating: newStats.defenseRating,
+                    midfieldRating: newStats.midfieldRating,
+                    goalKeeperRating: newStats.goalKeeperRating,
+                    mixCaptainsRating: newStats.mixCaptainsRating
                 }
             },
             { upsert: true }
@@ -254,20 +230,6 @@ class StatsService {
             { $skip: page * pageSize },
             { $limit: pageSize }
         ])
-    }
-
-    private getLevelingRoleIdFromStats(userStats: IStats): string {
-        if (userStats.numberOfRankedGames >= 800) {
-            return process.env.PSO_EU_DISCORD_VETERAN_ROLE_ID as string
-        }
-        if (userStats.numberOfRankedGames >= 250) {
-            return process.env.PSO_EU_DISCORD_SENIOR_ROLE_ID as string
-        }
-        if (userStats.numberOfRankedGames >= 25) {
-            return process.env.PSO_EU_DISCORD_REGULAR_ROLE_ID as string
-        }
-
-        return process.env.PSO_EU_DISCORD_CASUAL_ROLE_ID as string
     }
 }
 

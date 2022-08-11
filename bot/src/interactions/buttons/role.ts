@@ -47,13 +47,13 @@ export default {
             promises = []
         }
 
-        const rating = await statsService.findUserStats(interaction.user.id, lineup.team.region)
+        const playerStats = await statsService.findUserStats(interaction.user.id, lineup.team.region)
         const userToAdd = {
             id: interaction.user.id,
             name: interaction.user.username,
             mention: interaction.user.toString(),
             emoji: statsService.getLevelEmojiFromMember(interaction.member as GuildMember),
-            rating: rating?.getRating(selectedRole?.type)
+            rating: playerStats?.getRoleRating(selectedRole?.type)
         }
         promises.push(lineup = await teamService.addUserToLineup(interaction.channelId, selectedRoleName, userToAdd, lineupNumber) as ILineup)
         promises.push(matchmakingService.addUserToLineupQueue(interaction.channelId, selectedRoleName, userToAdd, lineupNumber))

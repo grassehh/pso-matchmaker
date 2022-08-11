@@ -66,7 +66,7 @@ for (const file of eventFiles) {
 	}
 }
 
-schedule('*/5 * * * *', async () => await matchmakingService.updateBanList(client).catch(console.error));
+schedule('*/10 * * * * *', async () => await matchmakingService.updateBansListChannel(client).catch(console.error));
 
 let makingMatches = false
 schedule('*/10 * * * * *', async () => {

@@ -48,7 +48,7 @@ export default {
             name: interaction.user.username,
             mention: interaction.user.toString(),
             emoji: statsService.getLevelEmojiFromMember(interaction.member as GuildMember),
-            rating: rating?.getRating(roleToSign.name.includes(GK.name) ? ROLE_GOAL_KEEPER : ROLE_MIX_CAPTAINS)
+            rating: rating?.getRoleRating(roleToSign.name.includes(GK.name) ? ROLE_GOAL_KEEPER : ROLE_MIX_CAPTAINS)
         } as IUser
 
         lineup = await teamService.addUserToLineup(interaction.channelId, roleToSign.name, userToAdd, roleToSign.lineupNumber) as ILineup
