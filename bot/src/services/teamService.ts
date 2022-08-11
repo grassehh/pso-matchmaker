@@ -2,7 +2,7 @@ import { BaseGuildTextChannel, ButtonInteraction, Client, CommandInteraction, Em
 import { DeleteResult } from "mongodb";
 import { UpdateWriteOpResult } from "mongoose";
 import { MAX_LINEUP_NAME_LENGTH, MAX_TEAM_CODE_LENGTH, MAX_TEAM_NAME_LENGTH } from "../constants";
-import { Bans, IBan, ILineup, IRole, IRoleBench, ITeam, IUser, Lineup, LineupQueue, Team } from "../mongoSchema";
+import { Bans, IBan, ILineup, IRole, IRoleBench, IStats, ITeam, IUser, Lineup, LineupQueue, Team } from "../mongoSchema";
 import { getEmojis, handle } from "../utils";
 import { interactionUtils } from "./interactionUtils";
 import { matchmakingService } from "./matchmakingService";
@@ -670,21 +670,25 @@ class TeamService {
     }
 
     async updateTeamType(guildId: string, type: TeamType): Promise<ITeam | null> {
+        await LineupQueue.updateMany({ 'lineup.team.guildId': guildId }, { 'lineup.team.type': type, 'lineup.team.verified': false })
         await Lineup.updateMany({ 'team.guildId': guildId }, { 'team.type': type, 'team.verified': false })
         return Team.findOneAndUpdate({ guildId }, { type, verified: false }, { new: true })
     }
 
     async updateTeamLogo(guildId: string, logo: string | null): Promise<ITeam | null> {
+        await LineupQueue.updateMany({ 'lineup.team.guildId': guildId }, { 'lineup.team.logo': logo, 'lineup.team.verified': false })
         await Lineup.updateMany({ 'team.guildId': guildId }, { 'team.logo': logo, 'team.verified': false })
         return Team.findOneAndUpdate({ guildId }, { logo, verified: false }, { new: true })
     }
 
     async updateTeamName(guildId: string, name: string): Promise<ITeam | null> {
+        await LineupQueue.updateMany({ 'lineup.team.guildId': guildId }, { 'lineup.team.name': name, 'lineup.team.nameUpperCase': name.toUpperCase(), 'lineup.team.verified': false })
         await Lineup.updateMany({ 'team.guildId': guildId }, { 'team.name': name, 'team.nameUpperCase': name.toUpperCase(), 'team.verified': false })
         return Team.findOneAndUpdate({ guildId }, { name, nameUpperCase: name.toUpperCase(), verified: false }, { new: true })
     }
 
     async updateTeamCode(guildId: string, code: string): Promise<ITeam | null> {
+        await LineupQueue.updateMany({ 'lineup.team.guildId': guildId }, { 'lineup.team.code': code, 'lineup.team.codeUpperCase': code.toUpperCase(), 'lineup.team.verified': false })
         await Lineup.updateMany({ 'team.guildId': guildId }, { 'team.code': code, 'team.codeUpperCase': code.toUpperCase(), 'team.verified': false })
         return Team.findOneAndUpdate({ guildId }, { code: code, codeUpperCase: code.toUpperCase(), verified: false }, { new: true })
     }
@@ -730,8 +734,5 @@ export const teamService = new TeamService()
 
 export interface RankedStats {
     role: IRole,
-    rating: number,
-    wins: number,
-    draws: number,
-    losses: number
+    stats: IStats
 }

@@ -7,9 +7,9 @@ import { DEFAULT_RATING, MERC_USER_ID } from "../constants";
 import { Challenge, IChallenge, ILineup, ILineupMatchResult, ILineupQueue, IMatch, IRole, IStats, ISub, IUser, Lineup, LineupQueue, Match, Stats } from "../mongoSchema";
 import { handle, notEmpty } from "../utils";
 import { interactionUtils } from "./interactionUtils";
-import { Region } from "./regionService";
+import { Region, regionService } from "./regionService";
 import { statsService } from "./statsService";
-import { LINEUP_TYPE_CAPTAINS, LINEUP_TYPE_TEAM, LINEUP_VISIBILITY_PUBLIC, LINEUP_VISIBILITY_TEAM, RankedStats, ROLE_GOAL_KEEPER, TeamLogoDisplay, teamService } from "./teamService";
+import { LINEUP_TYPE_CAPTAINS, LINEUP_TYPE_MIX, LINEUP_TYPE_TEAM, LINEUP_VISIBILITY_PUBLIC, LINEUP_VISIBILITY_TEAM, RankedStats, TeamLogoDisplay, teamService } from "./teamService";
 const ZScore = require("math-z-score");
 
 export enum MatchResult {
@@ -43,37 +43,44 @@ export namespace MatchResultType {
 }
 
 class MatchmakingService {
-    private readonly MAX_ATTEMPTS_BEFORE_WIDE_SEARCH = 33
+    private readonly MAX_ATTEMPTS_BEFORE_WIDE_SEARCH = 30
     private ratingDifferenceByAttempts = new Map()
         .set(this.MAX_ATTEMPTS_BEFORE_WIDE_SEARCH, -1)
-        .set(30, 4450)
-        .set(27, 2750)
-        .set(24, 1050)
-        .set(21, 650)
-        .set(18, 400)
-        .set(15, 250)
-        .set(12, 150)
-        .set(9, 100)
-        .set(6, 50)
+        .set(27, 4450)
+        .set(24, 2750)
+        .set(21, 1050)
+        .set(18, 650)
+        .set(15, 400)
+        .set(12, 250)
+        .set(9, 150)
+        .set(6, 100)
 
     isLineupAllowedToJoinQueue(lineup: ILineup): boolean {
         let numberOfPlayersSigned = lineup.roles.filter(role => role.user).length
         let lineupSize = lineup.isMixOrCaptains() ? lineup.size * 2 : lineup.size
         let numberOfMissingPlayers = lineupSize - numberOfPlayersSigned
+        if (lineup.isMixOrCaptains() && lineup.allowRanked) {
+            return numberOfMissingPlayers === 0
+        }
+
         let missingRoleName = lineup.roles.find(role => !role.user)?.name || ''
-        return numberOfMissingPlayers == 0 || (lineup.size > 3 && (numberOfMissingPlayers == 1 && missingRoleName.includes('GK')))
+        return numberOfMissingPlayers === 0 || (lineup.size > 3 && (numberOfMissingPlayers === 1 && missingRoleName.includes('GK')))
     }
 
-    async updateBanList(client: Client): Promise<void> {
-        const banListEmbed = await interactionUtils.createBanListEmbed(client, process.env.PSO_EU_DISCORD_GUILD_ID as string)
-        const channel = await client.channels.fetch(process.env.PSO_EU_DISCORD_BANS_CHANNEL_ID as string) as TextChannel
-        const messages = await channel.messages.fetch({ limit: 1 })
-        if (messages.size === 0) {
-            channel.send({ embeds: [banListEmbed] })
-        } else {
-            messages.first()?.edit({ embeds: [banListEmbed] })
-                .catch(async () => channel.send({ embeds: [banListEmbed] }))
-        }
+    async updateBansListChannel(client: Client): Promise<void> {
+        regionService.getAllRegionsData().forEach(async (regionData) => {
+            if (regionData.bansListChannelId) {
+                const banListEmbed = await interactionUtils.createBanListEmbed(client, regionData.guildId)
+                const channel = await client.channels.fetch(regionData.bansListChannelId) as TextChannel
+                const messages = await channel.messages.fetch({ limit: 1 })
+                if (messages.size === 0) {
+                    channel.send({ embeds: [banListEmbed] })
+                } else {
+                    messages.first()?.edit({ embeds: [banListEmbed] })
+                        .catch(async () => channel.send({ embeds: [banListEmbed] }))
+                }
+            }
+        })
     }
 
     async makeMatches(client: Client): Promise<void> {
@@ -91,7 +98,7 @@ class MatchmakingService {
         let i = lineupQueues.length
         while (i--) {
             let lineupQueue = lineupQueues[i]
-            const maxRatingDifference = Array.from(this.ratingDifferenceByAttempts.entries()).find(e => lineupQueue.matchmakingAttempts >= parseInt(e[0]))?.[1] || 0
+            const maxRatingDifference = Array.from(this.ratingDifferenceByAttempts.entries()).find(e => lineupQueue.matchmakingAttempts >= parseInt(e[0]))?.[1] || 40
             const lineupQueueToChallenge = await LineupQueue.aggregate([
                 {
                     $match: {
@@ -131,7 +138,7 @@ class MatchmakingService {
                     return
                 }
 
-                const initiatingUser = lineupQueue.lineup.getNonMecSignedRoles()[0].user!
+                const initiatingUser = lineupQueue.lineup.getNonMercSignedRoles()[0].user!
                 const challenge = new Challenge({
                     initiatingUser,
                     initiatingTeam: lineupQueue,
@@ -178,31 +185,32 @@ class MatchmakingService {
         return LineupQueue.deleteMany({ 'lineup.channelId': channelId })
     }
 
-
-    async findAvailableLineupQueues(region: Region, channelId: string, lineupSize: number, guildId: string, ranked: boolean): Promise<ILineupQueue[]> {
-        let match: any = {
+    async findAvailableQueuedTeams(region: Region, channelId: string, lineupSize: number, ranked: boolean): Promise<ILineupQueue[]> {
+        const match = {
             'lineup.channelId': { '$ne': channelId },
             'lineup.team.region': region,
             'lineup.size': lineupSize,
-            $or: [
-                { 'lineup.visibility': LINEUP_VISIBILITY_PUBLIC },
-                {
-                    $and: [
-                        { 'lineup.visibility': LINEUP_VISIBILITY_TEAM },
-                        { 'lineup.team.guildId': guildId }
-                    ]
-                }
-            ],
-            'challengeId': null
-        }
-
-        if (ranked) {
-            match.ranked = true
+            'lineup.type': LINEUP_TYPE_TEAM,
+            'challengeId': null,
+            ranked
         }
 
         return LineupQueue.find(match)
     }
 
+    async findAvailableQueuedMixes(region: Region, channelId: string, lineupSize: number, ranked: boolean): Promise<ILineupQueue[]> {
+        const match = {
+            'lineup.channelId': { '$ne': channelId },
+            'lineup.team.region': region,
+            'lineup.size': lineupSize,
+            'lineup.visibility': LINEUP_VISIBILITY_PUBLIC,
+            'lineup.type': LINEUP_TYPE_MIX,
+            challengeId: null,
+            ranked
+        }
+
+        return LineupQueue.find(match)
+    }
 
     async findChallengeById(id: string): Promise<IChallenge | null> {
         return Challenge.findById(id)
@@ -347,8 +355,9 @@ class MatchmakingService {
 
     async listChallenges(interaction: ButtonInteraction | CommandInteraction, lineup: ILineup, ranked: boolean): Promise<void> {
         await interaction.deferReply()
-        let lineupQueues = await matchmakingService.findAvailableLineupQueues(lineup.team.region, lineup.channelId, lineup.size, lineup.team.guildId, ranked)
-        if (lineupQueues.length === 0) {
+        const gameMode = ranked ? 'Ranked' : 'Casual'
+        const availableTeams = await matchmakingService.findAvailableQueuedTeams(lineup.team.region, lineup.channelId, lineup.size, ranked)
+        if (availableTeams.length === 0) {
             await interaction.editReply({
                 embeds: [
                     new EmbedBuilder()
@@ -356,14 +365,12 @@ class MatchmakingService {
                         .setDescription(`No Team is currently searching for a ${lineup.size}v${lineup.size} match 😪`)
                 ]
             })
-            return
         }
 
-        const gameMode = ranked ? 'Ranked' : 'Casual'
         const teamLineupsEmbed = new EmbedBuilder()
             .setColor('#5865f2')
             .setTitle(`Teams (${gameMode})`)
-        const teamLineupQueues = lineupQueues.filter((lineupQueue: ILineupQueue) => !lineupQueue.lineup.isMix())
+        const teamLineupQueues = availableTeams.filter((lineupQueue: ILineupQueue) => !lineupQueue.lineup.isMix())
         let teamsActionComponents: ActionRowBuilder<ButtonBuilder | SelectMenuBuilder>[] = []
         if (teamLineupQueues.length === 0) {
             teamLineupsEmbed.setDescription(`No Team available for ${lineup.size}v${lineup.size}`)
@@ -400,28 +407,39 @@ class MatchmakingService {
             teamsActionComponents = [teamsActionRow]
         }
 
+        let availableMixes = await matchmakingService.findAvailableQueuedMixes(lineup.team.region, lineup.channelId, lineup.size, ranked)
         const mixLineupsEmbed = new EmbedBuilder()
             .setColor('#566573')
             .setTitle(`Mixes (${gameMode})`)
-        const mixLineupQueues = lineupQueues.filter((lineupQueue: ILineupQueue) => lineupQueue.lineup.isMix())
+        if (ranked) {
+            const teamAvailableTierRoleIds = lineup.team.getAvailableTierRoleIds()
+            const filteredMixes = []
+            for (let mix of availableMixes) {
+                const mixTierRoleId = await mix.lineup.getTierRoleId(interaction.client)
+                if (teamAvailableTierRoleIds.includes(mixTierRoleId)) {
+                    filteredMixes.push(mix)
+                }
+            }
+            availableMixes = filteredMixes
+        }
         let mixesActionComponents: ActionRowBuilder<ButtonBuilder | SelectMenuBuilder>[] = []
-        if (mixLineupQueues.length === 0) {
+        if (availableMixes.length === 0) {
             mixLineupsEmbed.setDescription(`No Mix available for ${lineup.size}v${lineup.size}`)
         } else {
-            for (let lineupQueue of mixLineupQueues) {
-                let lineupFieldValue = lineupQueue.lineup.roles.filter(role => role.lineupNumber === 1).filter(role => role.user != null).length + ' players signed'
-                if (!teamService.hasGkSigned(lineupQueue.lineup)) {
+            for (let availableMix of availableMixes) {
+                let lineupFieldValue = availableMix.lineup.roles.filter(role => role.lineupNumber === 1).filter(role => role.user != null).length + ' players signed'
+                if (!teamService.hasGkSigned(availableMix.lineup)) {
                     lineupFieldValue += ' **(no GK)**'
                 }
-                mixLineupsEmbed.addFields([{ name: `${lineupQueue.lineup.prettyPrintName(TeamLogoDisplay.LEFT, false)} *(${lineupQueue.lineup.computePlayersAverageRating()})*`, value: lineupFieldValue }])
+                mixLineupsEmbed.addFields([{ name: `${availableMix.lineup.prettyPrintName(TeamLogoDisplay.LEFT, false)} *(${availableMix.lineup.computePlayersAverageRating()})*`, value: lineupFieldValue }])
             }
             let mixesActionRow = new ActionRowBuilder<ButtonBuilder | SelectMenuBuilder>()
-            if (mixLineupQueues.length < 6) {
-                for (let lineupQueue of mixLineupQueues) {
+            if (availableMixes.length < 6) {
+                for (let availableMix of availableMixes) {
                     mixesActionRow.addComponents(
                         new ButtonBuilder()
-                            .setCustomId(`challenge_${lineupQueue._id}`)
-                            .setLabel(lineupQueue.lineup.prettyPrintName(TeamLogoDisplay.NONE))
+                            .setCustomId(`challenge_${availableMix._id}`)
+                            .setLabel(availableMix.lineup.prettyPrintName(TeamLogoDisplay.NONE))
                             .setStyle(ButtonStyle.Secondary)
                     )
                 }
@@ -429,8 +447,8 @@ class MatchmakingService {
                 const challengesSelectMenu = new SelectMenuBuilder()
                     .setCustomId(`select_challenge`)
                     .setPlaceholder('Select a Mix to challenge')
-                for (let lineupQueue of mixLineupQueues) {
-                    challengesSelectMenu.addOptions([{ label: lineupQueue.lineup.prettyPrintName(), value: lineupQueue._id.toString() }])
+                for (let availableMix of availableMixes) {
+                    challengesSelectMenu.addOptions([{ label: availableMix.lineup.prettyPrintName(), value: availableMix._id.toString() }])
                 }
                 mixesActionRow.addComponents(challengesSelectMenu)
             }
@@ -605,13 +623,17 @@ class MatchmakingService {
 
         if (challenge && challenge.challengedTeam.lineup.isMix()) {
             const initiatingTeamLineup = await teamService.retrieveLineup(challenge.initiatingTeam.lineup.channelId)
-            const mixTeamLineup = await teamService.retrieveLineup(challenge.challengedTeam.lineup.channelId)
+            const mixLineup = await teamService.retrieveLineup(challenge.challengedTeam.lineup.channelId)
 
-            const missingRolesForTeam = initiatingTeamLineup!.roles.filter(role => role.user == null)
-            const missingRolesForMix = mixTeamLineup!.roles.filter(role => role.lineupNumber === 1).filter(role => role.user == null)
+            const missingRolesForTeam = initiatingTeamLineup!.roles.filter(role => !role.user)
+            const missingRolesForMix = mixLineup!.roles.filter(role => role.lineupNumber === 1).filter(role => !role.user)
             const allMissingRoles = missingRolesForMix.concat(missingRolesForTeam)
 
-            return allMissingRoles.length == 0 || (lineup.size > 3 && (allMissingRoles.length == 1 && allMissingRoles[0].name.includes('GK')))
+            if (challenge.initiatingTeam.ranked && challenge.challengedTeam.ranked) {
+                return allMissingRoles.length === 0
+            }
+
+            return allMissingRoles.length === 0 || (lineup.size > 3 && (allMissingRoles.length === 1 && allMissingRoles[0].name.includes('GK')))
         }
 
         if (!challenge && lineup.isMix()) {
@@ -685,7 +707,7 @@ class MatchmakingService {
 
         const lobbyHost = interaction ? interaction.user : await client.users.fetch(challenge!.initiatingUser.id)
         const lobbyName = challenge ?
-            `${challenge.initiatingTeam.lineup.prettyPrintName(TeamLogoDisplay.RIGHT)} **vs.** ${challenge.challengedTeam.lineup.prettyPrintName(TeamLogoDisplay.LEFT)}`
+            `${challenge.initiatingTeam.lineup.prettyPrintName(TeamLogoDisplay.RIGHT)} **vs** ${challenge.challengedTeam.lineup.prettyPrintName(TeamLogoDisplay.LEFT)}`
             : `**${mixLineup!.prettyPrintName()} #${Math.floor(Math.random() * 10000).toString().padStart(4, '0')}**`
         const lobbyPassword = Math.random().toString(36).slice(-4)
         const match = await new Match({
@@ -905,10 +927,10 @@ class MatchmakingService {
         )
     }
 
-    async updateRatings(match: IMatch): Promise<void> {
+    async updateRatings(client: Client, match: IMatch): Promise<void> {
         await Promise.all([
             this.updateTeamsRating(match),
-            this.updatePlayersRating(match)
+            this.updatePlayersRating(client, match)
         ])
     }
 
@@ -933,21 +955,42 @@ class MatchmakingService {
         }
     }
 
-    private async updatePlayersRating(match: IMatch): Promise<void> {
-        const firstLineupRating = await new LineupRating(match.firstLineup, match.secondLineup, match.result.firstLineup!.result).init()
-        const secondLineupRating = await new LineupRating(match.secondLineup, match.firstLineup, match.result.secondLineup!.result).init()
+    private async updatePlayersRating(client: Client, match: IMatch): Promise<void> {
+        const firstLineupRating = await new LineupRating(match.firstLineup, match.result.firstLineup!.result).init()
+        const secondLineupRating = await new LineupRating(match.secondLineup, match.result.secondLineup!.result).init()
 
-        match.firstLineup.roles.map(role => role.user).filter(notEmpty).forEach(async user => {
-            const newRating = firstLineupRating.computeNewPlayerRating(user.id, secondLineupRating.lineupRatingAverage!)
-            if (newRating) {
-                await statsService.updatePlayerRating(user.id, match.firstLineup.team.region, newRating)
+        const regionData = regionService.getRegionData(match.firstLineup.team.region)
+        const officialGuild = await client.guilds.fetch(regionData.guildId)
+        const firstLineupRatingAverage = match.firstLineup.computePlayersAverageRating()
+        const secondLineupRatingAverage = match.secondLineup.computePlayersAverageRating()
+
+        match.firstLineup.getNonMercSignedRoles().map(role => role.user!).forEach(async user => {
+            const oldAverageRating = firstLineupRating.getPlayerRating(user.id)?.stats.getAverageRating()
+            const newRating = firstLineupRating.computeNewPlayerRating(user.id, secondLineupRatingAverage)
+            if (oldAverageRating && newRating) {
+                await statsService.updatePlayerRating(user.id, match.firstLineup.team.region, newRating.stats)
+
+                if (!match.firstLineup.isCaptains()) {
+                    const member = await officialGuild.members.fetch(user.id)
+                    if (member) {
+                        await regionService.updateMemberTierRole(regionData.region, member, oldAverageRating, newRating.stats.getAverageRating())
+                    }
+                }
             }
         })
 
-        match.secondLineup.roles.map(role => role.user).filter(notEmpty).forEach(async user => {
-            const newRating = secondLineupRating.computeNewPlayerRating(user.id, firstLineupRating.lineupRatingAverage!)
-            if (newRating) {
-                await statsService.updatePlayerRating(user.id, match.secondLineup.team.region, newRating)
+        match.secondLineup.getNonMercSignedRoles().map(role => role.user!).forEach(async user => {
+            const oldAverageRating = secondLineupRating.getPlayerRating(user.id)?.stats.getAverageRating()
+            const newRating = secondLineupRating.computeNewPlayerRating(user.id, firstLineupRatingAverage)
+            if (oldAverageRating && newRating) {
+                await statsService.updatePlayerRating(user.id, match.secondLineup.team.region, newRating.stats)
+
+                if (!match.secondLineup.isCaptains()) {
+                    const member = await officialGuild.members.fetch(user.id)
+                    if (member) {
+                        await regionService.updateMemberTierRole(regionData.region, member, oldAverageRating, newRating.stats.getAverageRating())
+                    }
+                }
             }
         })
     }
@@ -1089,29 +1132,19 @@ export interface RoleWithDiscordUser {
 
 class LineupRating {
     private readonly lineup: ILineup
-    private readonly opponentLineup: ILineup
     private readonly zscore: typeof ZScore
     private readonly rankedStatsByUserId: Map<string, RankedStats> = new Map()
     private readonly matchResult: MatchResult
     private readonly kFactorPerNumberOfGames: Map<string, number> = new Map().set("800", 10).set("250", 20).set("25", 30)
-    lineupRatingAverage?: number
 
-    constructor(lineup: ILineup, opponentLineup: ILineup, matchResult: MatchResult) {
+    constructor(lineup: ILineup, matchResult: MatchResult) {
         this.lineup = lineup
-        this.opponentLineup = opponentLineup
         this.zscore = new ZScore()
         this.matchResult = matchResult
     }
 
     public async init() {
-        let roles = this.lineup.getNonMecSignedRoles()
-        const lineupHasGk = roles.some(role => role.type === ROLE_GOAL_KEEPER)
-        const opponentLineupHasGk = this.opponentLineup.getNonMecSignedRoles().some(role => role.type === ROLE_GOAL_KEEPER)
-        if (!lineupHasGk || !opponentLineupHasGk) {
-            roles = roles.filter(role => role.type !== ROLE_GOAL_KEEPER)
-        }
-
-        await Promise.all(roles.map(async role => {
+        await Promise.all(this.lineup.getNonMercSignedRoles().map(async role => {
             let playerStats = await statsService.findUserStats(role.user!.id, this.lineup.team.region)
             if (!playerStats) {
                 playerStats = new Stats({
@@ -1132,17 +1165,16 @@ class LineupRating {
 
             this.rankedStatsByUserId.set(role.user!.id, {
                 role,
-                rating: playerStats.getRating(role.type),
-                wins: playerStats.numberOfRankedWins,
-                draws: playerStats.numberOfRankedDraws,
-                losses: playerStats.numberOfRankedLosses
+                stats: playerStats
             })
         }))
-        const ratings = Array.from(this.rankedStatsByUserId.values()).map(rankedRole => rankedRole.rating)
-        this.zscore.setMeanAndDeviationFromDataset(ratings, true)
-        const sum = ratings.reduce((a, b) => a + b, 0);
-        this.lineupRatingAverage = (sum / ratings.length) || 0;
+        const allPlayersRatings = Array.from(this.rankedStatsByUserId.values()).map(rankedStats => rankedStats.stats.getRoleRating(rankedStats.role.type))
+        this.zscore.setMeanAndDeviationFromDataset(allPlayersRatings, true)
         return this
+    }
+
+    public getPlayerRating(userId: string): RankedStats | null {
+        return this.rankedStatsByUserId.get(userId) || null
     }
 
     public computeNewPlayerRating(userId: string, opponentLineupRatingAverage: number): RankedStats | null {
@@ -1151,27 +1183,28 @@ class LineupRating {
             return null
         }
 
-        const matchesPlayed = rankedStats.wins + rankedStats.draws + rankedStats.losses
-        const zscore = Math.abs(this.zscore.getZScore(rankedStats.rating)) || 0
+        const roleRating = rankedStats.stats.getRoleRating(rankedStats.role.type)
+        const matchesPlayed = rankedStats.stats.numberOfRankedWins + rankedStats.stats.numberOfRankedDraws + rankedStats.stats.numberOfRankedLosses
+        const zscore = Math.abs(this.zscore.getZScore(roleRating)) || 0
         let k = Array.from(this.kFactorPerNumberOfGames.entries()).find(e => matchesPlayed >= parseInt(e[0]))?.[1] || 40
         k /= Math.max(1, 0.3 * Math.exp(zscore))
 
         let elo = new Elo(k)
-            .playerA(rankedStats.rating)
+            .playerA(roleRating)
             .playerB(opponentLineupRatingAverage)
         if (this.matchResult === MatchResult.DRAW) {
             elo.setDraw()
-            rankedStats.draws++
+            rankedStats.stats.numberOfRankedDraws++
         } else if (this.matchResult === MatchResult.WIN) {
             elo.setWinnerA()
-            rankedStats.wins++
+            rankedStats.stats.numberOfRankedWins++
         } else {
             elo.setWinnerB()
-            rankedStats.losses++
+            rankedStats.stats.numberOfRankedLosses++
         }
 
         const newRating = elo.calculate().getResults()[0]
-
-        return { role: rankedStats.role, rating: newRating, wins: rankedStats.wins, losses: rankedStats.losses, draws: rankedStats.draws }
+        rankedStats.stats.setRoleRating(rankedStats.role.type, newRating)
+        return rankedStats
     }
 }

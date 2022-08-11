@@ -149,7 +149,8 @@ async function editTeamCode(interaction: ButtonInteraction, guildId: string) {
     })
     await interaction.reply({
         content: `
-        Enter a team code that respects the following:
+        Enter a team code. It is a short name of your team. For example: "HyP" for "Hyperion".
+        The code must respect the following:
             - Does not contain **emojis**
             - Does not **already exists**
             - Must be less than **${MAX_TEAM_CODE_LENGTH} characters**

@@ -12,3 +12,7 @@ export const MAX_BENCH_SIZE = 11
 
 export const DEFAULT_LEADERBOARD_PAGE_SIZE = 10
 export const DEFAULT_RATING = 1000
+
+export const RATING_TIER_3_THRESHOLD = 1500
+export const RATING_TIER_2_THRESHOLD = 1100
+export const RATING_TIER_1_THRESHOLD = 900

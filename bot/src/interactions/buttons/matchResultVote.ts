@@ -85,12 +85,11 @@ export default {
         if (match.result.firstLineup && match.result.secondLineup) {
             const firstLineupResult = match.result.firstLineup.result
             const secondLineupResult = match.result.secondLineup.result
-            if (
-                (firstLineupResult === MatchResult.DRAW && secondLineupResult === MatchResult.DRAW) ||
+            if ((firstLineupResult === MatchResult.DRAW && secondLineupResult === MatchResult.DRAW) ||
                 (firstLineupResult === MatchResult.WIN && secondLineupResult === MatchResult.LOSS) ||
                 (firstLineupResult === MatchResult.LOSS && secondLineupResult === MatchResult.WIN)
             ) {
-                await matchmakingService.updateRatings(match)
+                await matchmakingService.updateRatings(interaction.client, match)
                 const ratingUpdatedEmbed = new EmbedBuilder()
                     .setColor('#6aa84f')
                     .setTitle('✅ Votes are consistent')

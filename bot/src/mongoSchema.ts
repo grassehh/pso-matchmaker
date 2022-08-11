@@ -1,8 +1,8 @@
-import { User } from "discord.js";
+import { Client, GuildChannel, User } from "discord.js";
 import { model, Schema, Types } from "mongoose";
 import { DEFAULT_RATING, MERC_USER_ID, MIN_LINEUP_SIZE_FOR_RANKED } from "./constants";
 import { MatchResult } from "./services/matchmakingService";
-import { Region } from "./services/regionService";
+import { Region, regionService } from "./services/regionService";
 import { LINEUP_TYPE_CAPTAINS, LINEUP_TYPE_MIX, LINEUP_TYPE_TEAM, LINEUP_VISIBILITY_PUBLIC, LINEUP_VISIBILITY_TEAM, ROLE_ATTACKER, ROLE_DEFENDER, ROLE_GOAL_KEEPER, ROLE_MIDFIELDER, ROLE_MIX_CAPTAINS, ROLE_NAME_ANY, TeamLogoDisplay, TeamType } from "./services/teamService";
 import { notEmpty } from "./utils";
 
@@ -23,6 +23,8 @@ const userSchema = new Schema<IUser>({
 
 export interface ITeam {
     prettyPrintName(teamLogoDisplay?: TeamLogoDisplay): string,
+    getTierRoleId(): string,
+    getAvailableTierRoleIds(): string[],
     guildId: string,
     name: string,
     nameUpperCase: string,
@@ -64,6 +66,12 @@ teamSchema.methods.prettyPrintName = function (teamLogoDisplay: TeamLogoDisplay 
 
     return name
 }
+teamSchema.methods.getTierRoleId = function () {
+    return regionService.getTierRoleId(this.region, this.rating)
+}
+teamSchema.methods.getAvailableTierRoleIds = function () {
+    return regionService.getAvailableTierRoleIds(this.region, this.rating)
+}
 export const Team = model<ITeam>('Team', teamSchema, 'teams')
 
 export interface IRole {
@@ -97,10 +105,11 @@ export interface ILineup {
     isTeam(): boolean,
     numberOfSignedPlayers(): number,
     moveAllBenchToLineup(lineupNumber?: number, clearLineup?: boolean): ILineup,
-    getNonMecSignedRoles(): IRole[],
+    getNonMercSignedRoles(): IRole[],
     computePlayersAverageRating(lineupNumber?: number): number,
     isAllowedToPlayRanked(): boolean,
     prettyPrintName(teamLogoDisplay?: TeamLogoDisplay, includeRating?: boolean): string,
+    getTierRoleId(client: Client): Promise<string>,
     channelId: string,
     size: number,
     roles: IRole[],
@@ -201,7 +210,7 @@ lineupSchema.methods.isTeam = function () {
 lineupSchema.methods.numberOfSignedPlayers = function () {
     return this.roles.filter((role: IRole) => role.lineupNumber === 1).filter((role: IRole) => role.user != null).length;
 }
-lineupSchema.methods.getNonMecSignedRoles = function () {
+lineupSchema.methods.getNonMercSignedRoles = function () {
     return this.roles.filter((role: IRole) => role.user).filter((role: IRole) => role.user?.id !== MERC_USER_ID)
 }
 lineupSchema.methods.moveAllBenchToLineup = function (lineupNumber: number = 1, clearLineup: boolean = true) {
@@ -260,15 +269,15 @@ lineupSchema.methods.moveAllBenchToLineup = function (lineupNumber: number = 1, 
     return this
 }
 lineupSchema.methods.computePlayersAverageRating = function (lineupNumber: number = 1) {
-    const signedRoles = this.getNonMecSignedRoles().filter((role: IRole) => role.lineupNumber === lineupNumber)
+    const signedRoles = this.getNonMercSignedRoles().filter((role: IRole) => role.lineupNumber === lineupNumber)
     const sum = signedRoles.map((role: IRole) => role.user?.rating).reduce((a: number, b: number) => a + b, 0)
     return this.lineupRatingAverage = (sum / signedRoles.length) || 0
 }
 lineupSchema.methods.isAllowedToPlayRanked = function () {
-    const hasPlayersNotInVerifiedTeam = this.getNonMecSignedRoles().some((role: IRole) => !this.team.players.some((p2: IUser) => role.user?.id === p2.id))
+    const hasPlayersNotInVerifiedTeam = this.getNonMercSignedRoles().some((role: IRole) => !this.team.players.some((p2: IUser) => role.user?.id === p2.id))
     return this.team.verified
         && this.allowRanked
-        && this.getNonMecSignedRoles().length === this.size
+        && this.getNonMercSignedRoles().length === this.size
         && !hasPlayersNotInVerifiedTeam
         && this.size >= MIN_LINEUP_SIZE_FOR_RANKED
 }
@@ -290,6 +299,15 @@ lineupSchema.methods.prettyPrintName = function (teamLogoDisplay: TeamLogoDispla
     }
 
     return name
+}
+lineupSchema.methods.getTierRoleId = async function (client: Client): Promise<string> {
+    if (this.isMix()) {
+        const channel = await client.channels.fetch(this.channelId) as GuildChannel
+        const allTierRoleIds = regionService.getAllTierRoleIds(this.team.region)
+        return allTierRoleIds.find(roleId => channel.permissionOverwrites.resolve(roleId) !== null)!
+    }
+
+    return this.team.getTierRoleId()
 }
 export const Lineup = model<ILineup>('Lineup', lineupSchema, 'lineups')
 
@@ -477,7 +495,9 @@ matchSchema.methods.findUserRole = function (user: User): IRole | null {
 export const Match = model<IMatch>('Match', matchSchema, 'matches')
 
 export interface IStats {
-    getRating(roleType: number): number,
+    getRoleRating(roleType: number): number,
+    setRoleRating(roleType: number, rating: number): number,
+    getAverageRating(): number,
     _id: Types.ObjectId,
     userId: string,
     region: Region,
@@ -555,7 +575,7 @@ const statsSchema = new Schema<IStats>({
 })
 statsSchema.index({ userId: 1, region: 1 });
 statsSchema.index({ region: 1 });
-statsSchema.methods.getRating = function (roleType: number): number {
+statsSchema.methods.getRoleRating = function (roleType: number): number {
     switch (roleType) {
         case ROLE_ATTACKER:
             return this.attackRating
@@ -570,6 +590,30 @@ statsSchema.methods.getRating = function (roleType: number): number {
         default:
             return 0
     }
+}
+statsSchema.methods.setRoleRating = function (roleType: number, rating: number) {
+    switch (roleType) {
+        case ROLE_ATTACKER:
+            this.attackRating = rating
+            break
+        case ROLE_DEFENDER:
+            this.defenseRating = rating
+            break
+        case ROLE_MIDFIELDER:
+            this.midfieldRating = rating
+            break
+        case ROLE_GOAL_KEEPER:
+            this.goalKeeperRating = rating
+            break
+        case ROLE_MIX_CAPTAINS:
+            this.mixCaptainsRating = rating
+            break
+        default:
+            break
+    }
+}
+statsSchema.methods.getAverageRating = function (): number {
+    return (this.attackRating + this.defenseRating + this.midfieldRating + this.goalKeeperRating) / 4
 }
 export const Stats = model<IStats>('Stats', statsSchema, 'stats')
 
