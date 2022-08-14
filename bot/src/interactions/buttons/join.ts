@@ -124,6 +124,7 @@ export default {
 
             const filter = (interaction: ButtonInteraction) => interaction.customId.startsWith('pick_') ? true : false;
             const collector = interaction.channel!.createMessageComponentCollector<ComponentType.Button>({ filter, time: 150000 })
+            let roundNumber = 1
             collector.on('collect', async (i: Interaction) => {
                 if (!(i instanceof ButtonInteraction)) {
                     return
@@ -172,7 +173,9 @@ export default {
                     return
                 }
 
-                currentCaptain = currentCaptain.id === firstCaptain.id ? secondCaptain : firstCaptain
+                if (roundNumber !== 2) {
+                    currentCaptain = currentCaptain.id === firstCaptain.id ? secondCaptain : firstCaptain
+                }
 
                 const embed = interactionUtils.createInformationEmbed(`${i.user} has picked ${pickedRole.user!.name}.\n**${currentCaptain} turn to pick.**`, interaction.user)
                 let reply = await interactionUtils.createReplyForLineup(lineup)
@@ -180,6 +183,7 @@ export default {
                 reply.components = interactionUtils.createCaptainsPickComponent(remainingRoles)
                 await i.update({ components: [] })
                 await interaction.followUp(reply)
+                roundNumber++
             })
             collector.on('end', async () => {
                 lineup = lineup as ILineup
