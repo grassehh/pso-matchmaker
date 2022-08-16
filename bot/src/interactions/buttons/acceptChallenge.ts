@@ -33,6 +33,6 @@ export default {
             return
         }
         await matchmakingService.readyMatch(interaction.client, interaction, challenge)
-        await interaction.editReply({ embeds: [interactionUtils.createInformationEmbed(interaction.user, `${interaction.user} has accepted the challenge request`)] })
+        await interaction.editReply({ embeds: [interactionUtils.createInformationEmbed(`${interaction.user} has accepted the challenge request`, interaction.user)] })
     }
 } as IButtonHandler

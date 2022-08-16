@@ -58,7 +58,7 @@ export default {
         await matchmakingService.deleteLineupQueuesByChannelId(interaction.channelId)
 
         let reply = await interactionUtils.createReplyForLineup(lineup)
-        reply.embeds?.splice(0, 0, interactionUtils.createInformationEmbed(interaction.user, '✅ New mix captains lineup configured'))
+        reply.embeds?.splice(0, 0, interactionUtils.createInformationEmbed('✅ New mix captains lineup configured', interaction.user))
         await interaction.reply(reply);
     }
 } as ICommandHandler;

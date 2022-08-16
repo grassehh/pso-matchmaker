@@ -38,7 +38,7 @@ export default {
 
         await interaction.deferReply()
         lineupQueue = await matchmakingService.joinQueue(lineup, ranked)
-        const informationEmbed = interactionUtils.createInformationEmbed(interaction.user, `🔎 Your team is now searching for a **${ranked ? 'Ranked' : 'Casual'}** match to play`)
+        const informationEmbed = interactionUtils.createInformationEmbed(`🔎 Your team is now searching for a **${ranked ? 'Ranked' : 'Casual'}** match to play`, interaction.user)
         let reply = await interactionUtils.createReplyForLineup(lineup, lineupQueue)
         reply.embeds!.splice(0, 0, informationEmbed)
         await interaction.editReply(reply)

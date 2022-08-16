@@ -406,9 +406,20 @@ class TeamService {
         let newLineup = await this.removeUserFromLineup(lineup.channelId, interaction.user.id) as ILineup
         await matchmakingService.removeUserFromLineupQueue(lineup.channelId, interaction.user.id)
 
-        let description = benchLeft ?
-            `:outbox_tray: ${interaction.user} left the bench`
-            : `:outbox_tray: ${interaction.user} left the ${newLineup.isMixOrCaptains() ? 'queue !' : `**${roleLeft?.name}** position`}`
+        let description
+        if (benchLeft) {
+            if (lineup.isAnonymous()) {
+                description = ':outbox_tray: A player left the bench'
+            } else {
+                description = `:outbox_tray: ${interaction.user} left the bench`
+            }
+        } else {
+            if (lineup.isAnonymous()) {
+                description = ':outbox_tray: A player left the queue'
+            } else {
+                description = `:outbox_tray: ${interaction.user} left the ${newLineup.isMixOrCaptains() ? 'queue' : `**${roleLeft?.name}** position`}`
+            }
+        }
 
         const autoSearchResult = await matchmakingService.checkIfAutoSearch(interaction.client, interaction.user, newLineup)
         if (autoSearchResult.leftQueue) {
@@ -421,11 +432,15 @@ class TeamService {
         const benchUserToTransfer = this.getBenchUserToTransfer(newLineup, roleLeft)
         if (benchUserToTransfer !== null) {
             newLineup = await this.moveUserFromBenchToLineup(interaction.channelId, benchUserToTransfer, roleLeft!!) as ILineup
-            description += `\n:inbox_tray: ${benchUserToTransfer.mention} came off the bench and joined the **${roleLeft?.name}** position.`
+            if (lineup.isAnonymous()) {
+                description += '\n:inbox_tray: A player came off the bench and joined the queue'
+            } else {
+                description += `\n:inbox_tray: ${benchUserToTransfer.mention} came off the bench and joined the **${roleLeft?.name}** position.`
+            }
         }
 
         let reply = await interactionUtils.createReplyForLineup(newLineup, autoSearchResult.updatedLineupQueue) as MessageOptions
-        const embed = interactionUtils.createInformationEmbed(interaction.user, description)
+        const embed = interactionUtils.createInformationEmbed(description, lineup.isAnonymous() ? undefined : interaction.user)
         reply.embeds = (reply.embeds || []).concat(embed)
         await channel.send(reply)
         return true
@@ -447,7 +462,7 @@ class TeamService {
                 description += `\nThe challenge request has been cancelled.`
             }
 
-            const embed = interactionUtils.createInformationEmbed(user, description)
+            const embed = interactionUtils.createInformationEmbed(description, user)
             await channel.send({ embeds: [embed] })
         }
     }

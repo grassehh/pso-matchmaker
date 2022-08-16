@@ -37,6 +37,6 @@ export default {
 
         await interaction.deferReply();
         await matchmakingService.leaveQueue(lineupQueue)
-        await interaction.editReply({ embeds: [interactionUtils.createInformationEmbed(interaction.user, '😴 Your team is no longer searching for a challenge')] })
+        await interaction.editReply({ embeds: [interactionUtils.createInformationEmbed('😴 Your team is no longer searching for a challenge', interaction.user)] })
     }
 } as ICommandHandler;

@@ -43,7 +43,7 @@ export default {
         }
 
         let reply = await interactionUtils.createReplyForLineup(lineup, autoSearchResult.updatedLineupQueue) as MessageOptions
-        const embed = interactionUtils.createInformationEmbed(interaction.user, description)
+        const embed = interactionUtils.createInformationEmbed(description, interaction.user)
         reply.embeds = (reply.embeds || []).concat(embed)
         await interaction.update({ components: [] })
         await interaction.channel?.send(reply)

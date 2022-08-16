@@ -61,7 +61,7 @@ export default {
             region,
             nameUpperCase: name.toUpperCase()
         }).save() as ITeam
-        await interaction.reply({ embeds: [interactionUtils.createInformationEmbed(interaction.user, '✅ Your team has been registered !')], ephemeral: true })
+        await interaction.reply({ embeds: [interactionUtils.createInformationEmbed('✅ Your team has been registered !', interaction.user)], ephemeral: true })
         await interaction.followUp(interactionUtils.createTeamManagementReply(interaction, team))
     }
 } as ICommandHandler

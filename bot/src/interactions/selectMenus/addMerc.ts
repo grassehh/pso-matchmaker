@@ -86,7 +86,7 @@ export default {
             if (autoSearchResult.cancelledChallenge) {
                 description += `\nThe challenge request has been cancelled.`
             }
-            const embed = interactionUtils.createInformationEmbed(interaction.user, description)
+            const embed = interactionUtils.createInformationEmbed(description, interaction.user)
             if (await matchmakingService.isMixOrCaptainsReadyToStart(lineup)) {
                 await interaction.channel?.send({ embeds: [embed] })
                 const challenge = await matchmakingService.findChallengeByChannelId(interaction.channelId) || undefined

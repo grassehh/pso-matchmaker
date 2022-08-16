@@ -117,7 +117,7 @@ export default {
             lineup.roles = firstTeamRoles.concat(secondTeamRoles)
 
             let reply = await interactionUtils.createReplyForLineup(lineup) as MessageOptions
-            const embed = interactionUtils.createInformationEmbed(interaction.user, description)
+            const embed = interactionUtils.createInformationEmbed(description, interaction.user)
             reply.embeds = reply.embeds!.concat(embed)
             reply.components = interactionUtils.createCaptainsPickComponent(remainingRoles)
             await interaction.channel?.send(reply)
@@ -165,7 +165,7 @@ export default {
                     }
                     remainingRoles = []
                     await handle(i.update({ components: [] }))
-                    const embed = interactionUtils.createInformationEmbed(interaction.user, `${i.user} has picked ${pickedRole.user!.name}.\nEvery players have been picked. The match is about to start.`)
+                    const embed = interactionUtils.createInformationEmbed(`${i.user} has picked ${pickedRole.user!.name}.\nEvery players have been picked. The match is about to start.`, interaction.user)
                     await interaction.followUp({ embeds: [embed] })
                     await matchmakingService.readyMatch(interaction.client, interaction, undefined, lineup)
                     collector.stop()
@@ -174,7 +174,7 @@ export default {
 
                 currentCaptain = currentCaptain.id === firstCaptain.id ? secondCaptain : firstCaptain
 
-                const embed = interactionUtils.createInformationEmbed(interaction.user, `${i.user} has picked ${pickedRole.user!.name}.\n**${currentCaptain} turn to pick.**`)
+                const embed = interactionUtils.createInformationEmbed(`${i.user} has picked ${pickedRole.user!.name}.\n**${currentCaptain} turn to pick.**`, interaction.user)
                 let reply = await interactionUtils.createReplyForLineup(lineup)
                 reply.embeds = reply.embeds!.concat(embed)
                 reply.components = interactionUtils.createCaptainsPickComponent(remainingRoles)
@@ -195,7 +195,7 @@ export default {
             return
         }
 
-        const embed = interactionUtils.createInformationEmbed(interaction.user, description)
+        const embed = interactionUtils.createInformationEmbed(description, interaction.user)
         let reply = await interactionUtils.createReplyForLineup(lineup) as MessageOptions
         reply.embeds = reply.embeds!.concat(embed)
         await interaction.channel?.send(reply)

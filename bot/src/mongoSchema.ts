@@ -110,6 +110,7 @@ export interface ILineup {
     isAllowedToPlayRanked(): boolean,
     prettyPrintName(teamLogoDisplay?: TeamLogoDisplay, includeRating?: boolean): string,
     getTierRoleId(client: Client): Promise<string>,
+    isAnonymous(): boolean,
     channelId: string,
     size: number,
     roles: IRole[],
@@ -308,6 +309,9 @@ lineupSchema.methods.getTierRoleId = async function (client: Client): Promise<st
     }
 
     return this.team.getTierRoleId()
+}
+lineupSchema.methods.isAnonymous = function (): boolean {
+    return this.isMix() && this.allowRanked
 }
 export const Lineup = model<ILineup>('Lineup', lineupSchema, 'lineups')
 

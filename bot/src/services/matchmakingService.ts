@@ -563,7 +563,7 @@ class MatchmakingService {
             if (!challenge.challengedTeam.lineup.isMix()) {
                 promises.push(challengedTeamChannel.messages.edit(challenge.challengedMessageId, { components: [] }))
             }
-            promises.push(challengedTeamChannel.send({ embeds: [interactionUtils.createInformationEmbed(user, `❌ ${challenge.initiatingTeam.lineup.prettyPrintName()} has cancelled the challenge request`)] }))
+            promises.push(challengedTeamChannel.send({ embeds: [interactionUtils.createInformationEmbed(`❌ ${challenge.initiatingTeam.lineup.prettyPrintName()} has cancelled the challenge request`, user)] }))
         }
 
         const [initiatingTeamChannel] = await handle(client.channels.fetch(challenge.initiatingTeam.lineup.channelId))
@@ -571,7 +571,7 @@ class MatchmakingService {
             if (challenge.initiatingMessageId) {
                 promises.push(initiatingTeamChannel.messages.edit(challenge.initiatingMessageId, { components: [] }))
             }
-            promises.push(initiatingTeamChannel.send({ embeds: [interactionUtils.createInformationEmbed(user, `❌ ${user} has cancelled the challenge request against ${challenge.challengedTeam.lineup.prettyPrintName()}`)] }))
+            promises.push(initiatingTeamChannel.send({ embeds: [interactionUtils.createInformationEmbed(`❌ ${user} has cancelled the challenge request against ${challenge.challengedTeam.lineup.prettyPrintName()}`, user)] }))
         }
 
         await Promise.all(promises)
