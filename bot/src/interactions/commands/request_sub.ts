@@ -20,6 +20,11 @@ export default {
             return
         }
 
+        if (match.ranked) {
+            await interaction.reply({ content: '⛔ Requesting subs for ranked matches is not allowed', ephemeral: true })
+            return
+        }
+
         if (!match.findUserRole(interaction.user)) {
             await interaction.reply({ content: '⛔ You must be playing this match in order to request a sub', ephemeral: true })
             return

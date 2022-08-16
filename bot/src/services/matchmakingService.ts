@@ -1028,8 +1028,9 @@ class MatchmakingService {
                 .setDescription(`
                     **Please join the match as soon as possible**
                     The lobby can be found in the **"Custom Lobbies"** menu of the game
-                    *If you need a sub, please type **/request_sub** followed by the match id **${match.matchId}***`)
+                    ${match.ranked ? '' : '*If you need a sub, use the **/request_sub** command*'}`)
                 .addFields([
+                    { name: 'Match ID', value: `${match.matchId}` },
                     { name: 'Lobby Name', value: `${match.lobbyName}`, inline: true },
                     { name: 'Lobby Password', value: `${match.lobbyPassword}`, inline: true },
                     { name: 'Lobby Host', value: `${lobbyHost.username}`, inline: true }
@@ -1075,7 +1076,7 @@ class MatchmakingService {
         return Promise.all(promises)
     }
 
-    private async notifyLineupChannelForMatchReady(client: Client, match: IMatch, lobbyHost: User, lineup: ILineup, lineupRoles: RoleWithDiscordUser[], opponentLineup: ILineup, opponentLineupRoles: RoleWithDiscordUser[]) {
+    private async notifyLineupChannelForMatchReady(client: Client, lobbyHost: User, lineup: ILineup, lineupRoles: RoleWithDiscordUser[], opponentLineup: ILineup, opponentLineupRoles: RoleWithDiscordUser[]) {
         let embeds = []
 
         embeds.push(interactionUtils.createLineupEmbed(lineupRoles, lineup))
@@ -1085,7 +1086,7 @@ class MatchmakingService {
             .setColor('#6aa84f')
             .setTitle(`${opponentLineup ? '⚽ Challenge Accepted ⚽' : '⚽ Match Ready ⚽'}`)
             .setTimestamp()
-            .setDescription(`**${lobbyHost.username}** is responsible of creating the lobby\nPlease check your direct messages to find the lobby information\n\n*If you need a sub, please type **/request_sub** followed by the match id **${match.matchId}***`)
+            .setDescription(`**${lobbyHost.username}** is responsible of creating the lobby\nPlease check your direct messages to find the lobby information`)
         embeds.push(matchReadyEmbed)
 
         const channel = await client.channels.fetch(lineup.channelId) as TextChannel
@@ -1101,10 +1102,10 @@ class MatchmakingService {
         promises.push(this.notifyLineupsForUsersLeaving(client, firstLineup, firstLineupRoles))
         promises.push(this.notifyLineupsForUsersLeaving(client, secondLineup, secondLineupRoles))
         if (firstLineup.isNotTeam() && secondLineup.isNotTeam()) {
-            promises.push(this.notifyLineupChannelForMatchReady(client, match, lobbyHost, firstLineup, firstLineupRoles, secondLineup, secondLineupRoles))
+            promises.push(this.notifyLineupChannelForMatchReady(client, lobbyHost, firstLineup, firstLineupRoles, secondLineup, secondLineupRoles))
         } else {
-            promises.push(this.notifyLineupChannelForMatchReady(client, match, lobbyHost, firstLineup, firstLineupRoles, secondLineup, secondLineupRoles))
-            promises.push(this.notifyLineupChannelForMatchReady(client, match, lobbyHost, secondLineup, secondLineupRoles, firstLineup, firstLineupRoles))
+            promises.push(this.notifyLineupChannelForMatchReady(client, lobbyHost, firstLineup, firstLineupRoles, secondLineup, secondLineupRoles))
+            promises.push(this.notifyLineupChannelForMatchReady(client, lobbyHost, secondLineup, secondLineupRoles, firstLineup, firstLineupRoles))
         }
         return Promise.all(promises)
     }
