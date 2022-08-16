@@ -33,7 +33,7 @@ export default {
                 return
             }
 
-            await teamService.leaveLineup(interaction, channel, lineup)
+            await teamService.leaveLineup(interaction.client, interaction.user, channel, lineup)
         }))
 
         await interaction.reply({ content: `You have been removed from all lineups`, ephemeral: true })

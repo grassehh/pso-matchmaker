@@ -36,7 +36,7 @@ export default {
         let existingLineupResult
         let teamName
         let lineupToUpdate
-        if (match.firstLineup.isMixOrCaptains() && match.secondLineup.isMixOrCaptains()) {
+        if (match.firstLineup.isNotTeam() && match.secondLineup.isNotTeam()) {
             lineup = match.firstLineup
             opponentLineup = match.secondLineup
             otherLineupChannel = interaction.channel!

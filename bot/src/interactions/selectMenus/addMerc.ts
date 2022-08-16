@@ -87,7 +87,7 @@ export default {
                 description += `\nThe challenge request has been cancelled.`
             }
             const embed = interactionUtils.createInformationEmbed(description, interaction.user)
-            if (await matchmakingService.isMixOrCaptainsReadyToStart(lineup)) {
+            if (await matchmakingService.isNotTeamAndReadyToStart(lineup)) {
                 await interaction.channel?.send({ embeds: [embed] })
                 const challenge = await matchmakingService.findChallengeByChannelId(interaction.channelId) || undefined
                 const secondLineup = challenge ?

@@ -52,8 +52,6 @@ export default {
 
         const channelIds = await teamService.findAllLineupChannelIdsByUserId(interaction.user.id)
         if (channelIds.length > 0) {
-            await matchmakingService.removeUserFromAllLineupQueues(interaction.user.id)
-            await teamService.removeUserFromLineupsByChannelIds(interaction.user.id, channelIds)
             await Promise.all(channelIds.map(async (channelId: string) => {
                 await teamService.notifyChannelForUserLeaving(interaction.client, interaction.user, channelId, `⚠ ${interaction.user} went to sub in another match`)
             }))

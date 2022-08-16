@@ -1,4 +1,4 @@
-import { BaseGuildTextChannel, ButtonInteraction, Client, CommandInteraction, EmbedBuilder, Guild, GuildMember, MessageOptions, TextChannel, User } from "discord.js";
+import { BaseGuildTextChannel, Client, EmbedBuilder, Guild, GuildMember, MessageOptions, TextChannel, User } from "discord.js";
 import { DeleteResult } from "mongodb";
 import { UpdateWriteOpResult } from "mongoose";
 import { MAX_LINEUP_NAME_LENGTH, MAX_TEAM_CODE_LENGTH, MAX_TEAM_NAME_LENGTH } from "../constants";
@@ -45,6 +45,7 @@ export const LINEUP_VISIBILITY_PUBLIC = 'PUBLIC'
 export const LINEUP_TYPE_TEAM = 'TEAM'
 export const LINEUP_TYPE_MIX = 'MIX'
 export const LINEUP_TYPE_CAPTAINS = 'CAPTAINS'
+export const LINEUP_TYPE_SOLO = 'SOLO'
 
 export const GK = { name: '🥅 GK', type: ROLE_GOAL_KEEPER }
 const LW = { name: 'LW', type: ROLE_ATTACKER }
@@ -213,31 +214,6 @@ class TeamService {
         return Lineup.deleteMany({ 'team.guildId': guildId })
     }
 
-    async removeUserFromAllLineups(userId: string): Promise<UpdateWriteOpResult> {
-        return Lineup.updateMany(
-            {
-                "$or": [
-                    { 'roles.user.id': userId },
-                    { 'bench': { "$elemMatch": { 'user.id': userId } } }
-                ]
-            },
-            {
-                "$set": {
-                    "roles.$[i].user": null
-                },
-                "$pull": {
-                    "bench": {
-                        "user.id": userId
-                    }
-                }
-            },
-            {
-                arrayFilters: [{ "i.user.id": userId }],
-                new: true
-            }
-        )
-    }
-
     async removeUserFromLineupsByChannelIds(userId: string, channelIds: string[]): Promise<UpdateWriteOpResult> {
         return Lineup.updateMany(
             {
@@ -370,7 +346,7 @@ class TeamService {
         )
     }
 
-    async joinBench(user: User, lineup: ILineup, rolesNames: string[], lineupNumber: number = 1, member?: GuildMember): Promise<ILineup | null> {
+    async joinBench(user: User, lineup: ILineup, rolesNames: string[], member?: GuildMember): Promise<ILineup | null> {
         await this.removeUserFromLineupBench(lineup.channelId, user.id)
         const userToAdd = {
             id: user.id,
@@ -378,15 +354,18 @@ class TeamService {
             mention: user.toString(),
             emoji: statsService.getLevelEmojiFromMember(member as GuildMember)
         }
-        const benchRoles = rolesNames.map(roleName => (
-            {
+        const benchRoles = rolesNames.map(rn => {
+            const split = rn.split('_')
+            const roleName = split[0]
+            const lineupNumber = parseInt(split[1]) || 1
+            return {
                 name: roleName,
                 type: 0,
                 lineupNumber,
                 pos: 0,
                 user: userToAdd
             } as IRole
-        ))
+        })
         return this.addUserToLineupBench(
             lineup.channelId,
             userToAdd,
@@ -394,34 +373,33 @@ class TeamService {
         )
     }
 
-    async leaveLineup(interaction: CommandInteraction | ButtonInteraction, channel: BaseGuildTextChannel, lineup: ILineup): Promise<boolean> {
-        let roleLeft = lineup.roles.find(role => role.user?.id === interaction.user.id)
-        let benchLeft = lineup.bench.find(role => role.user.id === interaction.user.id)
+    async leaveLineup(client: Client, user: User, channel: BaseGuildTextChannel, lineup: ILineup): Promise<boolean> {
+        let roleLeft = lineup.roles.find(role => role.user?.id === user.id)
+        let benchLeft = lineup.bench.find(role => role.user.id === user.id)
 
         if (!roleLeft && !benchLeft) {
-            await interaction.reply({ content: `⛔ You are not in the lineup`, ephemeral: true })
             return false
         }
 
-        let newLineup = await this.removeUserFromLineup(lineup.channelId, interaction.user.id) as ILineup
-        await matchmakingService.removeUserFromLineupQueue(lineup.channelId, interaction.user.id)
+        let newLineup = await this.removeUserFromLineup(lineup.channelId, user.id) as ILineup
+        await matchmakingService.removeUserFromLineupQueue(lineup.channelId, user.id)
 
         let description
         if (benchLeft) {
             if (lineup.isAnonymous()) {
                 description = ':outbox_tray: A player left the bench'
             } else {
-                description = `:outbox_tray: ${interaction.user} left the bench`
+                description = `:outbox_tray: ${user} left the bench`
             }
         } else {
             if (lineup.isAnonymous()) {
                 description = ':outbox_tray: A player left the queue'
             } else {
-                description = `:outbox_tray: ${interaction.user} left the ${newLineup.isMixOrCaptains() ? 'queue' : `**${roleLeft?.name}** position`}`
+                description = `:outbox_tray: ${user} left the ${newLineup.isNotTeam() ? 'queue' : `**${roleLeft?.name}** position`}`
             }
         }
 
-        const autoSearchResult = await matchmakingService.checkIfAutoSearch(interaction.client, interaction.user, newLineup)
+        const autoSearchResult = await matchmakingService.checkIfAutoSearch(client, user, newLineup)
         if (autoSearchResult.leftQueue) {
             description += `\nYou are no longer searching for a team.`
         }
@@ -431,7 +409,7 @@ class TeamService {
 
         const benchUserToTransfer = this.getBenchUserToTransfer(newLineup, roleLeft)
         if (benchUserToTransfer !== null) {
-            newLineup = await this.moveUserFromBenchToLineup(interaction.channelId, benchUserToTransfer, roleLeft!!) as ILineup
+            newLineup = await this.moveUserFromBenchToLineup(channel.id, benchUserToTransfer, roleLeft!!) as ILineup
             if (lineup.isAnonymous()) {
                 description += '\n:inbox_tray: A player came off the bench and joined the queue'
             } else {
@@ -440,7 +418,7 @@ class TeamService {
         }
 
         let reply = await interactionUtils.createReplyForLineup(newLineup, autoSearchResult.updatedLineupQueue) as MessageOptions
-        const embed = interactionUtils.createInformationEmbed(description, lineup.isAnonymous() ? undefined : interaction.user)
+        const embed = interactionUtils.createInformationEmbed(description, lineup.isAnonymous() ? undefined : user)
         reply.embeds = (reply.embeds || []).concat(embed)
         await channel.send(reply)
         return true
@@ -451,6 +429,10 @@ class TeamService {
         if (channel instanceof TextChannel) {
             const lineup = await this.retrieveLineup(channelId)
             if (lineup === null) {
+                return
+            }
+
+            if (!await this.leaveLineup(client, user, channel, lineup)) {
                 return
             }
 
@@ -467,24 +449,29 @@ class TeamService {
         }
     }
 
-    async findAllLineupChannelIdsByUserId(userId: string, excludedChannelIds: string[] = []): Promise<string[]> {
+    async findAllLineupChannelIdsByUserId(userId: string, excludedChannelIds: string[] = [], guildId?: string): Promise<string[]> {
+        let match: any = {}
+        if (guildId) {
+            match['team.guildId'] = guildId
+        }
+        if (excludedChannelIds.length > 0) {
+            match.channelId = { $nin: excludedChannelIds }
+        }
+        match.$or = [
+            {
+                roles: {
+                    $elemMatch: { 'user.id': userId }
+                }
+            },
+            {
+                bench: {
+                    $elemMatch: { 'user.id': userId }
+                }
+            }
+        ]
         let res = await Lineup.aggregate([
             {
-                $match: {
-                    channelId: { $nin: excludedChannelIds },
-                    $or: [
-                        {
-                            roles: {
-                                $elemMatch: { 'user.id': userId }
-                            }
-                        },
-                        {
-                            bench: {
-                                $elemMatch: { 'user.id': userId }
-                            }
-                        }
-                    ]
-                }
+                $match: match
             },
             {
                 $group: {
@@ -520,33 +507,6 @@ class TeamService {
                 ]
             }
         )
-    }
-
-    async findChannelIdsFromGuildIdAndUserId(guildId: string, userId: string): Promise<string[]> {
-        const res = await Lineup.aggregate([
-            {
-                $match: {
-                    'team.guildId': guildId,
-                    roles: {
-                        $elemMatch: { 'user.id': userId }
-                    }
-                }
-            },
-            {
-                $group: {
-                    _id: null,
-                    channelIds: {
-                        $addToSet: '$$ROOT.channelId'
-                    }
-                }
-            }
-        ])
-
-        if (res.length > 0) {
-            return res[0].channelIds
-        }
-
-        return []
     }
 
     async findChannelIdsByGuildId(guildId: string): Promise<string[]> {
@@ -604,7 +564,7 @@ class TeamService {
         const defaultRoles = DEFAULT_PLAYER_ROLES.get(size)!
 
         let roles = defaultRoles.map(obj => ({ ...obj, lineupNumber: 1 }))
-        if (type === LINEUP_TYPE_MIX) {
+        if (type === LINEUP_TYPE_MIX || type === LINEUP_TYPE_SOLO) {
             roles = roles.concat(defaultRoles.map(obj => ({ ...obj, lineupNumber: 2 })))
         } else if (type === LINEUP_TYPE_CAPTAINS) {
             roles = []
@@ -660,7 +620,12 @@ class TeamService {
             return null
         }
 
-        const benchRole = lineup.bench.find(role => role.roles.some(r => (r.name === roleLeft.name || r.name === ROLE_NAME_ANY) && r.lineupNumber === roleLeft.lineupNumber))
+        let benchRole
+        if (lineup.isSoloQueue()) {
+            benchRole = lineup.bench.find(role => role.roles.some(r => (r.name === roleLeft.name && r.lineupNumber === roleLeft.lineupNumber) || r.name === ROLE_NAME_ANY))
+        } else {
+            benchRole = lineup.bench.find(role => role.roles.some(r => (r.name === roleLeft.name || r.name === ROLE_NAME_ANY) && r.lineupNumber === roleLeft.lineupNumber))
+        }
         return benchRole ? benchRole.user : null
     }
 
