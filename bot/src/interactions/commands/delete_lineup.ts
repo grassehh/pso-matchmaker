@@ -31,6 +31,6 @@ export default {
 
         await matchmakingService.deleteLineupQueuesByChannelId(interaction.channelId)
         await teamService.deleteLineup(interaction.channelId)
-        await interaction.reply({ embeds: [interactionUtils.createInformationEmbed(interaction.user, '✅ Lineup deleted from this channel')] });
+        await interaction.reply({ embeds: [interactionUtils.createInformationEmbed('✅ Lineup deleted from this channel', interaction.user)] });
     },
 } as ICommandHandler

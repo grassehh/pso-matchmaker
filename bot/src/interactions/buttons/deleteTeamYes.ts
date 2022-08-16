@@ -12,6 +12,6 @@ export default {
         await teamService.deleteLineupsByGuildId(interaction.guildId!)
         await teamService.deleteBansByGuildId(interaction.guildId!)
         await teamService.deleteTeam(interaction.guildId!)
-        await interaction.update({ embeds: [interactionUtils.createInformationEmbed(interaction.user, '✅ Your team has been deleted')], components: [] })
+        await interaction.update({ embeds: [interactionUtils.createInformationEmbed('✅ Your team has been deleted', interaction.user)], components: [] })
     }
 } as IButtonHandler

@@ -32,7 +32,12 @@ export default {
         lineup = (await teamService.joinBench(interaction.user, lineup, selectedRolesNames, selectedLineupNumber, interaction.member as GuildMember)) as ILineup
 
         let reply = await interactionUtils.createReplyForLineup(lineup) as MessageOptions
-        const informationEmbed = interactionUtils.createInformationEmbed(interaction.user, `:inbox_tray: ${interaction.user} benched as **${selectedRolesNames.join(', ')}**`)
+        let informationEmbed
+        if (lineup.isAnonymous()) {
+            informationEmbed = interactionUtils.createInformationEmbed(':inbox_tray: A player joined the bench')
+        } else {
+            informationEmbed = interactionUtils.createInformationEmbed(`:inbox_tray: ${interaction.user} benched as **${selectedRolesNames.join(', ')}**`, interaction.user)
+        }
         reply.embeds = (reply.embeds || []).concat(informationEmbed)
         await interaction.channel?.send(reply)
     }

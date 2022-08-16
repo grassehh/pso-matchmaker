@@ -83,7 +83,7 @@ export default {
         }
 
         let reply = await interactionUtils.createReplyForLineup(lineup, lineupQueue)
-        reply.embeds?.splice(0, 0, interactionUtils.createInformationEmbed(interaction.user, '✅ New mix lineup configured'))
+        reply.embeds?.splice(0, 0, interactionUtils.createInformationEmbed('✅ New mix lineup configured', interaction.user))
         await interaction.reply(reply);
     }
 } as ICommandHandler;

@@ -25,26 +25,47 @@ export default {
             return
         }
 
-        let promises = []
-
-        let description = `:inbox_tray: ${interaction.user} signed as **${selectedRoleName}**`
         const roleLeft = lineup.roles.find(role => role.user?.id === interaction.user.id)
         const benchRoleLeft = lineup.bench.find(role => role.user?.id === interaction.user.id)
         if (roleLeft || benchRoleLeft) {
-            promises.push(teamService.removeUserFromLineup(interaction.channelId, interaction.user.id))
-            promises.push(matchmakingService.removeUserFromLineupQueue(interaction.channelId, interaction.user.id))
-            if (roleLeft) {
-                description = `:outbox_tray::inbox_tray: ${interaction.user} swapped **${roleLeft.name}** with **${selectedRoleName}**`                
-                const benchUserToTransfer = teamService.getBenchUserToTransfer(lineup, roleLeft)
-                if (benchUserToTransfer !== null) {
-                    lineup = await teamService.moveUserFromBenchToLineup(interaction.channelId, benchUserToTransfer, roleLeft!!) as ILineup
-                    description += `\n:inbox_tray: ${benchUserToTransfer.mention} came off the bench and joined the **${roleLeft?.name}** position.`
-                }
+            await Promise.all([
+                teamService.removeUserFromLineup(interaction.channelId, interaction.user.id),
+                matchmakingService.removeUserFromLineupQueue(interaction.channelId, interaction.user.id)
+            ])
+        }
+
+        let description = ''
+        if (roleLeft) {
+            if (lineup.isAnonymous()) {
+                description = ':outbox_tray::inbox_tray: A player swapped position'
             } else {
-                description = `\n:inbox_tray: ${benchRoleLeft?.user!!.mention} came off the bench and joined the **${selectedRoleName}** position.`
+                description = `:outbox_tray::inbox_tray: ${interaction.user} swapped **${roleLeft.name}** with **${selectedRoleName}**`
             }
-            await Promise.all(promises)
-            promises = []
+        } else {
+            if (lineup.isAnonymous()) {
+                description = ':inbox_tray: A player joined the queue'
+            } else {
+                description = `:inbox_tray: ${interaction.user} signed as **${selectedRoleName}**`
+            }
+        }
+
+        if (benchRoleLeft) {
+            const benchUserToTransfer = teamService.getBenchUserToTransfer(lineup, roleLeft)
+            if (benchUserToTransfer !== null) {
+                lineup = await teamService.moveUserFromBenchToLineup(interaction.channelId, benchUserToTransfer, roleLeft!!) as ILineup
+                if (lineup.isAnonymous()) {
+                    description += '\n:inbox_tray: A player came off the bench and joined the queue'
+                } else {
+                    description += `\n:inbox_tray: ${benchUserToTransfer.mention} came off the bench and joined the **${roleLeft?.name}** position`
+                }
+            }
+            else {
+                if (lineup.isAnonymous()) {
+                    description += '\n:inbox_tray: A player came off the bench and joined the queue'
+                } else {
+                    description += `\n:inbox_tray: ${benchRoleLeft?.user!!.mention} came off the bench and joined the **${selectedRoleName}** position`
+                }
+            }
         }
 
         const playerStats = await statsService.findUserStats(interaction.user.id, lineup.team.region)
@@ -55,12 +76,15 @@ export default {
             emoji: statsService.getLevelEmojiFromMember(interaction.member as GuildMember),
             rating: playerStats?.getRoleRating(selectedRole?.type)
         }
-        promises.push(lineup = await teamService.addUserToLineup(interaction.channelId, selectedRoleName, userToAdd, lineupNumber) as ILineup)
-        promises.push(matchmakingService.addUserToLineupQueue(interaction.channelId, selectedRoleName, userToAdd, lineupNumber))
+
+        await Promise.all([
+            lineup = await teamService.addUserToLineup(interaction.channelId, selectedRoleName, userToAdd, lineupNumber) as ILineup,
+            matchmakingService.addUserToLineupQueue(interaction.channelId, selectedRoleName, userToAdd, lineupNumber)
+        ])
 
         if (await matchmakingService.isMixOrCaptainsReadyToStart(lineup)) {
             await interaction.deferReply()
-            const embed = interactionUtils.createInformationEmbed(interaction.user, description)
+            const embed = interactionUtils.createInformationEmbed(description, interaction.user)
             const challenge = await matchmakingService.findChallengeByChannelId(interaction.channelId) || undefined
             const secondLineup = challenge ?
                 (await teamService.retrieveLineup(
@@ -93,7 +117,7 @@ export default {
         }
 
         let reply = await interactionUtils.createReplyForLineup(lineup, autoSearchResult.updatedLineupQueue) as MessageOptions
-        const informationEmbed = interactionUtils.createInformationEmbed(interaction.user, description)
+        const informationEmbed = interactionUtils.createInformationEmbed(description, lineup.isAnonymous() ? undefined : interaction.user)
         reply.embeds = (reply.embeds || []).concat(informationEmbed)
         await interaction.channel?.send(reply)
     }

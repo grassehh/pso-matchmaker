@@ -20,7 +20,7 @@ export default {
             return
         }
 
-        if (lineup.bench.length >= MAX_BENCH_SIZE) {               
+        if (lineup.bench.length >= MAX_BENCH_SIZE) {
             await interaction.reply({ content: '⛔ There are too many benched players, please try again later', ephemeral: true })
             return
         }
@@ -34,7 +34,12 @@ export default {
         lineup = (await teamService.joinBench(interaction.user, lineup, [selectedRoleName], lineupNumber, interaction.member as GuildMember)) as ILineup
 
         let reply = await interactionUtils.createReplyForLineup(lineup) as MessageOptions
-        const informationEmbed = interactionUtils.createInformationEmbed(interaction.user, `:inbox_tray: ${interaction.user} benched as **${selectedRoleName}**`)
+        let informationEmbed
+        if (lineup.isAnonymous()) {
+            informationEmbed = interactionUtils.createInformationEmbed(':inbox_tray: A player joined the bench')
+        } else {
+            informationEmbed = interactionUtils.createInformationEmbed(`:inbox_tray: ${interaction.user} benched as **${selectedRoleName}**`, interaction.user)
+        }
         reply.embeds = (reply.embeds || []).concat(informationEmbed)
         await interaction.channel?.send(reply)
     }

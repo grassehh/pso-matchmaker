@@ -76,7 +76,7 @@ class InteractionUtils {
     createDecideChallengeReply(interaction: ButtonInteraction | CommandInteraction | SelectMenuInteraction, challenge: IChallenge): InteractionReplyOptions {
         if (challenge.challengedTeam.lineup.isMix()) {
             let reply = this.createReplyForMixLineup(challenge.challengedTeam.lineup, challenge.initiatingTeam.lineup)
-            reply.embeds = reply.embeds?.concat(this.createInformationEmbed(interaction.user, `${challenge.initiatingTeam.lineup.prettyPrintName()} is challenging the mix`))
+            reply.embeds = reply.embeds?.concat(this.createInformationEmbed(`${challenge.initiatingTeam.lineup.prettyPrintName()} is challenging the mix`, interaction.user))
             return reply
         } else {
             let description = challenge.initiatingTeam.lineup.prettyPrintName(TeamLogoDisplay.LEFT, challenge.initiatingTeam.lineup.team.verified)
@@ -433,7 +433,7 @@ class InteractionUtils {
     }
 
     createLineupEmbed(rolesWithDiscordUsers: RoleWithDiscordUser[], lineup: ILineup): EmbedBuilder {
-        let embedTitle = lineup.prettyPrintName()
+        let embedTitle = lineup.prettyPrintName(TeamLogoDisplay.LEFT, lineup.allowRanked)
         let lineupEmbed = new EmbedBuilder()
             .setColor('#6aa84f')
             .setTitle(embedTitle)
@@ -453,12 +453,17 @@ class InteractionUtils {
         return lineupEmbed
     }
 
-    createInformationEmbed(author: User, description: string): EmbedBuilder {
-        return new EmbedBuilder()
+    createInformationEmbed(description: string, author?: User): EmbedBuilder {
+        const embed = new EmbedBuilder()
             .setColor('#566573')
             .setTimestamp()
             .setDescription(description)
-            .setFooter({ text: `Author: ${author.username}` })
+
+        if (author) {
+            embed.setFooter({ text: `Author: ${author.username}` })
+        }
+
+        return embed
     }
 
     async createBanListEmbed(client: Client, guildId: string): Promise<EmbedBuilder> {
@@ -772,8 +777,18 @@ class InteractionUtils {
     private createReplyForMixLineup(lineup: ILineup, challengingLineup?: ILineup | null): InteractionReplyOptions {
         let firstLineupEmbed = new EmbedBuilder()
             .setColor('#ed4245')
-            .setTitle(`Red Team${lineup.allowRanked ? ` *(${lineup.computePlayersAverageRating(1)})*` : ''}`)
-        this.fillLineupEmbedWithRoles(firstLineupEmbed, lineup.roles.filter(role => role.lineupNumber === 1), lineup.bench.filter(benchRole => benchRole.roles[0].lineupNumber === 1), lineup.team.verified)
+            .setTitle('Red Team')
+
+        const firstLineupRoles = lineup.roles.filter(role => role.lineupNumber === 1)
+        const firstLineupBench = lineup.bench.filter(benchRole => benchRole.roles[0].lineupNumber === 1)
+        if (lineup.allowRanked) {
+            firstLineupEmbed.setDescription(`${firstLineupRoles.filter(role => role.user).length}/${firstLineupRoles.length} Players`)
+            if (firstLineupBench.length > 0) {
+                firstLineupEmbed.setFooter({ text: `Bench: ${firstLineupBench.length} Players` })
+            }
+        } else {
+            this.fillLineupEmbedWithRoles(firstLineupEmbed, firstLineupRoles, firstLineupBench, lineup.team.verified)
+        }
 
         let secondLineupEmbed
         if (challengingLineup) {
@@ -788,11 +803,21 @@ class InteractionUtils {
         } else {
             secondLineupEmbed = new EmbedBuilder()
                 .setColor('#0099ff')
-                .setTitle(`Blue Team${lineup.allowRanked ? ` *(${lineup.computePlayersAverageRating(2)})*` : ''}`)
+                .setTitle('Blue Team')
             if (lineup.visibility === LINEUP_VISIBILITY_PUBLIC) {
                 secondLineupEmbed.setFooter({ text: 'If a Team faces the mix, it will replace the Blue Team' })
             }
-            this.fillLineupEmbedWithRoles(secondLineupEmbed, lineup.roles.filter(role => role.lineupNumber === 2), lineup.bench.filter(benchRole => benchRole.roles[0].lineupNumber === 2), lineup.team.verified)
+
+            const secondLineupRoles = lineup.roles.filter(role => role.lineupNumber === 2)
+            const secondLineupBench = lineup.bench.filter(benchRole => benchRole.roles[0].lineupNumber === 2)
+            if (lineup.allowRanked) {
+                if (secondLineupBench.length > 0) {
+                    secondLineupEmbed.setFooter({ text: `Bench: ${secondLineupBench.length} Players` })
+                }
+                secondLineupEmbed.setDescription(`${secondLineupRoles.filter(role => role.user).length}/${secondLineupRoles.length} Players`)
+            } else {
+                this.fillLineupEmbedWithRoles(secondLineupEmbed, secondLineupRoles, secondLineupBench, lineup.team.verified)
+            }
         }
 
         const lineupActionsComponent = new ActionRowBuilder<ButtonBuilder>().addComponents(
