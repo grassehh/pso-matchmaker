@@ -55,7 +55,7 @@ export default {
 
         let description = `:inbox_tray: ${interaction.user} has joined the queue !`
 
-        if (await matchmakingService.isMixOrCaptainsReadyToStart(lineup)) {
+        if (await matchmakingService.isNotTeamAndReadyToStart(lineup)) {
             lineup = await teamService.startPicking(lineup.channelId) as ILineup
 
             const allUserIds = lineup.roles.filter(role => role.type !== ROLE_GOAL_KEEPER).map(role => role.user).filter(notEmpty).map(user => user.id)

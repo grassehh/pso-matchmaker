@@ -22,7 +22,7 @@ export default {
             return
         }
 
-        if (lineup.isMixOrCaptains()) {
+        if (lineup.isNotTeam()) {
             await interaction.reply({ content: '⛔ Mix lineups cannot see the list of challenges', ephemeral: true })
             return
         }

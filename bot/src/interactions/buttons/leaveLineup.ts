@@ -13,7 +13,10 @@ export default {
             return
         }
 
-        await teamService.leaveLineup(interaction, interaction.channel as BaseGuildTextChannel, lineup)
+        if (!await teamService.leaveLineup(interaction.client, interaction.user, interaction.channel as BaseGuildTextChannel, lineup)) {
+            await interaction.reply({ content: `⛔ You are not in the lineup`, ephemeral: true })
+            return
+        }
 
         if (!interaction.replied) {
             await interaction.update({ components: [] })

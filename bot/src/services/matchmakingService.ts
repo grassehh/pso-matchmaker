@@ -57,9 +57,9 @@ class MatchmakingService {
 
     isLineupAllowedToJoinQueue(lineup: ILineup): boolean {
         let numberOfPlayersSigned = lineup.roles.filter(role => role.user).length
-        let lineupSize = lineup.isMixOrCaptains() ? lineup.size * 2 : lineup.size
+        let lineupSize = lineup.isNotTeam() ? lineup.size * 2 : lineup.size
         let numberOfMissingPlayers = lineupSize - numberOfPlayersSigned
-        if (lineup.isMixOrCaptains() && lineup.allowRanked) {
+        if (lineup.isNotTeam() && lineup.allowRanked) {
             return numberOfMissingPlayers === 0
         }
 
@@ -338,7 +338,7 @@ class MatchmakingService {
 
 
     async leaveQueue(lineupQueue: ILineupQueue): Promise<void> {
-        if (lineupQueue.lineup.isMixOrCaptains()) {
+        if (lineupQueue.lineup.isNotTeam()) {
             return
         }
 
@@ -544,7 +544,7 @@ class MatchmakingService {
 
         await challenge.save()
 
-        if (await this.isMixOrCaptainsReadyToStart(lineupQueueToChallenge.lineup)) {
+        if (await this.isNotTeamAndReadyToStart(lineupQueueToChallenge.lineup)) {
             await this.readyMatch(interaction.client, interaction, challenge, lineup)
         }
     }
@@ -582,7 +582,7 @@ class MatchmakingService {
         const lineupQueue = await this.findLineupQueueByChannelId(lineup.channelId) || undefined
         let autoSearchResult = { joinedQueue: false, leftQueue: false, cancelledChallenge: false, updatedLineupQueue: lineupQueue }
 
-        if (lineup.isMixOrCaptains()) {
+        if (lineup.isNotTeam()) {
             return autoSearchResult
         }
 
@@ -614,8 +614,8 @@ class MatchmakingService {
         return lineup.roles.some(role => role.user?.id === userId);
     }
 
-    async isMixOrCaptainsReadyToStart(lineup: ILineup): Promise<boolean> {
-        if (lineup.isCaptains()) {
+    async isNotTeamAndReadyToStart(lineup: ILineup): Promise<boolean> {
+        if (lineup.isCaptains() || lineup.isSoloQueue()) {
             return this.isLineupAllowedToJoinQueue(lineup)
         }
 
@@ -908,10 +908,6 @@ class MatchmakingService {
         )
     }
 
-    async removeUserFromAllLineupQueues(userId: string): Promise<UpdateWriteOpResult> {
-        return LineupQueue.updateMany({ 'lineup.roles.user.id': userId }, { $set: { "lineup.roles.$.user": null } })
-    }
-
     async updateMatchResult(matchId: string, lineupToUpdate: number, lineupResult: ILineupMatchResult): Promise<IMatch | null> {
         return Match.findOneAndUpdate(
             { matchId },
@@ -1070,8 +1066,6 @@ class MatchmakingService {
             .map(async discordUser => {
                 const channelIds = await teamService.findAllLineupChannelIdsByUserId(discordUser.id, [lineup.channelId])
                 if (channelIds.length > 0) {
-                    await this.removeUserFromAllLineupQueues(discordUser.id)
-                    await teamService.removeUserFromLineupsByChannelIds(discordUser.id, channelIds)
                     await Promise.all(channelIds.map(async (channelId: string) => {
                         await teamService.notifyChannelForUserLeaving(client, discordUser, channelId, `⚠ ${discordUser} went to play another match with ${lineup.prettyPrintName()}`)
                     }))
@@ -1106,7 +1100,7 @@ class MatchmakingService {
         promises.push(this.notifyUsersForMatchReady(client, match, lobbyHost, secondLineup, secondLineupRoles, firstLineup, firstLineupRoles))
         promises.push(this.notifyLineupsForUsersLeaving(client, firstLineup, firstLineupRoles))
         promises.push(this.notifyLineupsForUsersLeaving(client, secondLineup, secondLineupRoles))
-        if (firstLineup.isMixOrCaptains() && secondLineup.isMixOrCaptains()) {
+        if (firstLineup.isNotTeam() && secondLineup.isNotTeam()) {
             promises.push(this.notifyLineupChannelForMatchReady(client, match, lobbyHost, firstLineup, firstLineupRoles, secondLineup, secondLineupRoles))
         } else {
             promises.push(this.notifyLineupChannelForMatchReady(client, match, lobbyHost, firstLineup, firstLineupRoles, secondLineup, secondLineupRoles))

@@ -20,7 +20,7 @@ export default {
             await interaction.reply(interactionUtils.createReplyLineupNotSetup())
             return
         }
-        if (lineup.isMixOrCaptains()) {
+        if (lineup.isNotTeam()) {
             await interaction.reply({ content: `⛔ You cannot remove a mix from the matchmaking queue`, ephemeral: true })
             return
         }

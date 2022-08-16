@@ -82,7 +82,7 @@ export default {
             matchmakingService.addUserToLineupQueue(interaction.channelId, selectedRoleName, userToAdd, lineupNumber)
         ])
 
-        if (await matchmakingService.isMixOrCaptainsReadyToStart(lineup)) {
+        if (await matchmakingService.isNotTeamAndReadyToStart(lineup)) {
             await interaction.deferReply()
             const embed = interactionUtils.createInformationEmbed(description, interaction.user)
             const challenge = await matchmakingService.findChallengeByChannelId(interaction.channelId) || undefined

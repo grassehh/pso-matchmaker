@@ -120,6 +120,10 @@ class InteractionUtils {
             return this.createReplyForCaptainsLineup(lineup)
         }
 
+        if (lineup.isSoloQueue()) {
+            return this.createReplyForSoloQueueLineup(lineup)
+        }
+
         return this.createReplyForTeamLineup(lineup, lineupQueue)
     }
 
@@ -495,7 +499,7 @@ class InteractionUtils {
     }
 
     createLineupComponents(lineup: ILineup, lineupQueue?: ILineupQueue, challenge?: IChallenge, selectedLineupNumber: number = 1): ActionRowBuilder<ButtonBuilder>[] {
-        const actionRows = this.createRolesActionRows(lineup, selectedLineupNumber)
+        const actionRows = this.createRolesActionRows(lineup.roles.filter(role => role.lineupNumber === selectedLineupNumber))
         const lineupActionsRow = new ActionRowBuilder<ButtonBuilder>()
         const numberOfSignedPlayers = lineup.roles.filter(role => role.lineupNumber === selectedLineupNumber).filter(role => role.user != null).length
         lineupActionsRow.addComponents(
@@ -574,8 +578,7 @@ class InteractionUtils {
         return actionRows
     }
 
-    createRolesActionRows(lineup: ILineup, selectedLineupNumber = 1, isBench: boolean = false): ActionRowBuilder<ButtonBuilder>[] {
-        const roles = lineup.roles.filter(role => role.lineupNumber === selectedLineupNumber)
+    createRolesActionRows(roles: IRole[], isBench: boolean = false): ActionRowBuilder<ButtonBuilder>[] {
         const attackerRoles = roles.filter(role => role.type === ROLE_ATTACKER)
         const midfielderRoles = roles.filter(role => role.type === ROLE_MIDFIELDER)
         const defenderRoles = roles.filter(role => role.type === ROLE_DEFENDER)
@@ -781,7 +784,7 @@ class InteractionUtils {
 
         const firstLineupRoles = lineup.roles.filter(role => role.lineupNumber === 1)
         const firstLineupBench = lineup.bench.filter(benchRole => benchRole.roles[0].lineupNumber === 1)
-        if (lineup.allowRanked) {
+        if (lineup.isMix() && lineup.allowRanked) {
             firstLineupEmbed.setDescription(`${firstLineupRoles.filter(role => role.user).length}/${firstLineupRoles.length} Players`)
             if (firstLineupBench.length > 0) {
                 firstLineupEmbed.setFooter({ text: `Bench: ${firstLineupBench.length} Players` })
@@ -810,7 +813,7 @@ class InteractionUtils {
 
             const secondLineupRoles = lineup.roles.filter(role => role.lineupNumber === 2)
             const secondLineupBench = lineup.bench.filter(benchRole => benchRole.roles[0].lineupNumber === 2)
-            if (lineup.allowRanked) {
+            if (lineup.isMix() && lineup.allowRanked) {
                 if (secondLineupBench.length > 0) {
                     secondLineupEmbed.setFooter({ text: `Bench: ${secondLineupBench.length} Players` })
                 }
@@ -846,6 +849,30 @@ class InteractionUtils {
         return { embeds: [firstLineupEmbed, secondLineupEmbed], components: [lineupActionsComponent] }
     }
 
+    private createReplyForSoloQueueLineup(lineup: ILineup): InteractionReplyOptions {
+        let lineupEmbed = new EmbedBuilder()
+            .setColor('#ed4245')
+            .setTitle(`${lineup.allowRanked ? 'Ranked ' : ' '}Solo Queue`)
+
+        lineupEmbed.setDescription(`${lineup.roles.filter(role => role.user).length}/${lineup.roles.length} Players`)
+        if (lineup.bench.length > 0) {
+            lineupEmbed.setFooter({ text: `Bench: ${lineup.bench.length} Players` })
+        }
+
+        const lineupActionsComponent = new ActionRowBuilder<ButtonBuilder>().addComponents(
+            new ButtonBuilder()
+                .setCustomId(`leaveLineup`)
+                .setLabel(`Leave`)
+                .setStyle(ButtonStyle.Danger),
+            new ButtonBuilder()
+                .setCustomId(`solo_join`)
+                .setLabel(`Join`)
+                .setStyle(ButtonStyle.Primary)
+        )
+
+        return { embeds: [lineupEmbed], components: [lineupActionsComponent] }
+    }
+
     private createReplyForCaptainsLineup(lineup: ILineup): InteractionReplyOptions {
         let lineupEmbed = new EmbedBuilder()
             .setColor('#ed4245')
@@ -856,7 +883,7 @@ class InteractionUtils {
         const numberOfGkUsers = lineup.roles.filter(role => role.name.includes('GK') && role.user).length
         const lineupActionsComponent = new ActionRowBuilder<ButtonBuilder>().addComponents(
             new ButtonBuilder()
-                .setCustomId(`leaveQueue`)
+                .setCustomId(`leaveLineup`)
                 .setLabel(`Leave`)
                 .setStyle(ButtonStyle.Danger),
             new ButtonBuilder()
