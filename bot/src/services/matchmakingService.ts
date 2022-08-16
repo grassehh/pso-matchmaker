@@ -891,11 +891,13 @@ class MatchmakingService {
         return Stats.aggregate(pipeline)
     }
 
-
     async findMatchByMatchId(matchId: string): Promise<IMatch | null> {
         return Match.findOne({ matchId })
     }
 
+    async findRecentMatches(): Promise<IMatch[] | null> {
+        return Match.find().sort({ 'schedule': -1 }).limit(10)
+    }
 
     async addSubToMatch(matchId: string, sub: ISub): Promise<UpdateWriteOpResult> {
         return Match.updateOne(

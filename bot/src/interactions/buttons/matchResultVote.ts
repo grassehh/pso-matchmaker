@@ -109,6 +109,7 @@ export default {
                             .setTitle(`${match.firstLineup.size}v${match.secondLineup.size}`)
                             .setDescription(`${match.firstLineup.prettyPrintName(TeamLogoDisplay.RIGHT)} ${MatchResultType.toEmoji(match.result.firstLineup.result)} **VS** ${MatchResultType.toEmoji(match.result.secondLineup.result)} ${match.secondLineup.prettyPrintName(TeamLogoDisplay.LEFT)}`)
                             .setColor('#6aa84f')
+                            .setFooter({ text: `Match ID: ${match.matchId}` })
                             .setTimestamp()
                         handle(channel.send({ embeds: [matchResultEmbed] }))
                     }
