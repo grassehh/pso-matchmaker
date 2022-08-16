@@ -3,7 +3,7 @@ import { model, Schema, Types } from "mongoose";
 import { DEFAULT_RATING, MERC_USER_ID, MIN_LINEUP_SIZE_FOR_RANKED } from "./constants";
 import { MatchResult } from "./services/matchmakingService";
 import { Region, regionService } from "./services/regionService";
-import { LINEUP_TYPE_CAPTAINS, LINEUP_TYPE_MIX, LINEUP_TYPE_TEAM, LINEUP_VISIBILITY_PUBLIC, LINEUP_VISIBILITY_TEAM, ROLE_ATTACKER, ROLE_DEFENDER, ROLE_GOAL_KEEPER, ROLE_MIDFIELDER, ROLE_MIX_CAPTAINS, ROLE_NAME_ANY, TeamLogoDisplay, TeamType } from "./services/teamService";
+import { LINEUP_TYPE_CAPTAINS, LINEUP_TYPE_MIX, LINEUP_TYPE_SOLO, LINEUP_TYPE_TEAM, LINEUP_VISIBILITY_PUBLIC, LINEUP_VISIBILITY_TEAM, ROLE_ATTACKER, ROLE_DEFENDER, ROLE_GOAL_KEEPER, ROLE_MIDFIELDER, ROLE_MIX_CAPTAINS, ROLE_NAME_ANY, TeamLogoDisplay, TeamType } from "./services/teamService";
 import { notEmpty } from "./utils";
 
 export interface IUser {
@@ -99,7 +99,8 @@ const roleBenchSchema = new Schema<IRoleBench>({
 })
 
 export interface ILineup {
-    isMixOrCaptains(): boolean,
+    isNotTeam(): boolean,
+    isSoloQueue(): boolean,
     isMix(): boolean,
     isCaptains(): boolean,
     isTeam(): boolean,
@@ -165,7 +166,7 @@ const lineupSchema = new Schema<ILineup>({
     },
     type: {
         type: String,
-        enum: [LINEUP_TYPE_TEAM, LINEUP_TYPE_MIX, LINEUP_TYPE_CAPTAINS],
+        enum: [LINEUP_TYPE_TEAM, LINEUP_TYPE_MIX, LINEUP_TYPE_CAPTAINS, LINEUP_TYPE_SOLO],
         required: true
     },
     visibility: {
@@ -202,8 +203,11 @@ lineupSchema.methods.isMix = function () {
 lineupSchema.methods.isCaptains = function () {
     return this.type === LINEUP_TYPE_CAPTAINS
 }
-lineupSchema.methods.isMixOrCaptains = function () {
-    return this.isMix() || this.isCaptains()
+lineupSchema.methods.isSoloQueue = function () {
+    return this.type === LINEUP_TYPE_SOLO
+}
+lineupSchema.methods.isNotTeam = function () {
+    return !this.isTeam()
 }
 lineupSchema.methods.isTeam = function () {
     return this.type === LINEUP_TYPE_TEAM
@@ -291,7 +295,7 @@ lineupSchema.methods.prettyPrintName = function (teamLogoDisplay: TeamLogoDispla
 
     if (includeRating) {
         let rating
-        if (this.isMixOrCaptains()) {
+        if (this.isNotTeam()) {
             rating = this.computePlayersAverageRating()
         } else {
             rating = this.team.rating
@@ -311,7 +315,7 @@ lineupSchema.methods.getTierRoleId = async function (client: Client): Promise<st
     return this.team.getTierRoleId()
 }
 lineupSchema.methods.isAnonymous = function (): boolean {
-    return this.isMix() && this.allowRanked
+    return this.isSoloQueue() && this.allowRanked
 }
 export const Lineup = model<ILineup>('Lineup', lineupSchema, 'lineups')
 

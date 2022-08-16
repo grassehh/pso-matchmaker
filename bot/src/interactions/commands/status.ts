@@ -30,7 +30,7 @@ export default {
         const lineupQueue = await matchmakingService.findLineupQueueByChannelId(interaction.channelId) || undefined
         let reply = await interactionUtils.createReplyForLineup(lineup, lineupQueue)
 
-        if (lineup.isMixOrCaptains()) {
+        if (lineup.isNotTeam()) {
             await interaction.reply(reply)
             return
         }

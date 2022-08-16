@@ -25,7 +25,7 @@ export default {
             await interaction.reply(interactionUtils.createReplyLineupNotSetup())
             return
         }
-        if (lineup.isMixOrCaptains()) {
+        if (lineup.isNotTeam()) {
             await interaction.reply({ content: `⛔ Mix lineups are always visible in the matchmaking queue`, ephemeral: true })
             return
         }

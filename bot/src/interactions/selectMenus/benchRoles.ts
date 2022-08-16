@@ -27,16 +27,21 @@ export default {
 
         await interaction.update({ components: [] })
 
-        const selectedLineupNumber = parseInt(interaction.customId.split('_')[2])
-        const selectedRolesNames = interaction.values.some(value => value === ROLE_NAME_ANY) ? [ROLE_NAME_ANY] : interaction.values
-        lineup = (await teamService.joinBench(interaction.user, lineup, selectedRolesNames, selectedLineupNumber, interaction.member as GuildMember)) as ILineup
+        const anyRoleName = interaction.values.find(value => value.includes(ROLE_NAME_ANY))
+        let selectedRolesNames: string[]
+        if (anyRoleName) {
+            selectedRolesNames = [anyRoleName]
+        } else {
+            selectedRolesNames = interaction.values
+        }
+        lineup = (await teamService.joinBench(interaction.user, lineup, selectedRolesNames, interaction.member as GuildMember)) as ILineup
 
         let reply = await interactionUtils.createReplyForLineup(lineup) as MessageOptions
         let informationEmbed
         if (lineup.isAnonymous()) {
             informationEmbed = interactionUtils.createInformationEmbed(':inbox_tray: A player joined the bench')
         } else {
-            informationEmbed = interactionUtils.createInformationEmbed(`:inbox_tray: ${interaction.user} benched as **${selectedRolesNames.join(', ')}**`, interaction.user)
+            informationEmbed = interactionUtils.createInformationEmbed(`:inbox_tray: ${interaction.user} benched as **${selectedRolesNames.map(r => r.split('_')[0]).join(', ')}**`, interaction.user)
         }
         reply.embeds = (reply.embeds || []).concat(informationEmbed)
         await interaction.channel?.send(reply)
