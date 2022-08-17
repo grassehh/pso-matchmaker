@@ -18,7 +18,7 @@ export default {
         let team: ITeam = await teamService.findTeamByGuildId(guildId) as ITeam
         const teamWasVerified = team.verified
 
-        await interaction.reply({ content: `Type the ids or the mentions (@user) of the users you want to ${action} ?\nType **end** once you have finished.`, ephemeral: true })
+        await interaction.update({ content: `Type the ids or the mentions (@user) of the users you want to ${action}\nType **end** once you have finished.`, components: [] })
 
         let teamChanged = false
         const filter = (m: Message) => interaction.user.id === m.author.id
