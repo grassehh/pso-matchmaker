@@ -14,6 +14,11 @@ export default {
             return
         }
 
+        if (!(await authorizationService.isSteamAccountLinked(interaction.user))) {
+            await interaction.reply({ content: `⛔ You need to log into your **Steam account** in order to interact with the bot by **[clicking here](${process.env.PSO_MM_STEAM_LOGIN_URL}?discordUserId=${interaction.user.id})**`, ephemeral: true })
+            return
+        }
+
         if (!authorizationService.isBotAllowed(interaction)) {
             await interaction.reply({ content: '⛔ Please add me to this channel before using any command (I need  SEND_MESSAGES and VIEW_CHANNEL permissions)', ephemeral: true })
             return

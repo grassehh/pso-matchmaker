@@ -15,6 +15,7 @@ We collect information you provide directly to us. For example, we collect infor
 When you access or use our services, we automatically collect information about you, including:
 
 * **Discord User ID**: We collect and save your discord user ID every time you sign in the matchmaking system
+* **Steam ID**: We collect and save your steam ID every time you sign in the matchmaking system (required in order to interact with the system)
 
 ## Use of Information
 
@@ -23,6 +24,7 @@ We use information about you for various purposes, including to:
 * Send you a direct messages when the match your registered in is ready;
 * Notify and inform other users that you are signed into the matchmaking;
 * Save statistics about how many times you signed into the matchmaking, in order to improve our service.
+* Moderate and keep the community as safest as possible by linking your Discord account with your Steam account
 
 By accessing and using our services, you consent to the processing and transfer of your information in and to the United States and other countries.
 

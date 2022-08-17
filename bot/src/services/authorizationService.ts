@@ -1,6 +1,8 @@
-import { ChannelType, GuildMember, Interaction, PermissionsBitField, Role } from "discord.js";
+import { ChannelType, GuildMember, Interaction, PermissionsBitField, Role, User as DiscordUser } from "discord.js";
 import { BOT_ADMIN_ROLE } from "../constants";
 import { ICommandHandler } from "../handlers/commandHandler";
+import { IUser, User } from "../mongoSchema";
+import { userService } from "./userService";
 const dotenv = require("dotenv")
 dotenv.config()
 
@@ -15,6 +17,20 @@ class AuthorizationService {
         }
 
         return interaction.channel.permissionsFor(interaction.guild.members.me).has([PermissionsBitField.Flags.ViewChannel, PermissionsBitField.Flags.SendMessages]);
+    }
+
+    async isSteamAccountLinked(discordUser: DiscordUser): Promise<boolean> {
+        let user = await userService.findUserByDiscordUserId(discordUser.id)
+        if (!user) {
+            await new User({
+                id: discordUser.id,
+                name: discordUser.username,
+                mention: discordUser.toString()
+            } as IUser).save()
+            return false
+        }
+
+        return user.steamId !== undefined
     }
 
     isAllowedToExecuteCommand(command: ICommandHandler, member: GuildMember) {

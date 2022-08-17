@@ -1,4 +1,4 @@
-import { Client, GuildChannel, User } from "discord.js";
+import { Client, GuildChannel, User as DiscordUser } from "discord.js";
 import { model, Schema, Types } from "mongoose";
 import { DEFAULT_RATING, MERC_USER_ID, MIN_LINEUP_SIZE_FOR_RANKED } from "./constants";
 import { MatchResult } from "./services/matchmakingService";
@@ -8,6 +8,7 @@ import { notEmpty } from "./utils";
 
 export interface IUser {
     id: string,
+    steamId?: string,
     name: string,
     mention: string,
     emoji?: string,
@@ -15,11 +16,15 @@ export interface IUser {
 }
 const userSchema = new Schema<IUser>({
     id: { type: String, required: true },
+    steamId: { type: String, required: false },
     name: { type: String, required: true },
     mention: { type: String, required: true },
     emoji: { type: String, required: false },
     rating: { type: Number, required: false, default: DEFAULT_RATING }
 })
+userSchema.index({ id: 1 });
+userSchema.index({ steamId: 1 });
+export const User = model<IUser>('User', userSchema, 'users')
 
 export interface ITeam {
     prettyPrintName(teamLogoDisplay?: TeamLogoDisplay): string,
@@ -436,7 +441,7 @@ const matchResultSchema = new Schema<IMatchResult>({
 })
 
 export interface IMatch {
-    findUserRole(user: User): IRole | null,
+    findUserRole(user: DiscordUser): IRole | null,
     matchId: string,
     schedule: Date,
     firstLineup: ILineup,
@@ -488,7 +493,7 @@ const matchSchema = new Schema<IMatch>({
     }
 })
 matchSchema.index({ schedule: 1 }, { expireAfterSeconds: 4 * 60 * 60 });
-matchSchema.methods.findUserRole = function (user: User): IRole | null {
+matchSchema.methods.findUserRole = function (user: DiscordUser): IRole | null {
     const existingUserInSubs = this.subs.filter((role: IRole) => role.user).find((role: IRole) => role.user?.id === user.id)
     let existingUserInFirstLineup
     let existingUserInSecondLineup
