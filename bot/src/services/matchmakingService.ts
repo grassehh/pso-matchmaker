@@ -59,7 +59,7 @@ class MatchmakingService {
         let numberOfPlayersSigned = lineup.roles.filter(role => role.user).length
         let lineupSize = lineup.isNotTeam() ? lineup.size * 2 : lineup.size
         let numberOfMissingPlayers = lineupSize - numberOfPlayersSigned
-        if (lineup.isNotTeam() && lineup.allowRanked) {
+        if (lineup.isNotTeam() && !lineup.isCaptains() && lineup.allowRanked) {
             return numberOfMissingPlayers === 0
         }
 
