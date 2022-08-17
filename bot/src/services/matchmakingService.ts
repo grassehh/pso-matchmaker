@@ -74,10 +74,10 @@ class MatchmakingService {
                 const channel = await client.channels.fetch(regionData.bansListChannelId) as TextChannel
                 const messages = await channel.messages.fetch({ limit: 1 })
                 if (messages.size === 0) {
-                    channel.send({ embeds: [banListEmbed] })
+                    handle(channel.send({ embeds: [banListEmbed] }))
                 } else {
                     messages.first()?.edit({ embeds: [banListEmbed] })
-                        .catch(async () => channel.send({ embeds: [banListEmbed] }))
+                        .catch(async () => handle(channel.send({ embeds: [banListEmbed] })))
                 }
             }
         })
