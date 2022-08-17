@@ -9,6 +9,7 @@ import { ICommandHandler } from './handlers/commandHandler';
 import { IComponentHandler } from './handlers/componentHandler';
 import { ISelectMenuHandler } from './handlers/selectMenuHandler';
 import { matchmakingService } from './services/matchmakingService';
+import { teamService } from './services/teamService';
 
 dotenv.config()
 
@@ -65,6 +66,8 @@ for (const file of eventFiles) {
 		client.on(event.name, (...args) => event.execute(...args));
 	}
 }
+
+schedule('0 0 * * *', async () => await teamService.notifyAndPurgeInactiveTeams(client).catch(console.error));
 
 schedule('*/5 * * * *', async () => await matchmakingService.updateBansListChannel(client).catch(console.error));
 

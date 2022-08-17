@@ -1,13 +1,13 @@
 const dotenv = require('dotenv');
-const mongoose = require('mongoose');
-const { Lineup, Team, Stats } = require('../mongoSchema');
-const { handle } = require('../utils');
-const { Client, Intents } = require('discord.js');
+import { Client, GatewayIntentBits } from 'discord.js';
+import mongoose from 'mongoose'
+import { Lineup, Stats, Team } from '../bot/src/mongoSchema';
+import { handle } from '../bot/src/utils';
 dotenv.config()
 
 const client = new Client({
   intents: [
-    Intents.FLAGS.GUILDS
+    GatewayIntentBits.Guilds
   ]
 })
 
@@ -16,7 +16,7 @@ async function cleanOrphans() {
   await mongoose.connect(process.env.MONGO_URI || '', { keepAlive: true })
   await cleanOrphanLineups()
   await cleanOrphanTeams()
-  // await cleanOrphanStats()
+  await cleanOrphanStats()
 }
 
 async function cleanOrphanLineups() {
@@ -108,11 +108,11 @@ async function cleanOrphanStats() {
   }
 
   console.log(`${unknownUserIds.length} orphan stats to delete: ${unknownUserIds}`)
-  await Stats.deleteMany({ 'userId': { $in: unknownGuildIds } })
+  await Stats.deleteMany({ 'userId': { $in: unknownUserIds } })
   console.log(`Orphan stats deleted`)
 }
 
-cleanOrphans().finally(async res => {
+cleanOrphans().finally(async () => {
   await mongoose.disconnect()
   client.destroy()
   process.exit()
