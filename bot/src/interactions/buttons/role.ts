@@ -4,7 +4,8 @@ import { matchmakingService } from "../../services/matchmakingService";
 import { statsService } from "../../services/statsService";
 import { teamService } from "../../services/teamService";
 import { IButtonHandler } from "../../handlers/buttonHandler";
-import { ILineup } from "../../mongoSchema";
+import { ILineup, IUser } from "../../mongoSchema";
+import { userService } from "../../services/userService";
 
 export default {
     customId: 'role_',
@@ -68,14 +69,10 @@ export default {
             }
         }
 
+        const userToAdd = await userService.findUserByDiscordUserId(interaction.user.id) as IUser
         const playerStats = await statsService.findUserStats(interaction.user.id, lineup.team.region)
-        const userToAdd = {
-            id: interaction.user.id,
-            name: interaction.user.username,
-            mention: interaction.user.toString(),
-            emoji: statsService.getLevelEmojiFromMember(interaction.member as GuildMember),
-            rating: playerStats?.getRoleRating(selectedRole?.type)
-        }
+        userToAdd.rating = playerStats?.getRoleRating(selectedRole.type)
+        userToAdd.emoji = statsService.getLevelEmojiFromMember(interaction.member as GuildMember)
 
         await Promise.all([
             lineup = await teamService.addUserToLineup(interaction.channelId, selectedRoleName, userToAdd, lineupNumber) as ILineup,

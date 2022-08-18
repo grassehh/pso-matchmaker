@@ -5,6 +5,7 @@ import { ITeam } from "../../mongoSchema";
 import { interactionUtils } from "../../services/interactionUtils";
 import { regionService } from "../../services/regionService";
 import { teamService, TeamTypeHelper } from "../../services/teamService";
+import { userService } from "../../services/userService";
 import { handle } from "../../utils";
 
 export default {
@@ -42,20 +43,26 @@ export default {
                 }
             }
 
-            let user: User | undefined
+            let discordUser: User | undefined
             if (m.mentions.users.size === 1) {
-                user = m.mentions.users.first()
+                discordUser = m.mentions.users.first()
             } else if (regionService.isOfficialDiscord(interaction.guildId!)) {
-                [user] = await handle(interaction.client.users.fetch(m.content))
+                [discordUser] = await handle(interaction.client.users.fetch(m.content))
             }
 
-            if (!user) {
+            if (!discordUser) {
                 await interaction.followUp({ content: '⛔ This user does not exist', ephemeral: true })
                 return
             }
 
-            if (user.bot) {
+            if (discordUser.bot) {
                 await interaction.followUp({ content: '⛔ I know I am the best, but I am not allowed to play, sorry :(', ephemeral: true })
+                return
+            }
+
+            const user = await userService.findUserByDiscordUserId(discordUser.id)
+            if (!user) {
+                await interaction.followUp({ content: '⛔ This user is not registered into PSO Matchmaker', ephemeral: true })
                 return
             }
 
@@ -68,26 +75,26 @@ export default {
             teamChanged = true
             if (category === 'captains') {
                 if (action === 'add') {
-                    if (team.captains.some(captain => captain.id === user?.id)) {
+                    if (team.captains.some(captain => captain.id === user.id)) {
                         await interaction.followUp({ content: '⛔ This user is already captain', ephemeral: true })
                         return
                     }
-                    team = (await teamService.addCaptain(guildId, { id: user.id, name: user.username, mention: user.toString() }))!
+                    team = (await teamService.addCaptain(guildId, user))!
                 } else {
                     team = (await teamService.removeCaptain(guildId, user.id))!
                 }
             } else {
                 if (action === 'add') {
-                    if (team.players.some(player => player.id === user?.id)) {
+                    if (team.players.some(player => player.id === user.id)) {
                         await interaction.followUp({ content: '⛔ This user is already a player', ephemeral: true })
                         return
                     }
-                    team = (await teamService.addPlayer(guildId, { id: user.id, name: user.username, mention: user.toString() }))!
+                    team = (await teamService.addPlayer(guildId, user))!
                 } else {
                     team = (await teamService.removePlayer(guildId, user.id))!
                 }
             }
-            await interaction.followUp({ content: `${category === 'captains' ? 'Captain' : 'Player'} ${user} successfully ${action === 'add' ? 'added' : 'removed'}` })
+            await interaction.followUp({ content: `${category === 'captains' ? 'Captain' : 'Player'} ${discordUser} successfully ${action === 'add' ? 'added' : 'removed'}` })
         })
 
         collector.on('end', async () => {
