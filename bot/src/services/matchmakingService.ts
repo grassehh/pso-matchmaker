@@ -134,7 +134,7 @@ class MatchmakingService {
             ])
 
             if (lineupQueueToChallenge.length > 0) {
-                if (await this.checkForDuplicatedPlayers(client, lineupQueue.lineup, lineupQueueToChallenge[0].lineup)) {
+                if (await this.checkForDuplicatedPlayers(client, lineupQueue.lineup, Lineup.hydrate(lineupQueueToChallenge[0].lineup))) {
                     return
                 }
 
