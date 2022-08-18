@@ -2,6 +2,7 @@ import { SlashCommandBuilder } from "@discordjs/builders";
 import { ChatInputCommandInteraction, EmbedBuilder, PermissionFlagsBits } from "discord.js";
 import { BOT_ADMIN_ROLE } from "../../constants";
 import { ICommandHandler } from "../../handlers/commandHandler";
+import { regionService } from "../../services/regionService";
 import { userService } from "../../services/userService";
 
 export default {
@@ -17,6 +18,11 @@ export default {
         .setDefaultMemberPermissions(PermissionFlagsBits.BanMembers),
     authorizedRoles: [BOT_ADMIN_ROLE],
     async execute(interaction: ChatInputCommandInteraction) {
+        if (!regionService.isOfficialDiscord(interaction.guild!.id)) {
+            await interaction.reply({ content: '⛔ Only official discords can use this command', ephemeral: true })
+            return;
+        }
+
         const user = interaction.options.getUser('user')
         const steamId = interaction.options.getString('steam_id')
 
