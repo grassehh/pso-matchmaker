@@ -9,7 +9,7 @@
         "clean": "tsc --build --clean",
         "test": "jest ./bot/test/*",
         "test:debug": "jest --verbose --runInBand ./bot/test/*",
-        "dev": "npx nodemon bot/src/index.ts",
+        "dev": "npx nodemon bot/src/bot.ts",
         "start": "node index.js",
         "deploy-commands": "node build/scripts/deploy-commands.js"
     },
