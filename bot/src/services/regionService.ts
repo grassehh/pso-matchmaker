@@ -1,5 +1,5 @@
 import { GuildMember } from "discord.js"
-import { RATING_TIER_1_THRESHOLD, RATING_TIER_2_THRESHOLD, RATING_TIER_3_THRESHOLD } from "../constants"
+import { RATING_TIER_2_THRESHOLD, RATING_TIER_3_THRESHOLD } from "../constants"
 import { handle } from "../utils"
 
 const dotenv = require("dotenv")
@@ -41,7 +41,6 @@ class RegionService {
                 tier1RoleId: process.env[`PSO_${key}_DISCORD_TIER_1_ROLE_ID`] as string,
                 tier2RoleId: process.env[`PSO_${key}_DISCORD_TIER_2_ROLE_ID`] as string,
                 tier3RoleId: process.env[`PSO_${key}_DISCORD_TIER_3_ROLE_ID`] as string,
-                tier4RoleId: process.env[`PSO_${key}_DISCORD_TIER_4_ROLE_ID`] as string,
             } as RegionData
             this.regionsDataByRegion.set(key, regionData)
             this.regionsDataByGuildId.set(regionData.guildId, regionData)
@@ -92,12 +91,9 @@ class RegionService {
         const regionData = this.getRegionData(region)
         const tierRoleIds: string[] = []
         if (rating >= RATING_TIER_3_THRESHOLD) {
-            tierRoleIds.push(regionData.tier4RoleId as string)
-        }
-        if (rating >= RATING_TIER_2_THRESHOLD) {
             tierRoleIds.push(regionData.tier3RoleId as string)
         }
-        if (rating >= RATING_TIER_1_THRESHOLD) {
+        if (rating >= RATING_TIER_2_THRESHOLD) {
             tierRoleIds.push(regionData.tier2RoleId as string)
         }
         tierRoleIds.push(regionData.tier1RoleId as string)
@@ -108,12 +104,9 @@ class RegionService {
     getTierRoleId(region: Region, rating: number): string {
         const regionData = this.getRegionData(region)
         if (rating >= RATING_TIER_3_THRESHOLD) {
-            return regionData.tier4RoleId as string
-        }
-        if (rating >= RATING_TIER_2_THRESHOLD) {
             return regionData.tier3RoleId as string
         }
-        if (rating >= RATING_TIER_1_THRESHOLD) {
+        if (rating >= RATING_TIER_2_THRESHOLD) {
             return regionData.tier2RoleId as string
         }
         return regionData.tier1RoleId as string
@@ -122,7 +115,6 @@ class RegionService {
     getAllTierRoleIds(region: Region): string[] {
         const regionData = this.getRegionData(region)
         return [
-            regionData.tier4RoleId as string,
             regionData.tier3RoleId as string,
             regionData.tier2RoleId as string,
             regionData.tier1RoleId as string
