@@ -1,10 +1,10 @@
 
-import { GuildMember, Interaction } from 'discord.js';
-import { commands, componentInteractions } from '../index';
+import { EmbedBuilder, GuildMember, Interaction } from 'discord.js';
 import { IEventHandler } from '../handlers/eventHandler';
+import { commands, componentInteractions } from '../index';
 import { authorizationService } from '../services/authorizationService';
-import { teamService } from '../services/teamService';
 import { interactionUtils } from '../services/interactionUtils';
+import { teamService } from '../services/teamService';
 import { handle } from '../utils';
 
 export default {
@@ -14,8 +14,17 @@ export default {
             return
         }
 
-        if (!(await authorizationService.isSteamAccountLinked(interaction.user))) {
-            await interaction.reply({ content: `⛔ You need to log into your **Steam account** in order to interact with the bot by **[clicking here](${process.env.PSO_MM_STEAM_LOGIN_URL}?discordUserId=${interaction.user.id})**`, ephemeral: true })
+        const isDeleteAccountInteraction = interaction.isChatInputCommand() && interaction.commandName === 'delete_account' || interaction.isButton() && interaction.customId.startsWith('delete_account_');
+        if (!isDeleteAccountInteraction && !(await authorizationService.isSteamAccountLinked(interaction.user))) {
+            await interaction.reply({
+                embeds: [
+                    new EmbedBuilder()
+                        .setTitle("🔒 Steam Authentication Required")
+                        .setDescription("To help making PSO Discord matchmaking and community more safe, we require you to authenticate into your Steam account.")
+                        .setFooter({ text: 'You can logout at any time by using the /steam_logout command' })
+                        .addFields([{ name: "Steam Account", value: `[Log In](${process.env.PSO_MM_STEAM_LOGIN_URL}?discordUserId=${interaction.user.id})` }])
+                ], ephemeral: true
+            })
             return
         }
 

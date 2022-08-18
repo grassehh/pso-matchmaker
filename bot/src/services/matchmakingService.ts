@@ -3,7 +3,7 @@ import { DeleteResult } from "mongodb";
 import { UpdateWriteOpResult } from "mongoose";
 import { Elo } from "simple-elo-rating";
 import { v4 as uuidv4 } from 'uuid';
-import { DEFAULT_RATING, MERC_USER_ID } from "../constants";
+import { DEFAULT_RATING } from "../constants";
 import { Challenge, IChallenge, ILineup, ILineupMatchResult, ILineupQueue, IMatch, IRole, IStats, ISub, IUser, Lineup, LineupQueue, Match, Stats } from "../mongoSchema";
 import { handle, notEmpty } from "../utils";
 import { interactionUtils } from "./interactionUtils";
@@ -505,7 +505,7 @@ class MatchmakingService {
             return
         }
 
-        const lineupHasAnyMerc = lineup.roles.some(role => role.user?.id === MERC_USER_ID)
+        const lineupHasAnyMerc = lineup.roles.some(role => role.user?.isMerc())
         if (lineupHasAnyMerc && lineupQueueToChallenge.ranked) {
             await interaction.reply({ content: "⛔ You can't challenge a ranked team with a merc signed", ephemeral: true })
             return
@@ -647,17 +647,14 @@ class MatchmakingService {
         let firstLineupUsers: IUser[]
         let secondLineupUsers: IUser[]
         if (secondLineup) {
-            firstLineupUsers = firstLineup.roles.filter(role => role.lineupNumber === 1).map(role => role.user).filter(notEmpty)
-            secondLineupUsers = secondLineup.roles.map(role => role.user).filter(notEmpty)
+            firstLineupUsers = firstLineup.getNonMercSignedRoles(1).map(role => role.user).filter(notEmpty)
+            secondLineupUsers = secondLineup.getNonMercSignedRoles(1).map(role => role.user).filter(notEmpty)
         } else {
-            firstLineupUsers = firstLineup.roles.filter(role => role.lineupNumber === 1).map(role => role.user).filter(notEmpty)
-            secondLineupUsers = firstLineup.roles.filter(role => role.lineupNumber === 2).map(role => role.user).filter(notEmpty)
+            firstLineupUsers = firstLineup.getNonMercSignedRoles(1).map(role => role.user).filter(notEmpty)
+            secondLineupUsers = firstLineup.getNonMercSignedRoles(2).map(role => role.user).filter(notEmpty)
         }
 
-        let duplicatedUsers = firstLineupUsers.filter(user =>
-            user.id !== MERC_USER_ID &&
-            secondLineupUsers.some(t => t.id === user.id)
-        )
+        let duplicatedUsers = firstLineupUsers.filter(user => secondLineupUsers.some(t => t.id === user.id))
         if (duplicatedUsers.length > 0) {
             let description = 'The following players are signed in both teams. Please arrange with them before challenging: '
             for (let duplicatedUser of duplicatedUsers) {
@@ -826,7 +823,7 @@ class MatchmakingService {
     }
 
     async findHighestRatedUserId(lineup: ILineup): Promise<string> {
-        const userIds: string[] = lineup.roles.map(role => role.user?.id).filter(id => id !== MERC_USER_ID).filter(notEmpty)
+        const userIds: string[] = lineup.getNonMercSignedRoles().map(role => role.user?.id).filter(notEmpty)
 
         let pipeline = <any>[]
         pipeline.push(
@@ -1001,7 +998,7 @@ class MatchmakingService {
 
     private async enhanceWithDiscordUsers(client: Client, roles: IRole[]): Promise<RoleWithDiscordUser[]> {
         const promises = roles.map(async role => {
-            if (!role.user || role.user.id === MERC_USER_ID) {
+            if (!role.user || role.user.isMerc()) {
                 return { role }
             }
 

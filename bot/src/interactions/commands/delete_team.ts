@@ -28,6 +28,6 @@ export default {
                     .setLabel(`No`)
                     .setStyle(ButtonStyle.Primary)
             )
-        await interaction.reply({ content: '🛑 This will delete your team and all associated lineups', components: [deleteTeamActionRow] })
+        await interaction.reply({ content: '🛑 This will delete your team and all associated lineups', components: [deleteTeamActionRow], ephemeral: true })
     },
 } as ICommandHandler
