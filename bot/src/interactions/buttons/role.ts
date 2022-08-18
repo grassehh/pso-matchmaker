@@ -42,15 +42,6 @@ export default {
             } else {
                 description = `:outbox_tray::inbox_tray: ${interaction.user} swapped **${roleLeft.name}** with **${selectedRoleName}**`
             }
-        } else {
-            if (lineup.isAnonymous()) {
-                description = ':inbox_tray: A player joined the queue'
-            } else {
-                description = `:inbox_tray: ${interaction.user} signed as **${selectedRoleName}**`
-            }
-        }
-
-        if (benchRoleLeft) {
             const benchUserToTransfer = teamService.getBenchUserToTransfer(lineup, roleLeft)
             if (benchUserToTransfer !== null) {
                 lineup = await teamService.moveUserFromBenchToLineup(interaction.channelId, benchUserToTransfer, roleLeft!!) as ILineup
@@ -60,12 +51,17 @@ export default {
                     description += `\n:inbox_tray: ${benchUserToTransfer.mention} came off the bench and joined the **${roleLeft?.name}** position`
                 }
             }
-            else {
-                if (lineup.isAnonymous()) {
-                    description += '\n:inbox_tray: A player came off the bench and joined the queue'
-                } else {
-                    description += `\n:inbox_tray: ${benchRoleLeft?.user!!.mention} came off the bench and joined the **${selectedRoleName}** position`
-                }
+        } else if (benchRoleLeft) {
+            if (lineup.isAnonymous()) {
+                description += '\n:inbox_tray: A player came off the bench and joined the queue'
+            } else {
+                description += `\n:inbox_tray: ${benchRoleLeft!.user.mention} came off the bench and joined the **${selectedRoleName}** position`
+            }
+        } else {
+            if (lineup.isAnonymous()) {
+                description = ':inbox_tray: A player joined the queue'
+            } else {
+                description = `:inbox_tray: ${interaction.user} signed as **${selectedRoleName}**`
             }
         }
 
