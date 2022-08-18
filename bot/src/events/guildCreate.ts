@@ -4,6 +4,6 @@ import { IEventHandler } from '../handlers/eventHandler';
 export default {
 	name: 'guildCreate',
 	async execute(guild: Guild) {
-		guild.client.user?.setActivity(`On ${guild.client.guilds.cache.size} servers`)
+		guild.client.user?.setActivity(`${guild.client.guilds.cache.size} servers`)
 	}
 } as IEventHandler
