@@ -20,8 +20,6 @@ async function leaveUnusedServers() {
     if (!team) {
       console.log(`guild with id ${guild.id} has no team registered: leaving`)
       await guild.leave()
-    } else {
-      console.log(`guild with id ${guild.id} has a team registered: staying`)
     }
   }
 }
