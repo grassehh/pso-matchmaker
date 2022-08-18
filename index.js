@@ -1,1 +1,1 @@
-require(__dirname + "/build/bot/src/index.js")
+require(__dirname + "/build/bot/src/bot.js")

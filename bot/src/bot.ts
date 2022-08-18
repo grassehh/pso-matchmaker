@@ -22,6 +22,7 @@ const client = new Client({
 		GatewayIntentBits.Guilds,
 		GatewayIntentBits.GuildMessages,
 		GatewayIntentBits.GuildPresences,
+		GatewayIntentBits.GuildMembers,
 		GatewayIntentBits.MessageContent
 	],
 	allowedMentions: {
