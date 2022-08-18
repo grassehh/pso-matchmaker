@@ -116,8 +116,14 @@ class TeamService {
         return lineup.roles.find(role => role.name.includes('GK'))?.user != null;
     }
 
-    async deleteTeam(guildId: string): Promise<DeleteResult> {
-        return Team.deleteOne({ guildId })
+    async deleteTeam(guildId: string): Promise<void> {
+        Promise.all([
+            matchmakingService.deleteChallengesByGuildId(guildId),
+            matchmakingService.deleteLineupQueuesByGuildId(guildId),
+            this.deleteLineupsByGuildId(guildId),
+            this.deleteBansByGuildId(guildId),
+            Team.deleteOne({ guildId })
+        ])
     }
 
     async findTeamByGuildId(guildId: string): Promise<ITeam | null> {
@@ -701,6 +707,66 @@ class TeamService {
                 channel?.send(messageOptions)
             }
         }))
+    }
+
+    async notifyAndPurgeInactiveTeams(client: Client): Promise<void> {
+        const daysBeforeWarning = 30
+        const reprieveDays = 15
+        const dateBeforeWarning = new Date()
+        dateBeforeWarning.setDate(dateBeforeWarning.getDate() - daysBeforeWarning)
+        const dateBeforeDeletion = new Date()
+        dateBeforeDeletion.setDate(dateBeforeDeletion.getDate() - daysBeforeWarning - reprieveDays)
+
+        const inactiveGuildIdsToDelete = (await Team.find({ lastMatchDate: { "$lt": dateBeforeDeletion } }, { guildId: 1 })).map(team => team.guildId)
+        inactiveGuildIdsToDelete.forEach(async (guildId) => {
+            const informationEmbed = new EmbedBuilder()
+                .setColor('#566573')
+                .setTimestamp()
+                .setTitle('❌ Inactive Team Deletion ❌')
+                .setDescription(`Your team has been automatically deleted because of ${daysBeforeWarning + reprieveDays} days of inactivity`)
+            await this.sendMessage(client, guildId, { embeds: [informationEmbed] })
+            await this.deleteTeam(guildId)
+        })
+
+        const inactiveTeamsToWarn = (await Team.find({ lastMatchDate: { "$lt": dateBeforeWarning }, guildId: { $nin: inactiveGuildIdsToDelete } }, { guildId: 1, lastMatchDate: 1 }))
+        inactiveTeamsToWarn.forEach(async (team) => {
+            const deletionDate = Math.floor((new Date().getTime() + team.lastMatchDate!.getTime() - dateBeforeDeletion.getTime()) / 1000)
+            const informationEmbed = new EmbedBuilder()
+                .setColor('#566573')
+                .setTimestamp()
+                .setTitle('⚠ Inactive Team Warning ⚠')
+                .setDescription(`Your team has not played since more than ${daysBeforeWarning} days. If you don't play, it will be automatically deleted <t:${deletionDate}:R>`)
+            await this.sendMessage(client, team.guildId, { embeds: [informationEmbed] })
+        })
+
+        const guildIdsToIgnore = inactiveGuildIdsToDelete.concat(inactiveTeamsToWarn.map(team => team.guildId))
+        const inactiveChannelIdsToDelete = (await Lineup.find({ lastMatchDate: { "$lt": dateBeforeDeletion }, 'team.guildId': { $nin: guildIdsToIgnore } }, { channelId: 1 })).map(lineup => lineup.channelId)
+        inactiveChannelIdsToDelete.forEach(async (channelId) => {
+            const informationEmbed = new EmbedBuilder()
+                .setColor('#566573')
+                .setTimestamp()
+                .setTitle('❌ Inactive Lineup Deletion ❌')
+                .setDescription(`This lineup has been automatically deleted because of ${daysBeforeWarning + reprieveDays} days of inactivity`)
+            const [channel] = await handle(client.channels.fetch(channelId))
+            if (channel instanceof TextChannel) {
+                channel?.send({ embeds: [informationEmbed] })
+            }
+            await this.deleteLineup(channelId)
+        })
+
+        const inactiveLineupsToWarn = (await Lineup.find({ lastMatchDate: { "$lt": dateBeforeWarning }, channelId: { $nin: inactiveChannelIdsToDelete }, 'team.guildId': { $nin: guildIdsToIgnore } }, { channelId: 1, lastMatchDate: 1 }))
+        inactiveLineupsToWarn.forEach(async (lineup) => {
+            const deletionDate = Math.floor((new Date().getTime() + lineup.lastMatchDate!.getTime() - dateBeforeDeletion.getTime()) / 1000)
+            const informationEmbed = new EmbedBuilder()
+                .setColor('#566573')
+                .setTimestamp()
+                .setTitle('⚠ Inactive Lineup Warning ⚠')
+                .setDescription(`This lineup has not played since more than ${daysBeforeWarning} days. If you don't play, it will be automatically deleted <t:${deletionDate}:R> `)
+            const [channel] = await handle(client.channels.fetch(lineup.channelId))
+            if (channel instanceof TextChannel) {
+                channel?.send({ embeds: [informationEmbed] })
+            }
+        })
     }
 
     private removeSpecialCharacters(name: string): string {
