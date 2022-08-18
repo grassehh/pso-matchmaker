@@ -9,7 +9,7 @@ export default {
         const choice = interaction.customId!.split('_')[2]
         if (choice === 'yes') {
             await teamService.deleteTeam(interaction.guildId!)
-            await interaction.channel?.send({ embeds: [interactionUtils.createInformationEmbed('✅ Your team has been deleted', interaction.user)] })
+            await interaction.update({ embeds: [interactionUtils.createInformationEmbed('✅ Your team has been deleted', interaction.user)], components: [] })
             return
         }
 
