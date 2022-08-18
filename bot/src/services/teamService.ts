@@ -8,6 +8,7 @@ import { interactionUtils } from "./interactionUtils";
 import { matchmakingService } from "./matchmakingService";
 import { Region, regionService } from "./regionService";
 import { statsService } from "./statsService";
+import { userService } from "./userService";
 
 export enum TeamLogoDisplay {
     NONE = -1,
@@ -348,12 +349,9 @@ class TeamService {
 
     async joinBench(user: User, lineup: ILineup, rolesNames: string[], member?: GuildMember): Promise<ILineup | null> {
         await this.removeUserFromLineupBench(lineup.channelId, user.id)
-        const userToAdd = {
-            id: user.id,
-            name: user.username,
-            mention: user.toString(),
-            emoji: statsService.getLevelEmojiFromMember(member as GuildMember)
-        }
+
+        const userToAdd = await userService.findUserByDiscordUserId(user.id) as IUser
+        userToAdd.emoji = statsService.getLevelEmojiFromMember(member as GuildMember)
         const benchRoles = rolesNames.map(rn => {
             const split = rn.split('_')
             const roleName = split[0]

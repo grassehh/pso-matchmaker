@@ -1,10 +1,12 @@
 
 import { ButtonInteraction, EmbedBuilder } from "discord.js";
 import { IButtonHandler } from "../../handlers/buttonHandler";
+import { ISub, IUser } from "../../mongoSchema";
 import { interactionUtils } from "../../services/interactionUtils";
 import { matchmakingService } from "../../services/matchmakingService";
 import { statsService } from "../../services/statsService";
 import { teamService } from "../../services/teamService";
+import { userService } from "../../services/userService";
 
 export default {
     customId: 'accept_sub_request_',
@@ -24,13 +26,8 @@ export default {
             return
         }
 
-        await matchmakingService.addSubToMatch(matchId, {
-            user: {
-                id: interaction.user.id,
-                name: interaction.user.username,
-                mention: interaction.user.toString()
-            }
-        })
+        const user = await userService.findUserByDiscordUserId(interaction.user.id) as IUser
+        await matchmakingService.addSubToMatch(matchId, { user } as ISub)
 
         const receivedEmbed = interaction.message.embeds[0]
         const embedBuilder = EmbedBuilder.from(receivedEmbed)

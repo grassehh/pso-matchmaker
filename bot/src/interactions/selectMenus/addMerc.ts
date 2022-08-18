@@ -1,11 +1,12 @@
 import { Message, MessageOptions, SelectMenuInteraction } from "discord.js";
 import { MERC_USER_ID } from "../../constants";
 import { ISelectMenuHandler } from "../../handlers/selectMenuHandler";
-import { ILineup } from "../../mongoSchema";
+import { ILineup, IUser } from "../../mongoSchema";
 import { interactionUtils } from "../../services/interactionUtils";
 import { matchmakingService } from "../../services/matchmakingService";
+import { statsService } from "../../services/statsService";
 import { teamService } from "../../services/teamService";
-import { handle } from "../../utils";
+import { userService } from "../../services/userService";
 
 export default {
     customId: 'select_addMerc_',
@@ -19,8 +20,8 @@ export default {
             return
         }
 
-        const roles = lineup.roles.filter(role => role.lineupNumber === selectedLineupNumber)
-        if (roles.find(role => role.name === selectedMercRole)!.user?.id) {
+        const selectedRole = lineup.roles.find(role => role.name === selectedMercRole && role.lineupNumber === selectedLineupNumber)!
+        if (selectedRole.user) {
             await interaction.reply({ content: `Too late ! Someone has already signed as **${selectedMercRole}**. Please try again.`, ephemeral: true })
             return
         }
@@ -34,40 +35,36 @@ export default {
                 return
             }
 
-            if (roles.find(role => role.name === selectedMercRole)!.user?.id) {
+            if (selectedRole.user) {
                 await interaction.followUp({ content: `Too late ! Someone has already signed as **${selectedMercRole}**. Please try again.`, ephemeral: true })
                 return
             }
 
-            let userToAdd = {
+            let userToAdd: IUser = {
                 id: MERC_USER_ID,
                 name: m.content,
                 mention: m.content
-            }
+            } as IUser
             let addedPlayerName
             if (m.mentions.users.size > 0) {
-                const [user] = await handle(interaction.client.users.fetch(m.mentions.users.at(0)!.id))
-                if (user) {
-                    const ban = await teamService.findBanByUserIdAndGuildId(user.id, interaction.guildId!)
-                    if (ban) {
-                        await interaction.followUp({ content: `⛔ Player ${m.content} is banned and cannot be signed.`, ephemeral: true })
-                        return
-                    }
-                    if (user.bot) {
-                        await interaction.followUp({ content: 'Nice try 😉', ephemeral: true })
-                        return
-                    }
-                    if (lineup.roles.some(role => role.user?.id === user.id)) {
-                        await interaction.followUp({ content: `Player ${m.content} is already signed !`, ephemeral: true })
-                        return
-                    }
-                    addedPlayerName = user.toString()
-                    userToAdd = {
-                        id: user.id,
-                        name: user.username,
-                        mention: user.toString()
-                    }
+                const user = await userService.findUserByDiscordUserId(m.mentions.users.at(0)!.id)
+                if (!user) {
+                    await interaction.followUp({ content: `⛔ This user is not registered in PSO Matchmaker`, ephemeral: true })
+                    return
                 }
+                const ban = await teamService.findBanByUserIdAndGuildId(user.id, interaction.guildId!)
+                if (ban) {
+                    await interaction.followUp({ content: `⛔ Player ${m.content} is banned and cannot be signed.`, ephemeral: true })
+                    return
+                }
+                if (lineup.roles.some(role => role.user?.id === user.id)) {
+                    await interaction.followUp({ content: `Player ${m.content} is already signed !`, ephemeral: true })
+                    return
+                }
+                addedPlayerName = m.mentions.users.at(0)?.toString()
+                const stats = await statsService.findUserStats(interaction.user.id, lineup.team.region)
+                userToAdd = await userService.findUserByDiscordUserId(user.id) as IUser
+                userToAdd.rating = stats?.getRoleRating(selectedRole.type)
             } else {
                 addedPlayerName = m.content
             }

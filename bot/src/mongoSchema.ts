@@ -1,4 +1,4 @@
-import { Client, GuildChannel, User } from "discord.js";
+import { Client, GuildChannel, User as DiscordUser } from "discord.js";
 import { model, Schema, Types } from "mongoose";
 import { DEFAULT_RATING, MERC_USER_ID, MIN_LINEUP_SIZE_FOR_RANKED } from "./constants";
 import { MatchResult } from "./services/matchmakingService";
@@ -7,7 +7,9 @@ import { LINEUP_TYPE_CAPTAINS, LINEUP_TYPE_MIX, LINEUP_TYPE_SOLO, LINEUP_TYPE_TE
 import { notEmpty } from "./utils";
 
 export interface IUser {
+    isMerc(): boolean,
     id: string,
+    steamId?: string,
     name: string,
     mention: string,
     emoji?: string,
@@ -15,11 +17,18 @@ export interface IUser {
 }
 const userSchema = new Schema<IUser>({
     id: { type: String, required: true },
+    steamId: { type: String, required: false },
     name: { type: String, required: true },
     mention: { type: String, required: true },
     emoji: { type: String, required: false },
     rating: { type: Number, required: false, default: DEFAULT_RATING }
 })
+userSchema.index({ id: 1 });
+userSchema.index({ steamId: 1 });
+userSchema.methods.isMerc = function (): boolean {
+    return this.id === MERC_USER_ID
+}
+export const User = model<IUser>('User', userSchema, 'users')
 
 export interface ITeam {
     prettyPrintName(teamLogoDisplay?: TeamLogoDisplay): string,
@@ -106,7 +115,7 @@ export interface ILineup {
     isTeam(): boolean,
     numberOfSignedPlayers(): number,
     moveAllBenchToLineup(lineupNumber?: number, clearLineup?: boolean): ILineup,
-    getNonMercSignedRoles(): IRole[],
+    getNonMercSignedRoles(lineupNumber?: number): IRole[],
     computePlayersAverageRating(lineupNumber?: number): number,
     isAllowedToPlayRanked(): boolean,
     prettyPrintName(teamLogoDisplay?: TeamLogoDisplay, includeRating?: boolean): string,
@@ -215,8 +224,14 @@ lineupSchema.methods.isTeam = function () {
 lineupSchema.methods.numberOfSignedPlayers = function () {
     return this.roles.filter((role: IRole) => role.lineupNumber === 1).filter((role: IRole) => role.user != null).length;
 }
-lineupSchema.methods.getNonMercSignedRoles = function () {
-    return this.roles.filter((role: IRole) => role.user).filter((role: IRole) => role.user?.id !== MERC_USER_ID)
+lineupSchema.methods.getNonMercSignedRoles = function (lineupNumber?: number) {
+    let roles
+    if (lineupNumber) {
+        roles = this.roles.filter((role: IRole) => role.lineupNumber === lineupNumber)
+    } else {
+        roles = this.roles
+    }
+    return roles.filter((role: IRole) => role.user).filter((role: IRole) => !role.user?.isMerc())
 }
 lineupSchema.methods.moveAllBenchToLineup = function (lineupNumber: number = 1, clearLineup: boolean = true) {
     if (clearLineup) {
@@ -436,7 +451,7 @@ const matchResultSchema = new Schema<IMatchResult>({
 })
 
 export interface IMatch {
-    findUserRole(user: User): IRole | null,
+    findUserRole(user: DiscordUser): IRole | null,
     matchId: string,
     schedule: Date,
     firstLineup: ILineup,
@@ -488,7 +503,7 @@ const matchSchema = new Schema<IMatch>({
     }
 })
 matchSchema.index({ schedule: 1 }, { expireAfterSeconds: 4 * 60 * 60 });
-matchSchema.methods.findUserRole = function (user: User): IRole | null {
+matchSchema.methods.findUserRole = function (user: DiscordUser): IRole | null {
     const existingUserInSubs = this.subs.filter((role: IRole) => role.user).find((role: IRole) => role.user?.id === user.id)
     let existingUserInFirstLineup
     let existingUserInSecondLineup
@@ -596,7 +611,7 @@ statsSchema.methods.getRoleRating = function (roleType: number): number {
         case ROLE_MIX_CAPTAINS:
             return this.mixCaptainsRating
         default:
-            return 0
+            return DEFAULT_RATING
     }
 }
 statsSchema.methods.setRoleRating = function (roleType: number, rating: number) {
