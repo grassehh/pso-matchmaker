@@ -28,7 +28,7 @@ export default {
     authorizedRoles: [BOT_ADMIN_ROLE],
     async execute(interaction: ChatInputCommandInteraction) {
         let team = await teamService.findTeamByGuildId(interaction.guildId!)
-        if (team != null) {
+        if (team !== null) {
             await interaction.reply({
                 content: `⛔ You team is already registered as '${team.name}'. Use the /team_name command if you wish to change the name of your team.`,
                 ephemeral: true
