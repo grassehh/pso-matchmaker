@@ -124,7 +124,7 @@ export interface ILineup {
     channelId: string,
     size: number,
     roles: IRole[],
-    bench: IRoleBench[] | [],
+    bench: IRoleBench[],
     name?: string | '',
     autoSearch: boolean,
     autoMatchmaking: boolean,
