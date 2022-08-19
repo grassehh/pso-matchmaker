@@ -57,7 +57,7 @@ const teamSchema = new Schema<ITeam>({
     logo: { type: String, required: false },
     type: { type: Number, enum: TeamType, required: true, default: TeamType.CLUB },
     region: { type: String, enum: Region, required: true },
-    lastMatchDate: { type: Date, required: false, default: () => new Date() },
+    lastMatchDate: { type: Date, required: false, default: () => Date.now() },
     rating: { type: Number, required: true, default: DEFAULT_RATING },
     verified: { type: Boolean, required: true, default: false },
     captains: { type: [userSchema], required: true, default: () => [] },
@@ -201,7 +201,7 @@ const lineupSchema = new Schema<ILineup>({
     lastMatchDate: {
         type: Date,
         required: false,
-        default: () => new Date()
+        default: () => Date.now()
     }
 })
 lineupSchema.index({ channelId: 1 });

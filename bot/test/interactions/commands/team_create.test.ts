@@ -5,11 +5,18 @@ import { anything, capture, instance, mock, verify, when } from 'ts-mockito';
 import command from "../../../src/interactions/commands/team_create";
 import { ITeam, Team } from '../../../src/mongoSchema';
 import { Region } from '../../../src/services/regionService';
-import { dbClean, dbConnect, dbDisconnect } from "../../test.utils";
+import { TeamType } from '../../../src/services/teamService';
+import { dbClean, dbConnect, dbDisconnect, fakeNowDate, setupFakeDate, buildTeam as buildTeam, tearDownFakedDate } from "../../test.utils";
 
-beforeAll(async () => dbConnect());
-afterAll(async () => dbDisconnect());
-afterEach(async () => dbClean())
+beforeAll(async () => {
+  await dbConnect()
+  setupFakeDate()
+});
+afterAll(async () => await dbDisconnect());
+afterEach(async () => {
+  await dbClean()
+  tearDownFakedDate()
+})
 
 describe('testing /team_create command', () => {
   it('should create a new team', async () => {
@@ -30,13 +37,23 @@ describe('testing /team_create command', () => {
     expect((replyOptions.embeds![0] as EmbedBuilder).data.description).toBe("✅ Your team has been registered !")
     verify(interaction.followUp(anything())).once()
     const team = await Team.findOne() as ITeam
+    expect(team.guildId).toBe('1234');
     expect(team.name).toBe('PSO Matchmaker Test');
+    expect(team.nameUpperCase).toBe('PSO MATCHMAKER TEST');
+    expect(team.code).toBeUndefined()
+    expect(team.logo).toBeUndefined()
+    expect(team.type).toBe(TeamType.CLUB)
     expect(team.region).toBe(Region.EUROPE);
+    expect(team.lastMatchDate?.getTime()).toBe(fakeNowDate)
+    expect(team.rating).toBe(1000)
+    expect(team.verified).toBe(false)
+    expect(team.captains.length).toBe(0)
+    expect(team.players.length).toBe(0)
   })
 
   it('should not create team when already exists', async () => {
     //Given
-    await new Team({ guildId: '1234', name: 'PMT', nameUpperCase: 'PMT', region: Region.EUROPE } as ITeam).save()
+    await buildTeam().save()
     const interaction = mock(ChatInputCommandInteraction)
     when(interaction.guildId).thenReturn('1234')
 
@@ -54,7 +71,7 @@ describe('testing /team_create command', () => {
 
   it('should not create another team when already exists with the same name', async () => {
     //Given
-    await new Team({ guildId: '1234', name: 'PMT', nameUpperCase: 'PMT', region: Region.EUROPE } as ITeam).save()
+    await buildTeam().save()
     const commandOptions = mock(CommandInteractionOptionResolver)
     when(commandOptions.getString('team_name')).thenReturn('PMT')
     when(commandOptions.getString('team_region')).thenReturn('EU')
