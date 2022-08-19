@@ -7,7 +7,7 @@ import { teamService } from "../../services/teamService";
 
 export default {
     data: new SlashCommandBuilder()
-        .setName('ban_list')
+        .setName('bans')
         .setDescription('Display a list of banned players')
         .setDefaultMemberPermissions(PermissionFlagsBits.BanMembers),
     authorizedRoles: [BOT_ADMIN_ROLE],

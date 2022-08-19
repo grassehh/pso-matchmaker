@@ -8,7 +8,7 @@ import { teamService } from "../../services/teamService";
 
 export default {
     data: new SlashCommandBuilder()
-        .setName('clear_lineup')
+        .setName('lineup_clear')
         .setDescription('Clears every roles in this lineup'),
     async execute(interaction: ChatInputCommandInteraction) {
         let challenge = await matchmakingService.findChallengeByChannelId(interaction.channelId)

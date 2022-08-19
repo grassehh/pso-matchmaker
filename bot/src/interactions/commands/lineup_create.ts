@@ -9,7 +9,7 @@ import { LINEUP_TYPE_TEAM, LINEUP_VISIBILITY_PUBLIC, teamService } from "../../s
 export default {
     data:
         new SlashCommandBuilder()
-            .setName('setup_lineup')
+            .setName('lineup_create')
             .setDescription('Set the size of the team lineup to use for the selected channel')
             .addIntegerOption(option => option.setName('size')
                 .setRequired(true)

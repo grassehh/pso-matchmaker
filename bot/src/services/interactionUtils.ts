@@ -24,7 +24,7 @@ class InteractionUtils {
 
     createReplyTeamNotRegistered(): InteractionReplyOptions {
         return {
-            content: '⛔ Please register your team with the /register_team command first',
+            content: '⛔ Please register your team with the /team_create command first',
             ephemeral: true
         }
     }
@@ -45,7 +45,7 @@ class InteractionUtils {
 
     createReplyLineupNotSetup(): InteractionReplyOptions {
         return {
-            content: '⛔ This channel has no lineup configured yet. Use the /setup_lineup command to choose a lineup format',
+            content: '⛔ This channel has no lineup configured yet. Use the **/lineup_create** commands.',
             ephemeral: true
         }
     }
@@ -484,12 +484,9 @@ class InteractionUtils {
                 if (!user) {
                     continue
                 }
-                let bansEmbedFieldValue = '*Permanent*'
-                if (ban.expireAt) {
-                    bansEmbedFieldValue = ban.expireAt.toUTCString()
-                }
+                let bansEmbedFieldValue = ban.expireAt ? ban.expireAt.toUTCString() : '*Permanent*'
                 if (ban.reason) {
-                    bansEmbedFieldValue += `***(Reason: ${ban.reason})***`
+                    bansEmbedFieldValue += ` ***(Reason: ${ban.reason})***`
                 }
                 banListEmbed.addFields([{ name: user.username, value: bansEmbedFieldValue }])
             }

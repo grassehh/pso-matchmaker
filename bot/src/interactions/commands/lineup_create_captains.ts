@@ -10,7 +10,7 @@ import { LINEUP_TYPE_CAPTAINS, LINEUP_VISIBILITY_TEAM, teamService } from "../..
 export default {
     data:
         new SlashCommandBuilder()
-            .setName('setup_mix_captains')
+            .setName('lineup_create_captains')
             .setDescription('Setup a mix lineup with captains picking')
             .addIntegerOption(option => option.setName('size')
                 .setRequired(true)

@@ -9,7 +9,7 @@ import { teamService } from "../../services/teamService";
 
 export default {
     data: new SlashCommandBuilder()
-        .setName('register_team')
+        .setName('team_create')
         .setDescription('Register your team against PSO matchmaker so you can start using the matchmaking')
         .addStringOption(option => option.setName('team_name')
             .setRequired(true)
