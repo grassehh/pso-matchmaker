@@ -4,7 +4,7 @@ import { ICommandHandler } from "../../handlers/commandHandler";
 
 export default {
     data: new SlashCommandBuilder()
-        .setName('delete_account')
+        .setName('account_delete')
         .setDescription('Deletes your account and all associated data from the bot'),
     async execute(interaction: ChatInputCommandInteraction) {
         const deleteAccountActionRow = new ActionRowBuilder<ButtonBuilder>()

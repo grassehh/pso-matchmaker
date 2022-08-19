@@ -1,5 +1,6 @@
 import { SlashCommandBuilder } from "@discordjs/builders";
 import { ChatInputCommandInteraction } from "discord.js";
+import { BOT_ADMIN_ROLE } from "../../constants";
 import { ICommandHandler } from "../../handlers/commandHandler";
 import { interactionUtils } from "../../services/interactionUtils";
 import { matchmakingService } from "../../services/matchmakingService";
@@ -7,8 +8,9 @@ import { teamService } from "../../services/teamService";
 
 export default {
     data: new SlashCommandBuilder()
-        .setName('stop_search')
-        .setDescription('Remove your team from the matchmaking queue'),
+        .setName('lineup_delete')
+        .setDescription('Deletes this lineup from this channel'),
+    authorizedRoles: [BOT_ADMIN_ROLE],
     async execute(interaction: ChatInputCommandInteraction) {
         let team = await teamService.findTeamByGuildId(interaction.guildId!)
         if (!team) {
@@ -20,23 +22,15 @@ export default {
             await interaction.reply(interactionUtils.createReplyLineupNotSetup())
             return
         }
-        if (lineup.isNotTeam()) {
-            await interaction.reply({ content: `⛔ You cannot remove a mix from the matchmaking queue`, ephemeral: true })
-            return
-        }
+
         let challenge = await matchmakingService.findChallengeByChannelId(interaction.channelId)
         if (challenge) {
             await interaction.reply(interactionUtils.createReplyAlreadyChallenging(challenge))
             return
         }
-        let lineupQueue = await matchmakingService.findLineupQueueByChannelId(interaction.channelId)
-        if (!lineupQueue) {
-            await interaction.reply(interactionUtils.createReplyNotQueued())
-            return
-        }
 
-        await interaction.deferReply();
-        await matchmakingService.leaveQueue(lineupQueue)
-        await interaction.editReply({ embeds: [interactionUtils.createInformationEmbed('😴 Your team is no longer searching for a challenge', interaction.user)] })
-    }
-} as ICommandHandler;
+        await matchmakingService.deleteLineupQueuesByChannelId(interaction.channelId)
+        await teamService.deleteLineup(interaction.channelId)
+        await interaction.reply({ embeds: [interactionUtils.createInformationEmbed('✅ Lineup deleted from this channel', interaction.user)] });
+    },
+} as ICommandHandler

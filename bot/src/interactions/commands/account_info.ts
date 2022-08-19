@@ -7,7 +7,7 @@ import { userService } from "../../services/userService";
 
 export default {
     data: new SlashCommandBuilder()
-        .setName('user_info')
+        .setName('account_info')
         .setDescription("Display information about a user")
         .addUserOption(option => option.setName('user')
             .setRequired(false)

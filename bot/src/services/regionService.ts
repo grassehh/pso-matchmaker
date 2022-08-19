@@ -131,7 +131,7 @@ class RegionService {
         if (numberOfGames >= 250) {
             return process.env.PSO_EU_DISCORD_SENIOR_ROLE_ID as string
         }
-        if (numberOfGames >= 25) {
+        if (numberOfGames >= 5) {
             return process.env.PSO_EU_DISCORD_REGULAR_ROLE_ID as string
         }
 

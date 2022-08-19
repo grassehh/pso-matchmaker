@@ -7,7 +7,7 @@ import { teamService } from "../../services/teamService";
 
 export default {
     data: new SlashCommandBuilder()
-        .setName('cancel_challenge')
+        .setName('challenge_cancel')
         .setDescription('Cancels the current challenge request (if any)'),
     async execute(interaction: ChatInputCommandInteraction) {
         const team = await teamService.findTeamByGuildId(interaction.guildId!)

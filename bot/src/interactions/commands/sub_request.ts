@@ -6,7 +6,7 @@ import { matchmakingService } from "../../services/matchmakingService";
 
 export default {
     data: new SlashCommandBuilder()
-        .setName('request_sub')
+        .setName('sub_request')
         .setDescription(`Send a sub request for a given match`)
         .addStringOption(option => option.setName('match_id')
             .setRequired(true)
