@@ -4,6 +4,7 @@ import { IStats, ITeam, Stats, Team } from "../mongoSchema"
 import { handle } from "../utils"
 import { GameType } from "./interactionUtils"
 import { Region, regionService } from "./regionService"
+import { ROLE_ATTACKER, ROLE_DEFENDER, ROLE_GOAL_KEEPER, ROLE_MIDFIELDER } from "./teamService"
 
 class StatsService {
     getLevelEmojiFromMember(member: GuildMember): string {
@@ -230,6 +231,27 @@ class StatsService {
             { $skip: page * pageSize },
             { $limit: pageSize }
         ])
+    }
+
+    async downgradePlayerStats(userId: string, position: number): Promise<IStats | null> {
+        let ratingField: string
+        switch (position) {
+            case ROLE_ATTACKER:
+                ratingField = 'attackRating'
+                break
+            case ROLE_MIDFIELDER:
+                ratingField = 'midfieldRating'
+                break
+            case ROLE_DEFENDER:
+                ratingField = 'defenseRating'
+                break
+            case ROLE_GOAL_KEEPER:
+                ratingField = 'goalKeeperRating'
+                break
+            default:
+                throw new Error(`Unknown position ${position}`)
+        }
+        return Stats.findOneAndUpdate({ userId }, { $inc: { [ratingField]: -5 } }, { new: true })
     }
 }
 

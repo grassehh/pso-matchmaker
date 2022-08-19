@@ -1,6 +1,6 @@
 
 import { EmbedBuilder, GuildMember, Interaction } from 'discord.js';
-import { commands, componentInteractions } from '../bot';
+import { commands, componentInteractions } from '../handlers/definitions';
 import { IEventHandler } from '../handlers/eventHandler';
 import { authorizationService } from '../services/authorizationService';
 import { interactionUtils } from '../services/interactionUtils';
