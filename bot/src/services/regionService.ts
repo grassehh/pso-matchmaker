@@ -75,7 +75,7 @@ class RegionService {
         await handle(member.roles.add(newTierRoleId))
     }
 
-    async updateActivityMemberRole(member: GuildMember, numberOfMatches: number): Promise<void> {
+    async updateMemberActivityRole(member: GuildMember, numberOfMatches: number): Promise<void> {
         const newActivityRoleId = this.getActivityRoleId(numberOfMatches)
         await handle(member.roles.remove(this.getAllActivityRolesId()))
         await handle(member.roles.add(newActivityRoleId))

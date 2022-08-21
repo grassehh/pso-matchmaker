@@ -141,7 +141,7 @@ class StatsService {
             await Promise.all(usersStats.map(async (userStats: IStats) => {
                 const [member] = await handle(psoEuGuild.members.fetch(userStats._id.toString()))
                 if (member instanceof GuildMember) {
-                    regionService.updateActivityMemberRole(member, userStats.numberOfRankedGames)
+                    regionService.updateMemberActivityRole(member, userStats.numberOfRankedGames)
                 }
             }))
         }
