@@ -76,15 +76,8 @@ class RegionService {
     }
 
     async updateActivityMemberRole(member: GuildMember, numberOfMatches: number): Promise<void> {
-        const oldActivityRoleId = this.getActivityRole(numberOfMatches - 1)
-        const newActivityRoleId = this.getActivityRole(numberOfMatches)
-        console.log(`User with ID ${member.id}, oldActivityRole: ${oldActivityRoleId}, newActivityRole: ${newActivityRoleId}`)
-
-        if (!oldActivityRoleId === !newActivityRoleId) {
-            return
-        }
-
-        await handle(member.roles.remove(oldActivityRoleId))
+        const newActivityRoleId = this.getActivityRoleId(numberOfMatches)
+        await handle(member.roles.remove(this.getAllActivityRolesId()))
         await handle(member.roles.add(newActivityRoleId))
     }
 
@@ -125,18 +118,27 @@ class RegionService {
     /**
      * This is used only in EU region
      */
-    private getActivityRole(numberOfGames: number): string {
+    private getActivityRoleId(numberOfGames: number): string {
         if (numberOfGames >= 800) {
             return process.env.PSO_EU_DISCORD_VETERAN_ROLE_ID as string
         }
         if (numberOfGames >= 250) {
             return process.env.PSO_EU_DISCORD_SENIOR_ROLE_ID as string
         }
-        if (numberOfGames >= 5) {
+        if (numberOfGames >= 25) {
             return process.env.PSO_EU_DISCORD_REGULAR_ROLE_ID as string
         }
 
         return process.env.PSO_EU_DISCORD_CASUAL_ROLE_ID as string
+    }
+
+    private getAllActivityRolesId(): string[] {
+        return [
+            process.env.PSO_EU_DISCORD_VETERAN_ROLE_ID as string,
+            process.env.PSO_EU_DISCORD_SENIOR_ROLE_ID as string,
+            process.env.PSO_EU_DISCORD_REGULAR_ROLE_ID as string,
+            process.env.PSO_EU_DISCORD_CASUAL_ROLE_ID as string
+        ]
     }
 }
 export const regionService = new RegionService()
