@@ -67,7 +67,7 @@ class RegionService {
         const oldTierRoleId = this.getTierRoleId(region, oldAverageRating)
         const newTierRoleId = this.getTierRoleId(region, newAverageRating)
 
-        if (oldTierRoleId === newTierRoleId) {
+        if (!oldTierRoleId || !newTierRoleId) {
             return
         }
 
@@ -79,7 +79,7 @@ class RegionService {
         const oldActivityRoleId = this.getActivityRole(numberOfMatches - 1)
         const newActivityRoleId = this.getActivityRole(numberOfMatches)
 
-        if (oldActivityRoleId === newActivityRoleId) {
+        if (!oldActivityRoleId === !newActivityRoleId) {
             return
         }
 

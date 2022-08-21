@@ -17,7 +17,7 @@ export default {
     async execute(interaction: ChatInputCommandInteraction) {
         const teamId = interaction.options.getString('team_id')!
         let team: ITeam | null
-        
+
         if (teamId) {
             if (!regionService.isOfficialDiscord(interaction.guildId!)) {
                 await interaction.reply({ content: '⛔ Only official discords can manage other teams than yours', ephemeral: true })
@@ -35,7 +35,11 @@ export default {
                 return
             }
         } else {
-            team = await teamService.findTeamByGuildId(interaction.guildId!) as ITeam
+            team = await teamService.findTeamByGuildId(interaction.guildId!)
+            if (!team) {
+                await interaction.reply({ content: '⛔ This team does not exist', ephemeral: true })
+                return
+            }
         }
 
         await interaction.reply(interactionUtils.createTeamManagementReply(interaction, team))
