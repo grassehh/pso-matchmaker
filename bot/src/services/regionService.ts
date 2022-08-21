@@ -78,6 +78,7 @@ class RegionService {
     async updateActivityMemberRole(member: GuildMember, numberOfMatches: number): Promise<void> {
         const oldActivityRoleId = this.getActivityRole(numberOfMatches - 1)
         const newActivityRoleId = this.getActivityRole(numberOfMatches)
+        console.log(`User with ID ${member.id}, oldActivityRole: ${oldActivityRoleId}, newActivityRole: ${newActivityRoleId}`)
 
         if (!oldActivityRoleId === !newActivityRoleId) {
             return
