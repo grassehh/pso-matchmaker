@@ -136,12 +136,18 @@ class StatsService {
          * This is deprecated but we will keep it just for information
          */
         if (region === Region.EUROPE && lineupSize >= MIN_LINEUP_SIZE_FOR_RANKED) {
+            console.log("Updating activity roles for PSO EU discord")
             const psoEuGuild = await client.guilds.fetch(process.env.PSO_EU_DISCORD_GUILD_ID as string)
             const usersStats = await this.findUsersStats(nonMercUserIds, region)
+            console.log(`Number of users stats: ${usersStats.length}`)
             await Promise.all(usersStats.map(async (userStats: IStats) => {
+                console.log(`Updating activity role for user with ID ${userStats.userId}`)
                 const [member] = await handle(psoEuGuild.members.fetch(userStats._id.toString()))
                 if (member instanceof GuildMember) {
+                    console.log(`User with ID ${userStats.userId} exists in PSO EU discord: updating activity role`)
                     regionService.updateActivityMemberRole(member, userStats.numberOfRankedGames)
+                } else {
+                    console.log(`User with ID ${userStats.userId} does not exist in PSO EU discord`)
                 }
             }))
         }
