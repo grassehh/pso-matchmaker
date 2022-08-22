@@ -1,5 +1,4 @@
 import { GuildMember } from "discord.js"
-import { RATING_TIER_2_THRESHOLD, RATING_TIER_3_THRESHOLD } from "../constants"
 import { handle } from "../utils"
 
 const dotenv = require("dotenv")
@@ -21,8 +20,9 @@ interface RegionData {
     readonly matchResultsChannelId?: string
     readonly tier1RoleId?: string
     readonly tier2RoleId?: string
+    readonly tier2Threshold?: number
     readonly tier3RoleId?: string
-    readonly tier4RoleId?: string
+    readonly tier3Threshold?: number
 }
 
 class RegionService {
@@ -40,7 +40,9 @@ class RegionService {
                 matchResultsChannelId: process.env[`PSO_${key}_DISCORD_MATCH_RESULTS_CHANNEL_ID`] as string,
                 tier1RoleId: process.env[`PSO_${key}_DISCORD_TIER_1_ROLE_ID`] as string,
                 tier2RoleId: process.env[`PSO_${key}_DISCORD_TIER_2_ROLE_ID`] as string,
+                tier2Threshold: parseInt(process.env[`PSO_${key}_DISCORD_TIER_2_THRESHOLD`] as string),
                 tier3RoleId: process.env[`PSO_${key}_DISCORD_TIER_3_ROLE_ID`] as string,
+                tier3Threshold: parseInt(process.env[`PSO_${key}_DISCORD_TIER_3_THRESHOLD`] as string),
             } as RegionData
             this.regionsDataByRegion.set(key, regionData)
             this.regionsDataByGuildId.set(regionData.guildId, regionData)
@@ -83,11 +85,15 @@ class RegionService {
 
     getAvailableTierRoleIds(region: Region, rating: number): string[] {
         const regionData = this.getRegionData(region)
+        if (!this.areTierRoleIdsDefined(regionData)) {
+            return []
+        }
+
         const tierRoleIds: string[] = []
-        if (rating >= RATING_TIER_3_THRESHOLD) {
+        if (rating >= regionData.tier3Threshold!) {
             tierRoleIds.push(regionData.tier3RoleId as string)
         }
-        if (rating >= RATING_TIER_2_THRESHOLD) {
+        if (rating >= regionData.tier2Threshold!) {
             tierRoleIds.push(regionData.tier2RoleId as string)
         }
         tierRoleIds.push(regionData.tier1RoleId as string)
@@ -95,12 +101,16 @@ class RegionService {
         return tierRoleIds
     }
 
-    getTierRoleId(region: Region, rating: number): string {
+    getTierRoleId(region: Region, rating: number): string | undefined {
         const regionData = this.getRegionData(region)
-        if (rating >= RATING_TIER_3_THRESHOLD) {
+        if (!this.areTierRoleIdsDefined(regionData)) {
+            return undefined
+        }
+
+        if (rating >= regionData.tier3Threshold!) {
             return regionData.tier3RoleId as string
         }
-        if (rating >= RATING_TIER_2_THRESHOLD) {
+        if (rating >= regionData.tier2Threshold!) {
             return regionData.tier2RoleId as string
         }
         return regionData.tier1RoleId as string
@@ -108,6 +118,10 @@ class RegionService {
 
     getAllTierRoleIds(region: Region): string[] {
         const regionData = this.getRegionData(region)
+        if (!this.areTierRoleIdsDefined(regionData)) {
+            return []
+        }
+
         return [
             regionData.tier3RoleId as string,
             regionData.tier2RoleId as string,
@@ -140,5 +154,10 @@ class RegionService {
             process.env.PSO_EU_DISCORD_CASUAL_ROLE_ID as string
         ]
     }
+
+    private areTierRoleIdsDefined(regionData: RegionData) {
+        return regionData.tier1RoleId && regionData.tier2RoleId && regionData.tier2Threshold
+    }
 }
+
 export const regionService = new RegionService()
