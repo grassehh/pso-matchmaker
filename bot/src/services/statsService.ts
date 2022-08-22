@@ -233,7 +233,7 @@ class StatsService {
         ])
     }
 
-    async downgradePlayerStats(userId: string, position: number): Promise<IStats | null> {
+    async downgradePlayerStats(region: Region, userId: string, position: number): Promise<IStats | null> {
         let ratingField: string
         switch (position) {
             case ROLE_ATTACKER:
@@ -251,7 +251,7 @@ class StatsService {
             default:
                 throw new Error(`Unknown position ${position}`)
         }
-        return Stats.findOneAndUpdate({ userId }, { $inc: { [ratingField]: -RATING_DOWNGRADE_AMOUNT } }, { new: true })
+        return Stats.findOneAndUpdate({ userId, region }, { $inc: { [ratingField]: -RATING_DOWNGRADE_AMOUNT } }, { new: true })
     }
 }
 

@@ -29,9 +29,11 @@ export default {
             await interaction.reply({ content: "⛔ Only official discords can use this command", ephemeral: true })
             return
         }
+
+        const region = regionService.getRegionByGuildId(interaction.guildId!)!
         const player = interaction.options.getUser('player')!
         const position = parseInt(interaction.options.getString('position')!)
-        const stats = await statsService.downgradePlayerStats(player.id, position)
+        const stats = await statsService.downgradePlayerStats(region, player.id, position)
         await interaction.reply({ embeds: [interactionUtils.createInformationEmbed(`✅ User rating has been downgraded by ${RATING_DOWNGRADE_AMOUNT} (new average rating ${stats?.getAverageRating()})`)] })
     }
 } as ICommandHandler;
