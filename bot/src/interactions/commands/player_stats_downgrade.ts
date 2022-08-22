@@ -1,6 +1,6 @@
 import { SlashCommandBuilder } from "@discordjs/builders";
 import { ChatInputCommandInteraction } from "discord.js";
-import { BOT_ADMIN_ROLE } from "../../constants";
+import { BOT_ADMIN_ROLE, RATING_DOWNGRADE_AMOUNT } from "../../constants";
 import { ICommandHandler } from "../../handlers/commandHandler";
 import { interactionUtils } from "../../services/interactionUtils";
 import { regionService } from "../../services/regionService";
@@ -32,6 +32,6 @@ export default {
         const player = interaction.options.getUser('player')!
         const position = parseInt(interaction.options.getString('position')!)
         const stats = await statsService.downgradePlayerStats(player.id, position)
-        await interaction.reply({ embeds: [interactionUtils.createInformationEmbed(`✅ User rating has been downgraded by 5 (new average rating ${stats?.getAverageRating()})`)] })
+        await interaction.reply({ embeds: [interactionUtils.createInformationEmbed(`✅ User rating has been downgraded by ${RATING_DOWNGRADE_AMOUNT} (new average rating ${stats?.getAverageRating()})`)] })
     }
 } as ICommandHandler;
