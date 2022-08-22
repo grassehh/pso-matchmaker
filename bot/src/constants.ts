@@ -15,3 +15,4 @@ export const DEFAULT_RATING = 1000
 
 export const RATING_TIER_3_THRESHOLD = 1100
 export const RATING_TIER_2_THRESHOLD = 900
+export const RATING_DOWNGRADE_AMOUNT = 5

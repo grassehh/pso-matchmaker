@@ -1,5 +1,5 @@
 import { Client, GuildMember, Role } from "discord.js"
-import { MERC_USER_ID, MIN_LINEUP_SIZE_FOR_RANKED } from "../constants"
+import { MERC_USER_ID, MIN_LINEUP_SIZE_FOR_RANKED, RATING_DOWNGRADE_AMOUNT } from "../constants"
 import { IStats, ITeam, Stats, Team } from "../mongoSchema"
 import { handle } from "../utils"
 import { GameType } from "./interactionUtils"
@@ -251,7 +251,7 @@ class StatsService {
             default:
                 throw new Error(`Unknown position ${position}`)
         }
-        return Stats.findOneAndUpdate({ userId }, { $inc: { [ratingField]: -5 } }, { new: true })
+        return Stats.findOneAndUpdate({ userId }, { $inc: { [ratingField]: -RATING_DOWNGRADE_AMOUNT } }, { new: true })
     }
 }
 
