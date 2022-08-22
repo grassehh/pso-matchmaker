@@ -1,9 +1,9 @@
-import { ButtonInteraction, EmbedBuilder, InteractionReplyOptions, User } from 'discord.js';
+import { ButtonInteraction, Collection, EmbedBuilder, GuildMember, GuildMemberRoleManager, InteractionReplyOptions, User, UserMention } from 'discord.js';
 import { anything, capture, instance, mock, verify, when } from 'ts-mockito';
 
 import button from "../../../src/interactions/buttons/role";
 import { LINEUP_TYPE_MIX, ROLE_ATTACKER } from '../../../src/services/teamService';
-import { buildLineup, buildTeam, dbClean, dbConnect, dbDisconnect, setupFakeDate, tearDownFakedDate } from "../../test.utils";
+import { buildLineup, buildStats, buildTeam, buildUser, dbClean, dbConnect, dbDisconnect, setupFakeDate, tearDownFakedDate } from "../../test.utils";
 
 beforeAll(async () => {
     await dbConnect()
@@ -19,7 +19,8 @@ describe('testing roles button', () => {
     describe('testing readying match', () => {
         it('should ready match when both casual mix lineups are full', async () => {
             //Given
-            // await buildUser().save()
+            await buildUser().save()
+            await buildStats().save()
             await buildTeam().save()
             const lineup = buildLineup()
             lineup.type = LINEUP_TYPE_MIX
@@ -31,9 +32,16 @@ describe('testing roles button', () => {
             await lineup.save()
             const interaction = mock(ButtonInteraction)
             when(interaction.customId).thenReturn('role_CF_1')
-            const user = mock(User)
-            when(user.id).thenReturn('userId')
-            when(interaction.user).thenReturn(instance(user))
+            let user = jest.mocked(User).prototype
+            user.id = 'userId'
+            user.toString = jest.fn(() => '<@userId>')
+            when(interaction.user).thenReturn(user)
+            when(interaction.channelId).thenReturn('2222')
+            const member = mock(GuildMember)
+            const memberRolesManager = mock(GuildMemberRoleManager)
+            when(memberRolesManager.cache).thenReturn(new Collection())
+            when(member.roles).thenReturn(instance(memberRolesManager))
+            when(interaction.member).thenReturn(instance(member))
 
             //When
             await button.execute(instance(interaction))

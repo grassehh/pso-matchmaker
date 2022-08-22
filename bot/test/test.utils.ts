@@ -31,7 +31,7 @@ export const dbClean = async () => {
 
 export const buildStats = () => new Stats({ userId: 'userId', region: Region.EUROPE })
 
-export const buildUser = () => new User({ id: 'userId' })
+export const buildUser = () => new User({ id: 'userId', mention: '@userId', name: 'user' })
 
 export const buildTeam = () => new Team({ guildId: '1234', name: 'PMT', nameUpperCase: 'PMT', region: Region.EUROPE })
 
