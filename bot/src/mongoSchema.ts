@@ -32,7 +32,7 @@ export const User = model<IUser>('User', userSchema, 'users')
 
 export interface ITeam {
     prettyPrintName(teamLogoDisplay?: TeamLogoDisplay): string,
-    getTierRoleId(): string,
+    getTierRoleId(): string | undefined,
     getAvailableTierRoleIds(): string[],
     guildId: string,
     name: string,
