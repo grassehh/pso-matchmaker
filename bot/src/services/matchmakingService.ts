@@ -960,30 +960,28 @@ class MatchmakingService {
         const secondLineupRatingAverage = match.secondLineup.computePlayersAverageRating()
 
         match.firstLineup.getNonMercSignedRoles().map(role => role.user!).forEach(async user => {
-            const oldAverageRating = firstLineupRating.getPlayerRating(user.id)?.stats.getAverageRating()
             const newRating = firstLineupRating.computeNewPlayerRating(user.id, secondLineupRatingAverage)
-            if (oldAverageRating && newRating) {
+            if (newRating) {
                 await statsService.updatePlayerRating(user.id, match.firstLineup.team.region, newRating.stats)
 
                 if (!match.firstLineup.isCaptains()) {
                     const member = await officialGuild.members.fetch(user.id)
                     if (member) {
-                        await regionService.updateMemberTierRole(regionData.region, member, oldAverageRating, newRating.stats.getAverageRating())
+                        await regionService.updateMemberTierRole(regionData.region, member, newRating.stats.getAverageRating())
                     }
                 }
             }
         })
 
         match.secondLineup.getNonMercSignedRoles().map(role => role.user!).forEach(async user => {
-            const oldAverageRating = secondLineupRating.getPlayerRating(user.id)?.stats.getAverageRating()
             const newRating = secondLineupRating.computeNewPlayerRating(user.id, firstLineupRatingAverage)
-            if (oldAverageRating && newRating) {
+            if (newRating) {
                 await statsService.updatePlayerRating(user.id, match.secondLineup.team.region, newRating.stats)
 
                 if (!match.secondLineup.isCaptains()) {
                     const member = await officialGuild.members.fetch(user.id)
                     if (member) {
-                        await regionService.updateMemberTierRole(regionData.region, member, oldAverageRating, newRating.stats.getAverageRating())
+                        await regionService.updateMemberTierRole(regionData.region, member, newRating.stats.getAverageRating())
                     }
                 }
             }

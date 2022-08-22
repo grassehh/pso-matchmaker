@@ -65,15 +65,13 @@ class RegionService {
         return this.regionsDataByGuildId.has(guildId)
     }
 
-    async updateMemberTierRole(region: Region, member: GuildMember, oldAverageRating: number, newAverageRating: number): Promise<void> {
-        const oldTierRoleId = this.getTierRoleId(region, oldAverageRating)
+    async updateMemberTierRole(region: Region, member: GuildMember, newAverageRating: number): Promise<void> {
         const newTierRoleId = this.getTierRoleId(region, newAverageRating)
-
-        if (!oldTierRoleId || !newTierRoleId) {
+        if (!newTierRoleId) {
             return
         }
 
-        await handle(member.roles.remove(oldTierRoleId))
+        await handle(member.roles.remove(this.getAllTierRoleIds(region)))
         await handle(member.roles.add(newTierRoleId))
     }
 
