@@ -1,34 +1,58 @@
+import { Client, GatewayIntentBits } from 'discord.js';
 import mongoose from 'mongoose';
-import { DEFAULT_RATING } from '../bot/src/constants';
-import { Stats, Team } from '../bot/src/mongoSchema';
+import { Stats } from '../bot/src/mongoSchema';
+import { Region, regionService } from '../bot/src/services/regionService';
 import dotenv = require('dotenv');
 dotenv.config()
 
+const client = new Client({
+    intents: [
+        GatewayIntentBits.Guilds,
+        GatewayIntentBits.GuildMembers
+    ]
+})
+
+const CHUNK_SIZE = 15
+
+function sliceIntoChunks<T>(arr: T[], chunkSize: number): [T[]] {
+    const res: [T[]] = [[]];
+    for (let i = 0; i < arr.length; i += chunkSize) {
+        const chunk = arr.slice(i, i + chunkSize);
+        res.push(chunk);
+    }
+    return res;
+}
+
 async function resetStats(): Promise<void> {
+    await client.login(process.env.TOKEN)
     await mongoose.connect(process.env.MONGO_URI || '', { keepAlive: true })
 
-    await Stats.updateMany({}, {
-        $set: {
-            numberOfRankedWins: 0,
-            numberOfRankedDraws: 0,
-            numberOfRankedLosses: 0,
-            attackRating: DEFAULT_RATING,
-            midfieldRating: DEFAULT_RATING,
-            defenseRating: DEFAULT_RATING,
-            goalKeeperRating: DEFAULT_RATING,
-            mixCaptainsRating: DEFAULT_RATING
+    const regionData = regionService.getRegionData(Region.EUROPE)
+    console.log(`Updating member tier role for region ${regionData.label}`)
+    const guild = await client.guilds.fetch(regionData.guildId)
+    if (guild) {
+        const regionStats = await Stats.find({ region: regionData.region })
+        const chunkedStats = sliceIntoChunks(regionStats, CHUNK_SIZE)
+        let chunk = 0
+        for (const statsChunk of chunkedStats) {
+            console.log(`Updating member chunk ${chunk}/${chunkedStats.length}`)
+            const members = await guild.members.fetch({ user: statsChunk.map(stats => stats.userId) })
+
+            await Promise.all(members.map(async (member) => {
+                if (member) {
+                    const averageRating = statsChunk.find(stats => stats.userId === member.id)!.getAverageRating()
+                    await regionService.updateMemberTierRole(regionData.region, member, averageRating)
+                }
+            }))
+            chunk++
         }
-    })
-    await Team.updateMany({}, {
-        $set: {
-            rating: DEFAULT_RATING
-        }
-    })
+    }
 }
 
 resetStats().finally(async () => {
-    console.log("Reset stats finished");
+    console.log("Reset tier roles finished");
     await mongoose.disconnect();
+    client.destroy()
     process.exit();
 })
 

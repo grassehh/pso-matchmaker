@@ -5,7 +5,6 @@ export async function handle<T>(promise: Promise<T>): Promise<[T | undefined, an
         const data = await promise;
         return [data, undefined];
     } catch (error) {
-        console.log(error);
         return [undefined, error];
     }
 }
