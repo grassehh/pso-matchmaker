@@ -1142,11 +1142,13 @@ class LineupRating {
                 playerStats = new Stats({
                     userId: role.user?.id,
                     region: this.lineup.team.region,
-                    numberOfGames: 0,
                     numberOfRankedGames: 0,
                     numberOfRankedWins: 0,
                     numberOfRankedDraws: 0,
                     numberOfRankedLosses: 0,
+                    totalNumberOfRankedWins: 0,
+                    totalNumberOfRankedDraws: 0,
+                    totalNumberOfRankedLosses: 0,
                     attackRating: DEFAULT_RATING,
                     midfieldRating: DEFAULT_RATING,
                     defenseRating: DEFAULT_RATING,
@@ -1187,12 +1189,15 @@ class LineupRating {
         if (this.matchResult === MatchResult.DRAW) {
             elo.setDraw()
             rankedStats.stats.numberOfRankedDraws++
+            rankedStats.stats.totalNumberOfRankedDraws++
         } else if (this.matchResult === MatchResult.WIN) {
             elo.setWinnerA()
             rankedStats.stats.numberOfRankedWins++
+            rankedStats.stats.totalNumberOfRankedWins++
         } else {
             elo.setWinnerB()
             rankedStats.stats.numberOfRankedLosses++
+            rankedStats.stats.totalNumberOfRankedLosses++
         }
 
         const newRating = elo.calculate().getResults()[0]

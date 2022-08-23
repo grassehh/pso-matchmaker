@@ -524,11 +524,13 @@ export interface IStats {
     _id: Types.ObjectId,
     userId: string,
     region: Region,
-    numberOfGames: number,
     numberOfRankedGames: number,
     numberOfRankedWins: number,
     numberOfRankedDraws: number,
     numberOfRankedLosses: number,
+    totalNumberOfRankedWins: number,
+    totalNumberOfRankedDraws: number,
+    totalNumberOfRankedLosses: number,
     attackRating: number,
     midfieldRating: number,
     defenseRating: number,
@@ -544,11 +546,6 @@ const statsSchema = new Schema<IStats>({
         type: String,
         enum: Region,
         required: true
-    },
-    numberOfGames: {
-        type: Number,
-        required: true,
-        default: 0
     },
     numberOfRankedGames: {
         type: Number,
@@ -566,6 +563,21 @@ const statsSchema = new Schema<IStats>({
         default: 0
     },
     numberOfRankedLosses: {
+        type: Number,
+        required: true,
+        default: 0
+    },
+    totalNumberOfRankedWins: {
+        type: Number,
+        required: true,
+        default: 0
+    },
+    totalNumberOfRankedDraws: {
+        type: Number,
+        required: true,
+        default: 0
+    },
+    totalNumberOfRankedLosses: {
         type: Number,
         required: true,
         default: 0
