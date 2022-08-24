@@ -15,7 +15,7 @@ export default {
         }
 
         try {
-            const isDeleteAccountInteraction = interaction.isChatInputCommand() && interaction.commandName === 'delete_account' || interaction.isButton() && interaction.customId.startsWith('delete_account_');
+            const isDeleteAccountInteraction = interaction.isChatInputCommand() && interaction.commandName === 'account_delete' || interaction.isButton() && interaction.customId.startsWith('delete_account_');
             if (!isDeleteAccountInteraction && !(await authorizationService.isSteamAccountLinked(interaction.user))) {
                 await interaction.reply({
                     embeds: [
