@@ -53,9 +53,6 @@ class StatsService {
                     numberOfRankedGames: {
                         $sum: '$numberOfRankedGames'
                     },
-                    numberOfGames: {
-                        $sum: '$numberOfGames'
-                    },
                     numberOfRankedWins: {
                         $sum: '$numberOfRankedWins'
                     },
@@ -64,6 +61,15 @@ class StatsService {
                     },
                     numberOfRankedLosses: {
                         $sum: '$numberOfRankedLosses'
+                    },
+                    totalNumberOfRankedWins: {
+                        $sum: '$totalNumberOfRankedWins'
+                    },
+                    totalNumberOfRankedDraws: {
+                        $sum: '$totalNumberOfRankedDraws'
+                    },
+                    totalNumberOfRankedLosses: {
+                        $sum: '$totalNumberOfRankedLosses'
                     },
                     attackRating: {
                         $avg: '$attackRating'
@@ -85,10 +91,12 @@ class StatsService {
             {
                 $project: {
                     numberOfRankedGames: 1,
-                    numberOfGames: 1,
                     numberOfRankedWins: 1,
                     numberOfRankedDraws: 1,
                     numberOfRankedLosses: 1,
+                    totalNumberOfRankedWins: 1,
+                    totalNumberOfRankedDraws: 1,
+                    totalNumberOfRankedLosses: 1,
                     rating: { $avg: ratingsAverage }
                 }
             },
@@ -120,7 +128,6 @@ class StatsService {
                 },
                 update: {
                     $inc: {
-                        numberOfGames: 1,
                         numberOfRankedGames: lineupSize >= MIN_LINEUP_SIZE_FOR_RANKED ? 1 : 0
                     },
                     $setOnInsert: {
@@ -161,9 +168,6 @@ class StatsService {
             {
                 $group: {
                     _id: '$userId',
-                    numberOfGames: {
-                        $sum: '$numberOfGames',
-                    },
                     numberOfRankedGames: {
                         $sum: '$numberOfRankedGames',
                     },
@@ -175,6 +179,15 @@ class StatsService {
                     },
                     numberOfRankedLosses: {
                         $sum: '$numberOfRankedLosses'
+                    },
+                    totalNumberOfRankedWins: {
+                        $sum: '$totalNumberOfRankedWins'
+                    },
+                    totalNumberOfRankedDraws: {
+                        $sum: '$totalNumberOfRankedDraws'
+                    },
+                    totalNumberOfRankedLosses: {
+                        $sum: '$totalNumberOfRankedLosses'
                     },
                     attackRating: {
                         $avg: '$attackRating'
@@ -208,6 +221,9 @@ class StatsService {
                     numberOfRankedWins: newStats.numberOfRankedWins,
                     numberOfRankedDraws: newStats.numberOfRankedDraws,
                     numberOfRankedLosses: newStats.numberOfRankedLosses,
+                    totalNumberOfRankedWins: newStats.totalNumberOfRankedWins,
+                    totalNumberOfRankedDraws: newStats.totalNumberOfRankedDraws,
+                    totalNumberOfRankedLosses: newStats.totalNumberOfRankedLosses,
                     attackRating: newStats.attackRating,
                     defenseRating: newStats.defenseRating,
                     midfieldRating: newStats.midfieldRating,

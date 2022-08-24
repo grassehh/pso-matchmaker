@@ -6,6 +6,7 @@
         "build": "tsc --build",
         "build-bot": "tsc --build bot/tsconfig.json",
         "build-scripts": "tsc --build scripts/tsconfig.json",
+        "build-migrations": "tsc --build migrations/tsconfig.json",
         "clean": "tsc --build --clean",
         "test": "jest ./bot/test/*",
         "test:debug": "jest --verbose --runInBand ./bot/test/*",

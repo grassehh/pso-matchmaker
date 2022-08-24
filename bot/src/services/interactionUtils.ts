@@ -209,11 +209,13 @@ class InteractionUtils {
             stats = new Stats({
                 userId: user.id,
                 region,
-                numberOfGames: 0,
                 numberOfRankedGames: 0,
                 numberOfRankedWins: 0,
                 numberOfRankedDraws: 0,
                 numberOfRankedLosses: 0,
+                totalNumberOfRankedWins: 0,
+                totalNumberOfRankedDraws: 0,
+                totalNumberOfRankedLosses: 0,
                 attackRating: DEFAULT_RATING,
                 midfieldRating: DEFAULT_RATING,
                 defenseRating: DEFAULT_RATING,
@@ -229,11 +231,11 @@ class InteractionUtils {
                 .setColor('#566573')
                 .setTitle(`Stats for ${user.username}`)
                 .addFields([
-                    { name: '📈 Ratings', value: `**Att:** ${stats.attackRating || DEFAULT_RATING} \n **Mid:** ${stats.midfieldRating || DEFAULT_RATING} \n **Def:** ${stats.defenseRating || DEFAULT_RATING} \n **GK:** ${stats.goalKeeperRating || DEFAULT_RATING} \n **Captains Mix:** ${stats.mixCaptainsRating || DEFAULT_RATING}`, inline: true },
-                    { name: '⚽ Ranked Matches', value: `**Wins:** ${stats.numberOfRankedWins} \n **Draws:** ${stats.numberOfRankedDraws} \n **Losses:** ${stats.numberOfRankedLosses}`, inline: true },
+                    { name: '⚽ Current Season', value: `**Wins:** ${stats.numberOfRankedWins} \n **Draws:** ${stats.numberOfRankedDraws} \n **Losses:** ${stats.numberOfRankedLosses}`, inline: true },
+                    { name: '📅 All Seasons', value: `**Wins:** ${stats.totalNumberOfRankedWins} \n **Draws:** ${stats.totalNumberOfRankedDraws} \n **Losses:** ${stats.totalNumberOfRankedLosses}`, inline: true },
+                    { name: '📈 Ratings', value: `**Att:** ${stats.attackRating || DEFAULT_RATING} \n **Mid:** ${stats.midfieldRating || DEFAULT_RATING} \n **Def:** ${stats.defenseRating || DEFAULT_RATING} \n **GK:** ${stats.goalKeeperRating || DEFAULT_RATING} \n **Captains Mix:** ${stats.mixCaptainsRating || DEFAULT_RATING}` },
                     { name: '\u200B', value: '\u200B' },
-                    { name: 'Ranked Games Played *(deprecated)*', value: stats.numberOfRankedGames.toString() },
-                    { name: 'Total Games Played *(deprecated)*', value: stats.numberOfGames.toString() }
+                    { name: 'Ranked Games Played *(deprecated)*', value: stats.numberOfRankedGames.toString() }
                 ])
         ]
     }
@@ -397,7 +399,7 @@ class InteractionUtils {
                     emoji = '🥉'
                 }
                 let isTop3 = pos <= 3
-                fieldValue += `${isTop3 ? '**' : ''}${pos}. ${emoji} ${username} - ${(playerStats as any).rating || DEFAULT_RATING}  *(${playerStats.numberOfRankedWins} - ${playerStats.numberOfRankedDraws} - ${playerStats.numberOfRankedLosses})* ${emoji}${isTop3 ? '**' : ''}\n`
+                fieldValue += `${isTop3 ? '**' : ''}${pos}. ${emoji} ${username} - ${(playerStats as any).rating || DEFAULT_RATING}  *(${playerStats.totalNumberOfRankedWins} - ${playerStats.totalNumberOfRankedDraws} - ${playerStats.totalNumberOfRankedLosses})* ${emoji}${isTop3 ? '**' : ''}\n`
                 pos++
             }
 
