@@ -61,37 +61,39 @@ export default {
             }
 
             const user = await userService.findUserByDiscordUserId(discordUser.id)
-            if (!user && action === 'add') {
-                await interaction.followUp({ content: '⛔ This user is not registered into PSO Matchmaker', ephemeral: true })
-                return
-            }
+            if (action === 'add') {
+                if (!user) {
+                    await interaction.followUp({ content: '⛔ This user is not registered into PSO Matchmaker', ephemeral: true })
+                    return
+                }
 
-            const userTeams = await teamService.findTeams(user!.id)
-            if (userTeams.filter(t => t.guildId !== guildId).filter(t => t.type === team.type).length > 0 && action === 'add') {
-                await interaction.followUp({ content: `⛔ This player already belongs to another ${TeamTypeHelper.toString(team.type)}`, ephemeral: true })
-                return
+                const userTeams = await teamService.findTeams(discordUser.id)
+                if (userTeams.filter(t => t.guildId !== guildId).filter(t => t.type === team.type).length > 0) {
+                    await interaction.followUp({ content: `⛔ This player already belongs to another ${TeamTypeHelper.toString(team.type)}`, ephemeral: true })
+                    return
+                }
             }
 
             teamChanged = true
             if (category === 'captains') {
                 if (action === 'add') {
-                    if (team.captains.some(captain => captain.id === user!.id)) {
+                    if (team.captains.some(captain => captain.id === discordUser!.id)) {
                         await interaction.followUp({ content: '⛔ This user is already captain', ephemeral: true })
                         return
                     }
                     team = (await teamService.addCaptain(guildId, user!))!
                 } else {
-                    team = (await teamService.removeCaptain(guildId, user!.id))!
+                    team = (await teamService.removeCaptain(guildId, discordUser.id))!
                 }
             } else {
                 if (action === 'add') {
-                    if (team.players.some(player => player.id === user!.id)) {
+                    if (team.players.some(player => player.id === discordUser!.id)) {
                         await interaction.followUp({ content: '⛔ This user is already a player', ephemeral: true })
                         return
                     }
                     team = (await teamService.addPlayer(guildId, user!))!
                 } else {
-                    team = (await teamService.removePlayer(guildId, user!.id))!
+                    team = (await teamService.removePlayer(guildId, discordUser.id))!
                 }
             }
             await interaction.followUp({ content: `${category === 'captains' ? 'Captain' : 'Player'} ${discordUser} successfully ${action === 'add' ? 'added' : 'removed'}` })
