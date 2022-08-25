@@ -206,11 +206,11 @@ async function editTeamUsers(interaction: ButtonInteraction, guildId: string, ca
         .addComponents(
             new ButtonBuilder()
                 .setCustomId(`team_users_add_${category}_${guildId}`)
-                .setLabel(`Add ${category === 'captains' ? 'Captains' : 'Players'} `)
+                .setLabel(`Add ${category === 'captains' ? 'Captains' : 'Players'}`)
                 .setStyle(ButtonStyle.Primary),
             new ButtonBuilder()
-                .setCustomId(`team_users_remove_${category}_${guildId} `)
-                .setLabel(`Remove ${category === 'captains' ? 'Captains' : 'Players'} `)
+                .setCustomId(`team_users_remove_${category}_${guildId}`)
+                .setLabel(`Remove ${category === 'captains' ? 'Captains' : 'Players'}`)
                 .setStyle(ButtonStyle.Danger)
         )
     await interaction.reply({ content: 'What do you want to do ?', components: [teamCaptainsActionRow], ephemeral: true })
