@@ -40,8 +40,8 @@ async function resetStats(): Promise<void> {
 
             await Promise.all(members.map(async (member) => {
                 if (member) {
-                    const averageRating = statsChunk.find(stats => stats.userId === member.id)!.getAverageRating()
-                    await regionService.updateMemberTierRole(regionData.region, member, averageRating)
+                    const stats = statsChunk.find(stats => stats.userId === member.id)!
+                    await regionService.updateMemberTierRole(regionData.region, member, stats)
                 }
             }))
             chunk++
