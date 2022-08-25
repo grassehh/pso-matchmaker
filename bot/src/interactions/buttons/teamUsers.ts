@@ -66,7 +66,7 @@ export default {
                     return
                 }
 
-                const userTeams = await teamService.findTeams(discordUser.id)
+                const userTeams = await teamService.findTeamsByUserId(discordUser.id)
                 if (userTeams.filter(t => t.guildId !== guildId).filter(t => t.type === team.type).length > 0) {
                     await interaction.followUp({ content: `⛔ This player already belongs to another ${TeamTypeHelper.toString(team.type)}`, ephemeral: true })
                     return

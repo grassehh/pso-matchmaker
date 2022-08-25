@@ -15,7 +15,7 @@ export default {
         const allUsersId = new Set(team.captains.map(c => c.id).concat(team.players.map(p => p.id)))
         let unallowedUsers: User[] = []
         for (const userId of allUsersId) {
-            const userTeams = await teamService.findTeams(userId)
+            const userTeams = await teamService.findTeamsByUserId(userId)
             if (userTeams.filter(t => t.guildId !== guildId).filter(t => t.type === type).length > 0) {
                 const user = await interaction.client.users.fetch(userId)
                 unallowedUsers.push(user)

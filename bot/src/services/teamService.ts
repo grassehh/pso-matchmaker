@@ -728,12 +728,12 @@ class TeamService {
         return await Team.findOneAndUpdate({ guildId }, { verified }, { new: true })
     }
 
-    async findTeams(userId: string): Promise<ITeam[]> {
+    async findTeamsByUserId(userId: string): Promise<ITeam[]> {
         return Team.find({ $or: [{ 'captains.id': userId }, { 'players.id': userId }] })
     }
 
-    async findAllVerifiedTeams(region: Region): Promise<ITeam[]> {
-        return Team.find({ region, verified: true })
+    async findTeamsByRegion(region: Region, verified: boolean): Promise<ITeam[]> {
+        return Team.find({ region, verified })
     }
 
     async notifyNoLongerVerified(client: Client, team: ITeam, reason?: string) {
@@ -750,7 +750,7 @@ class TeamService {
         }
         await teamService.sendMessage(client, team.guildId, { embeds: [informationEmbed] })
 
-        informationEmbed.setDescription(`The team ${team.prettyPrintName()} (${team.guildId}) has been unverified.`)
+        informationEmbed.setDescription(`${team.prettyPrintName()} (${team.guildId}) has been unverified.`)
         await regionService.sendToModerationChannel(client, team.region, { embeds: [informationEmbed] })
     }
 

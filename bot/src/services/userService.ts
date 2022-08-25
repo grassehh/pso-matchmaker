@@ -17,7 +17,7 @@ class UserService {
     }
 
     async deleteUser(client: Client, user: DiscordUser): Promise<void | null> {
-        const userTeams = await teamService.findTeams(user.id)
+        const userTeams = await teamService.findTeamsByUserId(user.id)
         await Promise.all(userTeams.map(team => {
             teamService.verify(team.guildId, false)
             teamService.notifyNoLongerVerified(client, team, `${user} unregistered from the PSO Matchmaker bot`)
