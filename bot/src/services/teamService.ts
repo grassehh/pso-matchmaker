@@ -690,13 +690,23 @@ class TeamService {
         return Team.find({ region, verified: true })
     }
 
-    async notifyNoLongerVerified(client: Client, team: ITeam) {
-        const officialGuild = await client.guilds.fetch(regionService.getRegionData(team.region).guildId) as Guild
+    async notifyNoLongerVerified(client: Client, team: ITeam, reason?: string) {
+        const regionData = regionService.getRegionData(team.region)
+        const officialGuild = await client.guilds.fetch(regionData.guildId) as Guild
         const informationEmbed = new EmbedBuilder()
             .setColor('#566573')
             .setTimestamp()
-            .setDescription(`🛑 Your team is now unverified as you have made changes. \nPlease contact the admins of the official **${officialGuild.name}** discord to get your team verified by providing your team id: **${team.guildId}**.`)
-        teamService.sendMessage(client, team.guildId, { embeds: [informationEmbed] })
+            .setTitle('🛑 Team Unverified')
+        let description = '**Your team is no longer verified.**'
+        description += `\n\nPlease contact the admins of the official **${officialGuild.name}** discord to get your team verified by providing your team id: **${team.guildId}**.`
+        informationEmbed.setDescription(description)
+        if (reason) {
+            informationEmbed.addFields([{ name: 'Reason', value: `*${reason}*` }])
+        }
+        await teamService.sendMessage(client, team.guildId, { embeds: [informationEmbed] })
+
+        informationEmbed.setDescription(`The team ${team.prettyPrintName()} (${team.guildId}) has been unverified.`)
+        await regionService.sendToModerationChannel(client, team.region, { embeds: [informationEmbed] })
     }
 
     async sendMessage(client: Client, guildId: string, messageOptions: MessageOptions): Promise<void> {
