@@ -103,7 +103,7 @@ export default {
             if (teamChanged) {
                 await interaction.followUp(interactionUtils.createTeamManagementReply(interaction, team))
                 if (teamWasVerified) {
-                    teamService.notifyNoLongerVerified(interaction.client, team)
+                    teamService.notifyNoLongerVerified(interaction.client, team, 'Players/captains modifications')
                 }
             } else {
                 await interaction.followUp({ content: "Captains edition timed out...", ephemeral: true })

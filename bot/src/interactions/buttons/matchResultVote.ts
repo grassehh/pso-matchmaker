@@ -74,7 +74,7 @@ export default {
                 { name: 'Team', value: teamName, inline: true }
             ])
             .setTimestamp()
-            .setFooter({ text: `Author: ${interaction.user}` })
+            .setFooter({ text: `Author: ${interaction.user.username}` })
         const voteNotificationMessage = { embeds: [voteNotificationMessageEmbed] }
         if (interaction.channelId !== opponentLineup.channelId) {
             await otherLineupChannel.send(voteNotificationMessage)

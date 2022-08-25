@@ -31,7 +31,7 @@ export default {
         team = await teamService.updateTeamType(guildId, type) as ITeam
         await interaction.reply(interactionUtils.createTeamManagementReply(interaction, team))
         if (wasVerified) {
-            teamService.notifyNoLongerVerified(interaction.client, team)
+            teamService.notifyNoLongerVerified(interaction.client, team, 'Team type changed')
         }
     }
 } as ISelectMenuHandler

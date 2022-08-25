@@ -1,4 +1,4 @@
-import { GuildMember } from "discord.js"
+import { Client, GuildMember, MessageOptions, TextChannel } from "discord.js"
 import { handle } from "../utils"
 
 const dotenv = require("dotenv")
@@ -16,6 +16,7 @@ interface RegionData {
     readonly region: Region
     readonly label: string
     readonly guildId: string
+    readonly moderationChannelId?: string
     readonly bansListChannelId?: string
     readonly matchResultsChannelId?: string
     readonly tier1RoleId?: string
@@ -36,6 +37,7 @@ class RegionService {
                 region: key as Region,
                 label: process.env[`PSO_${key}_REGION_LABEL`] as string,
                 guildId: process.env[`PSO_${key}_DISCORD_GUILD_ID`] as string,
+                moderationChannelId: process.env[`PSO_${key}_DISCORD_MODERATION_CHANNEL_ID`] as string,
                 bansListChannelId: process.env[`PSO_${key}_DISCORD_BANS_LIST_CHANNEL_ID`] as string,
                 matchResultsChannelId: process.env[`PSO_${key}_DISCORD_MATCH_RESULTS_CHANNEL_ID`] as string,
                 tier1RoleId: process.env[`PSO_${key}_DISCORD_TIER_1_ROLE_ID`] as string,
@@ -128,6 +130,16 @@ class RegionService {
             regionData.tier2RoleId as string,
             regionData.tier1RoleId as string
         ]
+    }
+
+    async sendToModerationChannel(client: Client, region: Region, messageOptions: MessageOptions) {
+        const regionData = regionService.getRegionData(region)
+        if (regionData.moderationChannelId) {
+            const [channel] = await handle(client.channels.fetch(regionData.moderationChannelId))
+            if (channel instanceof TextChannel) {
+                await channel.send(messageOptions)
+            }
+        }
     }
 
     /**

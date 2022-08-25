@@ -40,7 +40,7 @@ async function editTeamLogo(interaction: ButtonInteraction, guildId: string) {
         if (teamChanged) {
             await interaction.followUp(interactionUtils.createTeamManagementReply(interaction, team))
             if (teamWasVerified) {
-                teamService.notifyNoLongerVerified(interaction.client, team)
+                teamService.notifyNoLongerVerified(interaction.client, team, 'Team logo changed')
             }
         } else {
             await interaction.followUp({ content: "Logo edition timed out...", ephemeral: true })
@@ -87,7 +87,7 @@ async function editTeamName(interaction: ButtonInteraction, guildId: string) {
         if (teamChanged) {
             await interaction.followUp(interactionUtils.createTeamManagementReply(interaction, team))
             if (teamWasVerified) {
-                teamService.notifyNoLongerVerified(interaction.client, team)
+                teamService.notifyNoLongerVerified(interaction.client, team, 'Team name changed')
             }
         } else {
             await interaction.followUp({ content: "Name edition timed out...", ephemeral: true })
@@ -141,7 +141,7 @@ async function editTeamCode(interaction: ButtonInteraction, guildId: string) {
         if (teamChanged) {
             await interaction.followUp(interactionUtils.createTeamManagementReply(interaction, team))
             if (teamWasVerified) {
-                teamService.notifyNoLongerVerified(interaction.client, team)
+                teamService.notifyNoLongerVerified(interaction.client, team, 'Team code changed')
             }
         } else {
             await interaction.followUp({ content: "Code edition timed out...", ephemeral: true })
@@ -177,25 +177,26 @@ async function editTeamVerification(interaction: ButtonInteraction) {
     const guildId = interaction.customId.split('_')[4]
 
     const team = (await teamService.verify(guildId, verify))!
-    let description
-    if (verify) {
-        description = "✅ Congratulations ! Your team has been verified and is now allowed to use ranked matchmaking."
-    } else {
-        const officialGuild = await interaction.client.guilds.fetch(regionService.getRegionData(team.region).guildId) as Guild
-        description = `🛑 Your team has been unverified by the admins. You can no longer participate in ranked matches.\nPlease contact the admins of the official ** ${officialGuild.name} ** discord to get your team verified by providing your team id: ** ${team.guildId} **.`
-    }
     const informationEmbed = new EmbedBuilder()
         .setColor('#566573')
         .setTimestamp()
-        .setDescription(description)
+    if (verify) {
+        informationEmbed.setTitle('✅ Team Verified !')
+        informationEmbed.setDescription("Congratulations ! Your team has been verified and is now allowed to use ranked matchmaking.")
+    } else {
+        informationEmbed.setTitle('🛑 Team Unverified')
+        const officialGuild = await interaction.client.guilds.fetch(regionService.getRegionData(team.region).guildId) as Guild
+        informationEmbed.setDescription(`Your team has been unverified by the admins. You can no longer participate in ranked matches.\nPlease contact the admins of the official ** ${officialGuild.name} ** discord to get your team verified by providing your team id: ** ${team.guildId} **.`)
+    }
     teamService.sendMessage(interaction.client, team.guildId, { embeds: [informationEmbed] })
 
     await interaction.update(interactionUtils.createTeamManagementReply(interaction, team) as InteractionUpdateOptions)
 
+    informationEmbed.setFooter({ text: `Author: ${interaction.user.username}` })
     if (verify) {
-        informationEmbed.setDescription(`✅ ${team.prettyPrintName()} has been verified`)
+        informationEmbed.setDescription(`${team.prettyPrintName()} has been verified`)
     } else {
-        informationEmbed.setDescription(`🛑 ${team.prettyPrintName()} has been unverified`)
+        informationEmbed.setDescription(`${team.prettyPrintName()} has been unverified`)
     }
     await interaction.followUp({ embeds: [informationEmbed] })
 }
@@ -208,7 +209,7 @@ async function editTeamUsers(interaction: ButtonInteraction, guildId: string, ca
                 .setLabel(`Add ${category === 'captains' ? 'Captains' : 'Players'} `)
                 .setStyle(ButtonStyle.Primary),
             new ButtonBuilder()
-                .setCustomId(`team_users_remove_${category}_${guildId}`)
+                .setCustomId(`team_users_remove_${category}_${guildId} `)
                 .setLabel(`Remove ${category === 'captains' ? 'Captains' : 'Players'} `)
                 .setStyle(ButtonStyle.Danger)
         )
