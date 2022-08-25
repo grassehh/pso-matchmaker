@@ -34,6 +34,7 @@ export interface ITeam {
     prettyPrintName(teamLogoDisplay?: TeamLogoDisplay): string,
     getTierRoleId(): string | undefined,
     getAvailableTierRoleIds(): string[],
+    hasPlayerOrCaptain(userId: string): boolean,
     guildId: string,
     name: string,
     nameUpperCase: string,
@@ -80,6 +81,9 @@ teamSchema.methods.getTierRoleId = function () {
 }
 teamSchema.methods.getAvailableTierRoleIds = function () {
     return regionService.getAvailableTierRoleIds(this.region, this.rating)
+}
+teamSchema.methods.hasPlayerOrCaptain = function (userId: string) {
+    return this.players.some((player: IUser) => player.id === userId) || this.captains.some((captain: IUser) => captain.id === userId)
 }
 export const Team = model<ITeam>('Team', teamSchema, 'teams')
 
