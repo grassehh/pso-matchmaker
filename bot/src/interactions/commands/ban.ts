@@ -57,6 +57,6 @@ export default {
         if (expireAt) {
             formattedDate = new Date(expireAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: '2-digit', hour: '2-digit', minute: 'numeric' })
         }
-        await interaction.reply({ content: `Player **${player.username}** is now ${formattedDate ? `banned until ${formattedDate}` : 'permanently banned'}`, ephemeral: true })
+        await interaction.reply({ content: `Player **${player.username}** is now ${formattedDate ? `banned until ${formattedDate}` : 'permanently banned'}` })
     }
 } as ICommandHandler;

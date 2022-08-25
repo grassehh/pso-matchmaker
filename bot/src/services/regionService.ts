@@ -1,4 +1,6 @@
 import { Client, GuildMember, MessageOptions, TextChannel } from "discord.js"
+import { MINIMUM_MATCHES_BEFORE_RANKED } from "../constants"
+import { IStats } from "../mongoSchema"
 import { handle } from "../utils"
 
 const dotenv = require("dotenv")
@@ -67,8 +69,12 @@ class RegionService {
         return this.regionsDataByGuildId.has(guildId)
     }
 
-    async updateMemberTierRole(region: Region, member: GuildMember, newAverageRating: number): Promise<void> {
-        const newTierRoleId = this.getTierRoleId(region, newAverageRating)
+    async updateMemberTierRole(region: Region, member: GuildMember, newStats: IStats): Promise<void> {
+        if (newStats.numberOfRankedGames < MINIMUM_MATCHES_BEFORE_RANKED) {
+            return
+        }
+
+        const newTierRoleId = this.getTierRoleId(region, newStats.getAverageRating())
         if (!newTierRoleId || member.roles.cache.some(role => role.id === newTierRoleId)) {
             return
         }

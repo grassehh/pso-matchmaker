@@ -967,7 +967,7 @@ class MatchmakingService {
                 if (!match.firstLineup.isCaptains()) {
                     const member = await officialGuild.members.fetch(user.id)
                     if (member) {
-                        await regionService.updateMemberTierRole(regionData.region, member, newRating.stats.getAverageRating())
+                        await regionService.updateMemberTierRole(regionData.region, member, newRating.stats)
                     }
                 }
             }
@@ -981,7 +981,7 @@ class MatchmakingService {
                 if (!match.secondLineup.isCaptains()) {
                     const member = await officialGuild.members.fetch(user.id)
                     if (member) {
-                        await regionService.updateMemberTierRole(regionData.region, member, newRating.stats.getAverageRating())
+                        await regionService.updateMemberTierRole(regionData.region, member, newRating.stats)
                     }
                 }
             }

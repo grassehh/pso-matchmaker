@@ -12,7 +12,7 @@ export default {
         .addUserOption(option => option.setName('player')
             .setRequired(true)
             .setDescription('The mention (@...) or the id of the player to ban. For example: @Player or 123456789012345678'))
-            .setDefaultMemberPermissions(PermissionFlagsBits.BanMembers),
+        .setDefaultMemberPermissions(PermissionFlagsBits.BanMembers),
     authorizedRoles: [BOT_ADMIN_ROLE],
     async execute(interaction: ChatInputCommandInteraction) {
         const team = await teamService.findTeamByGuildId(interaction.guildId!)
@@ -27,7 +27,7 @@ export default {
             await interaction.reply({ content: `⛔ User **${player.username}** is not banned`, ephemeral: true })
             return
         }
-        await interaction.reply({ content: `✅ Player **${player.username}** is now unbanned`, ephemeral: true })
+        await interaction.reply({ content: `✅ Player **${player.username}** is now unbanned` })
         return
     }
 } as ICommandHandler
