@@ -67,7 +67,7 @@ class RegionService {
 
     async updateMemberTierRole(region: Region, member: GuildMember, newAverageRating: number): Promise<void> {
         const newTierRoleId = this.getTierRoleId(region, newAverageRating)
-        if (!newTierRoleId) {
+        if (!newTierRoleId || member.roles.cache.some(role => role.id === newTierRoleId)) {
             return
         }
 
@@ -77,6 +77,9 @@ class RegionService {
 
     async updateMemberActivityRole(member: GuildMember, numberOfMatches: number): Promise<void> {
         const newActivityRoleId = this.getActivityRoleId(numberOfMatches)
+        if (member.roles.cache.some(role => role.id === newActivityRoleId)) {
+            return
+        }
         await handle(member.roles.remove(this.getAllActivityRolesId()))
         await handle(member.roles.add(newActivityRoleId))
     }
