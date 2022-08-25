@@ -6,9 +6,10 @@ export default {
 	name: 'guildMemberRemove',
 	async execute(guildMember: GuildMember) {
 		const team = await teamService.findTeamByGuildId(guildMember.guild.id)
-		if (!team) {
+		if (!team || !team.hasPlayerOrCaptain(guildMember.id)) {
 			return
 		}
+
 		await teamService.removeCaptain(guildMember.guild.id, guildMember.id)
 		await teamService.removePlayer(guildMember.guild.id, guildMember.id)
 
