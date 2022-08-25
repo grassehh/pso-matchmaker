@@ -191,6 +191,7 @@ class MatchmakingService {
             'lineup.team.region': region,
             'lineup.size': lineupSize,
             'lineup.type': LINEUP_TYPE_TEAM,
+            'lineup.autoMatchmaking': false,
             'challengeId': null,
             ranked
         }
@@ -357,41 +358,30 @@ class MatchmakingService {
         await interaction.deferReply()
         const gameMode = ranked ? 'Ranked' : 'Casual'
         const availableTeams = await matchmakingService.findAvailableQueuedTeams(lineup.team.region, lineup.channelId, lineup.size, ranked)
-        if (availableTeams.length === 0) {
-            await interaction.editReply({
-                embeds: [
-                    new EmbedBuilder()
-                        .setColor('#566573')
-                        .setDescription(`No Team is currently searching for a ${lineup.size}v${lineup.size} match 😪`)
-                ]
-            })
-        }
-
         const teamLineupsEmbed = new EmbedBuilder()
             .setColor('#5865f2')
             .setTitle(`Teams (${gameMode})`)
-        const teamLineupQueues = availableTeams.filter((lineupQueue: ILineupQueue) => !lineupQueue.lineup.isMix())
         let teamsActionComponents: ActionRowBuilder<ButtonBuilder | SelectMenuBuilder>[] = []
-        if (teamLineupQueues.length === 0) {
+        if (availableTeams.length === 0) {
             teamLineupsEmbed.setDescription(`No Team available for ${lineup.size}v${lineup.size}`)
         } else {
             let teamLineupEmbedDescription = ''
-            for (let lineupQueue of teamLineupQueues) {
-                teamLineupEmbedDescription += `${lineupQueue.lineup.prettyPrintName(TeamLogoDisplay.LEFT, lineupQueue.lineup.team.verified)}\n`
-                teamLineupEmbedDescription += lineupQueue.lineup.roles.filter(role => role.lineupNumber === 1).filter(role => role.user != null).length + ' players signed'
-                if (!teamService.hasGkSigned(lineupQueue.lineup)) {
+            for (let availableTeam of availableTeams) {
+                teamLineupEmbedDescription += `${availableTeam.lineup.prettyPrintName(TeamLogoDisplay.LEFT, availableTeam.lineup.team.verified)}\n`
+                teamLineupEmbedDescription += availableTeam.lineup.roles.filter(role => role.lineupNumber === 1).filter(role => role.user != null).length + ' players signed'
+                if (!teamService.hasGkSigned(availableTeam.lineup)) {
                     teamLineupEmbedDescription += ' **(no GK)**'
                 }
                 teamLineupEmbedDescription += '\n\n'
             }
             teamLineupsEmbed.setDescription(teamLineupEmbedDescription)
             let teamsActionRow = new ActionRowBuilder<ButtonBuilder | SelectMenuBuilder>()
-            if (teamLineupQueues.length < 6) {
-                for (let lineupQueue of teamLineupQueues) {
+            if (availableTeams.length < 6) {
+                for (let availableTeam of availableTeams) {
                     teamsActionRow.addComponents(
                         new ButtonBuilder()
-                            .setCustomId(`challenge_${lineupQueue._id}`)
-                            .setLabel(lineupQueue.lineup.prettyPrintName(TeamLogoDisplay.NONE))
+                            .setCustomId(`challenge_${availableTeam._id}`)
+                            .setLabel(availableTeam.lineup.prettyPrintName(TeamLogoDisplay.NONE))
                             .setStyle(ButtonStyle.Primary)
                     )
                 }
@@ -399,8 +389,8 @@ class MatchmakingService {
                 const challengesSelectMenu = new SelectMenuBuilder()
                     .setCustomId(`select_challenge`)
                     .setPlaceholder('Select a Team to challenge')
-                for (let lineupQueue of teamLineupQueues) {
-                    challengesSelectMenu.addOptions([{ label: lineupQueue.lineup.prettyPrintName(), value: lineupQueue._id.toString() }])
+                for (let availableTeam of availableTeams) {
+                    challengesSelectMenu.addOptions([{ label: availableTeam.lineup.prettyPrintName(TeamLogoDisplay.LEFT, availableTeam.lineup.team.verified), value: availableTeam._id.toString() }])
                 }
                 teamsActionRow.addComponents(challengesSelectMenu)
             }
@@ -431,7 +421,7 @@ class MatchmakingService {
                 if (!teamService.hasGkSigned(availableMix.lineup)) {
                     lineupFieldValue += ' **(no GK)**'
                 }
-                mixLineupsEmbed.addFields([{ name: `${availableMix.lineup.prettyPrintName(TeamLogoDisplay.LEFT, false)} *(${availableMix.lineup.computePlayersAverageRating()})*`, value: lineupFieldValue }])
+                mixLineupsEmbed.addFields([{ name: `${availableMix.lineup.prettyPrintName(TeamLogoDisplay.LEFT, true)}`, value: lineupFieldValue }])
             }
             let mixesActionRow = new ActionRowBuilder<ButtonBuilder | SelectMenuBuilder>()
             if (availableMixes.length < 6) {
@@ -448,7 +438,7 @@ class MatchmakingService {
                     .setCustomId(`select_challenge`)
                     .setPlaceholder('Select a Mix to challenge')
                 for (let availableMix of availableMixes) {
-                    challengesSelectMenu.addOptions([{ label: availableMix.lineup.prettyPrintName(), value: availableMix._id.toString() }])
+                    challengesSelectMenu.addOptions([{ label: availableMix.lineup.prettyPrintName(TeamLogoDisplay.LEFT, true), value: availableMix._id.toString() }])
                 }
                 mixesActionRow.addComponents(challengesSelectMenu)
             }
@@ -511,6 +501,13 @@ class MatchmakingService {
             return
         }
 
+        let lineupQueue = await this.findLineupQueueByChannelId(interaction.channelId) || undefined
+
+        if (lineupQueue && lineup.autoMatchmaking) {
+            await interaction.reply({ content: "⛔ You can't challenge a team while searching with the auto-matchmaking option enabled", ephemeral: true })
+            return
+        }
+
         const duplicatedUsersReply = await this.checkForDuplicatedPlayers(interaction.client, lineup, lineupQueueToChallenge.lineup)
         if (duplicatedUsersReply) {
             await interaction.reply(duplicatedUsersReply)
@@ -520,7 +517,6 @@ class MatchmakingService {
         await (interaction.message as Message).edit({ components: [] })
         await interaction.deferReply()
 
-        let lineupQueue = await this.findLineupQueueByChannelId(interaction.channelId) || undefined
         if (!lineupQueue) {
             lineupQueue = await new LineupQueue({ lineup, ranked: lineupQueueToChallenge.ranked }).save()
         }

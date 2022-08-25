@@ -555,7 +555,7 @@ class InteractionUtils {
                 }
             }
 
-            if (!challenge) {
+            if (!challenge && !(lineupQueue && lineup.autoMatchmaking)) {
                 lineupActionsRow.addComponents(
                     new ButtonBuilder()
                         .setCustomId(`listChallenges`)
