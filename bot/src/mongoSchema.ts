@@ -125,6 +125,7 @@ export interface ILineup {
     prettyPrintName(teamLogoDisplay?: TeamLogoDisplay, includeRating?: boolean): string,
     getTierRoleId(client: Client): Promise<string>,
     isAnonymous(): boolean,
+    hasSignedRole(roleName: string): boolean,
     channelId: string,
     size: number,
     roles: IRole[],
@@ -335,6 +336,9 @@ lineupSchema.methods.getTierRoleId = async function (client: Client): Promise<st
 }
 lineupSchema.methods.isAnonymous = function (): boolean {
     return this.isSoloQueue() && this.allowRanked
+}
+lineupSchema.methods.hasSignedRole = function (roleName: string): boolean {
+    return this.roles.filter((role: IRole) => role.user).some((role: IRole) => role.name === roleName)
 }
 export const Lineup = model<ILineup>('Lineup', lineupSchema, 'lineups')
 

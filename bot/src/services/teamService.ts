@@ -67,7 +67,7 @@ function role(role: any, pos: number) {
     return { ...role, pos }
 }
 
-const DEFAULT_PLAYER_ROLES = new Map([
+export const DEFAULT_PLAYER_ROLES = new Map([
     [1, [role(CF, 0)]],
     [2, [role(CF, 0), role(GK, 0)]],
     [3, [role(LM, 0), role(RM, 2), role(GK, 1)]],
@@ -150,8 +150,11 @@ class TeamService {
         ])
     }
 
-    async updateLineupNameByChannelId(channelId: string, name?: string): Promise<UpdateWriteOpResult> {
-        return Lineup.updateOne({ channelId }, { name })
+    async updateLineupNameByChannelId(channelId: string, name?: string): Promise<void> {
+        await Promise.all([
+            LineupQueue.updateOne({ 'lineup.channelId': channelId }, { 'lineup.name': name }),
+            Lineup.updateOne({ channelId }, { name })
+        ])
     }
 
     async updateTeamRegionByGuildId(guildId: string, region: Region): Promise<ITeam | null> {
