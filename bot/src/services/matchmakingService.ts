@@ -9,7 +9,7 @@ import { handle, notEmpty } from "../utils";
 import { interactionUtils } from "./interactionUtils";
 import { Region, regionService } from "./regionService";
 import { statsService } from "./statsService";
-import { LINEUP_TYPE_CAPTAINS, LINEUP_TYPE_MIX, LINEUP_TYPE_TEAM, LINEUP_VISIBILITY_PUBLIC, LINEUP_VISIBILITY_TEAM, RankedStats, TeamLogoDisplay, teamService } from "./teamService";
+import { GK, LINEUP_TYPE_CAPTAINS, LINEUP_TYPE_MIX, LINEUP_TYPE_TEAM, LINEUP_VISIBILITY_PUBLIC, LINEUP_VISIBILITY_TEAM, RankedStats, ROLE_GOAL_KEEPER, TeamLogoDisplay, teamService } from "./teamService";
 const ZScore = require("math-z-score");
 
 export enum MatchResult {
@@ -99,17 +99,26 @@ class MatchmakingService {
         while (i--) {
             let lineupQueue = lineupQueues[i]
             const maxRatingDifference = Array.from(this.ratingDifferenceByAttempts.entries()).find(e => lineupQueue.matchmakingAttempts >= parseInt(e[0]))?.[1] || 40
+            const match: any = {
+                'lineup.channelId': { $ne: lineupQueue.lineup.channelId },
+                'lineup.team.region': lineupQueue.lineup.team.region,
+                'lineup.autoMatchmaking': true,
+                'lineup.type': lineupQueue.lineup.type,
+                'lineup.size': lineupQueue.lineup.size,
+                ranked: lineupQueue.ranked,
+                challengeId: null
+            }
+            if (!lineupQueue.lineup.hasSignedRole(GK.name)) {
+                match['lineup.roles'] = {
+                    $elemMatch: {
+                        type: ROLE_GOAL_KEEPER,
+                        user: { $ne: null }
+                    }
+                }
+            }
             const lineupQueueToChallenge = await LineupQueue.aggregate([
                 {
-                    $match: {
-                        'lineup.channelId': { $ne: lineupQueue.lineup.channelId },
-                        'lineup.team.region': lineupQueue.lineup.team.region,
-                        'lineup.autoMatchmaking': true,
-                        'lineup.type': lineupQueue.lineup.type,
-                        'lineup.size': lineupQueue.lineup.size,
-                        ranked: lineupQueue.ranked,
-                        challengeId: null
-                    }
+                    $match: match
                 },
                 {
                     $project: {
@@ -145,10 +154,10 @@ class MatchmakingService {
                     challengedTeam: lineupQueueToChallenge[0]
                 })
 
-                this.readyMatch(client, undefined, challenge)
-                i--
+                await this.readyMatch(client, undefined, challenge)
                 lineupQueues.splice(i, 1)
-                lineupQueues.splice(lineupQueues.findIndex(lq => lq._id === (lineupQueueToChallenge as any)._id))
+                lineupQueues.splice(lineupQueues.findIndex(lq => lq._id.toString() === lineupQueueToChallenge[0]._id.toString()), 1)
+                i--
             } else if (lineupQueue.matchmakingAttempts < this.MAX_ATTEMPTS_BEFORE_WIDE_SEARCH) {
                 lineupQueue.matchmakingAttempts++
                 await lineupQueue.save()

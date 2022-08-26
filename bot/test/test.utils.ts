@@ -2,7 +2,7 @@ import { MongoMemoryServer } from "mongodb-memory-server";
 import mongoose from "mongoose";
 import { Bans, Challenge, Lineup, LineupQueue, Match, Stats, Team, User } from "../src/mongoSchema";
 import { Region } from "../src/services/regionService";
-import { LINEUP_TYPE_TEAM, LINEUP_VISIBILITY_PUBLIC, ROLE_ATTACKER } from "../src/services/teamService";
+import { DEFAULT_PLAYER_ROLES, LINEUP_TYPE_TEAM, LINEUP_VISIBILITY_PUBLIC, ROLE_ATTACKER } from "../src/services/teamService";
 
 let mongod: MongoMemoryServer
 
@@ -34,28 +34,22 @@ export const buildStats = () => new Stats({ userId: 'userId', region: Region.EUR
 export const buildUser = () => new User({ id: 'userId' })
 
 export const buildTeam = () => new Team({ guildId: '1234', name: 'PMT', nameUpperCase: 'PMT', region: Region.EUROPE })
-
-export const buildLineup = () => new Lineup({
-    channelId: '2222',
-    size: 8,
-    roles: [
-        { name: 'CF', type: ROLE_ATTACKER, lineupNumber: 1, pos: 0 },
-        { name: 'CF', type: ROLE_ATTACKER, lineupNumber: 1, pos: 0 },
-        { name: 'CF', type: ROLE_ATTACKER, lineupNumber: 1, pos: 0 },
-        { name: 'CF', type: ROLE_ATTACKER, lineupNumber: 1, pos: 0 },
-        { name: 'CF', type: ROLE_ATTACKER, lineupNumber: 1, pos: 0 },
-        { name: 'CF', type: ROLE_ATTACKER, lineupNumber: 1, pos: 0 },
-        { name: 'CF', type: ROLE_ATTACKER, lineupNumber: 1, pos: 0 },
-        { name: 'CF', type: ROLE_ATTACKER, lineupNumber: 1, pos: 0 }
-    ],
-    bench: [],
-    autoMatchmaking: true,
-    autoSearch: true,
-    allowRanked: true,
-    team: buildTeam(),
-    type: LINEUP_TYPE_TEAM,
-    visibility: LINEUP_VISIBILITY_PUBLIC
-})
+export const buildLineup = () => {
+    const defaultRoles = DEFAULT_PLAYER_ROLES.get(8)!
+    const roles = defaultRoles.map(obj => ({ ...obj, lineupNumber: 1 }))
+    return new Lineup({
+        channelId: '2222',
+        size: 8,
+        roles,
+        bench: [],
+        autoMatchmaking: true,
+        autoSearch: true,
+        allowRanked: true,
+        team: buildTeam(),
+        type: LINEUP_TYPE_TEAM,
+        visibility: LINEUP_VISIBILITY_PUBLIC
+    })
+}
 
 export const buildLineupQueue = () => new LineupQueue({ lineup: buildLineup() })
 
