@@ -74,7 +74,7 @@ class RegionService {
             return
         }
 
-        const newTierRoleId = this.getTierRoleId(region, newStats.getAverageRating())
+        const newTierRoleId = this.getTierRoleId(region, newStats.rating)
         if (!newTierRoleId || member.roles.cache.some(role => role.id === newTierRoleId)) {
             return
         }

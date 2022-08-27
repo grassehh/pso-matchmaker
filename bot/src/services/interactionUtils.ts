@@ -233,7 +233,7 @@ class InteractionUtils {
                 .addFields([
                     { name: '⚽ Current Season', value: `**Wins:** ${stats.numberOfRankedWins} \n **Draws:** ${stats.numberOfRankedDraws} \n **Losses:** ${stats.numberOfRankedLosses}`, inline: true },
                     { name: '📅 All Seasons', value: `**Wins:** ${stats.totalNumberOfRankedWins} \n **Draws:** ${stats.totalNumberOfRankedDraws} \n **Losses:** ${stats.totalNumberOfRankedLosses}`, inline: true },
-                    { name: '📈 Ratings', value: `**Att:** ${stats.attackRating || DEFAULT_RATING} \n **Mid:** ${stats.midfieldRating || DEFAULT_RATING} \n **Def:** ${stats.defenseRating || DEFAULT_RATING} \n **GK:** ${stats.goalKeeperRating || DEFAULT_RATING} \n **Captains Mix:** ${stats.mixCaptainsRating || DEFAULT_RATING}` },
+                    { name: '📈 Ratings', value: `**Teams & Solo Queue:** ${stats.rating || DEFAULT_RATING} \n **Captains Mix:** ${stats.mixCaptainsRating || DEFAULT_RATING}` },
                     { name: '\u200B', value: '\u200B' },
                     { name: 'Ranked Games Played *(deprecated)*', value: stats.numberOfRankedGames.toString() }
                 ])
