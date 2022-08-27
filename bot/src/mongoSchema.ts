@@ -3,7 +3,7 @@ import { model, Schema, Types } from "mongoose";
 import { DEFAULT_RATING, MERC_USER_ID, MIN_LINEUP_SIZE_FOR_RANKED } from "./constants";
 import { MatchResult } from "./services/matchmakingService";
 import { Region, regionService } from "./services/regionService";
-import { LINEUP_TYPE_CAPTAINS, LINEUP_TYPE_MIX, LINEUP_TYPE_SOLO, LINEUP_TYPE_TEAM, LINEUP_VISIBILITY_PUBLIC, LINEUP_VISIBILITY_TEAM, ROLE_ATTACKER, ROLE_DEFENDER, ROLE_GOAL_KEEPER, ROLE_MIDFIELDER, ROLE_MIX_CAPTAINS, ROLE_NAME_ANY, TeamLogoDisplay, TeamType } from "./services/teamService";
+import { LINEUP_TYPE_CAPTAINS, LINEUP_TYPE_MIX, LINEUP_TYPE_SOLO, LINEUP_TYPE_TEAM, LINEUP_VISIBILITY_PUBLIC, LINEUP_VISIBILITY_TEAM, ROLE_NAME_ANY, TeamLogoDisplay, TeamType } from "./services/teamService";
 import { notEmpty } from "./utils";
 
 export interface IUser {
@@ -526,12 +526,10 @@ matchSchema.methods.findUserRole = function (user: DiscordUser): IRole | null {
 export const Match = model<IMatch>('Match', matchSchema, 'matches')
 
 export interface IStats {
-    getRoleRating(roleType: number): number,
-    setRoleRating(roleType: number, rating: number): number,
-    getAverageRating(): number,
     _id: Types.ObjectId,
     userId: string,
     region: Region,
+    numberOfGames?: number,
     numberOfRankedGames: number,
     numberOfRankedWins: number,
     numberOfRankedDraws: number,
@@ -539,10 +537,11 @@ export interface IStats {
     totalNumberOfRankedWins: number,
     totalNumberOfRankedDraws: number,
     totalNumberOfRankedLosses: number,
-    attackRating: number,
-    midfieldRating: number,
-    defenseRating: number,
-    goalKeeperRating: number,
+    attackRating?: number,
+    midfieldRating?: number,
+    defenseRating?: number,
+    goalKeeperRating?: number,
+    rating: number,
     mixCaptainsRating: number
 }
 const statsSchema = new Schema<IStats>({
@@ -554,6 +553,10 @@ const statsSchema = new Schema<IStats>({
         type: String,
         enum: Region,
         required: true
+    },
+    numberOfGames: {
+        type: String,
+        required: false
     },
     numberOfRankedGames: {
         type: Number,
@@ -592,20 +595,21 @@ const statsSchema = new Schema<IStats>({
     },
     attackRating: {
         type: Number,
-        required: true,
-        default: DEFAULT_RATING
+        required: false
     },
     defenseRating: {
         type: Number,
-        required: true,
-        default: DEFAULT_RATING
+        required: false
     },
     midfieldRating: {
         type: Number,
-        required: true,
-        default: DEFAULT_RATING
+        required: false
     },
     goalKeeperRating: {
+        type: Number,
+        required: false
+    },
+    rating: {
         type: Number,
         required: true,
         default: DEFAULT_RATING
@@ -618,46 +622,6 @@ const statsSchema = new Schema<IStats>({
 })
 statsSchema.index({ userId: 1, region: 1 });
 statsSchema.index({ region: 1 });
-statsSchema.methods.getRoleRating = function (roleType: number): number {
-    switch (roleType) {
-        case ROLE_ATTACKER:
-            return this.attackRating
-        case ROLE_DEFENDER:
-            return this.defenseRating
-        case ROLE_MIDFIELDER:
-            return this.midfieldRating
-        case ROLE_GOAL_KEEPER:
-            return this.goalKeeperRating
-        case ROLE_MIX_CAPTAINS:
-            return this.mixCaptainsRating
-        default:
-            return DEFAULT_RATING
-    }
-}
-statsSchema.methods.setRoleRating = function (roleType: number, rating: number) {
-    switch (roleType) {
-        case ROLE_ATTACKER:
-            this.attackRating = rating
-            break
-        case ROLE_DEFENDER:
-            this.defenseRating = rating
-            break
-        case ROLE_MIDFIELDER:
-            this.midfieldRating = rating
-            break
-        case ROLE_GOAL_KEEPER:
-            this.goalKeeperRating = rating
-            break
-        case ROLE_MIX_CAPTAINS:
-            this.mixCaptainsRating = rating
-            break
-        default:
-            break
-    }
-}
-statsSchema.methods.getAverageRating = function (): number {
-    return (this.attackRating + this.defenseRating + this.midfieldRating + this.goalKeeperRating) / 4
-}
 export const Stats = model<IStats>('Stats', statsSchema, 'stats')
 
 export interface IBan {

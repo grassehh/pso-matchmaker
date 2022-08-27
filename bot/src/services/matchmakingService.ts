@@ -1154,10 +1154,7 @@ class LineupRating {
                     totalNumberOfRankedWins: 0,
                     totalNumberOfRankedDraws: 0,
                     totalNumberOfRankedLosses: 0,
-                    attackRating: DEFAULT_RATING,
-                    midfieldRating: DEFAULT_RATING,
-                    defenseRating: DEFAULT_RATING,
-                    goalKeeperRating: DEFAULT_RATING,
+                    rating: DEFAULT_RATING,
                     mixCaptainsRating: DEFAULT_RATING
                 })
             }
@@ -1167,7 +1164,7 @@ class LineupRating {
                 stats: playerStats
             })
         }))
-        const allPlayersRatings = Array.from(this.rankedStatsByUserId.values()).map(rankedStats => rankedStats.stats.getRoleRating(rankedStats.role.type))
+        const allPlayersRatings = Array.from(this.rankedStatsByUserId.values()).map(rankedStats => rankedStats.stats.rating)
         this.zscore.setMeanAndDeviationFromDataset(allPlayersRatings, true)
         return this
     }
@@ -1182,14 +1179,14 @@ class LineupRating {
             return null
         }
 
-        const roleRating = rankedStats.stats.getRoleRating(rankedStats.role.type)
+        const rating = rankedStats.stats.rating
         const matchesPlayed = rankedStats.stats.numberOfRankedWins + rankedStats.stats.numberOfRankedDraws + rankedStats.stats.numberOfRankedLosses
-        const zscore = Math.abs(this.zscore.getZScore(roleRating)) || 0
+        const zscore = Math.abs(this.zscore.getZScore(rating)) || 0
         let k = Array.from(this.kFactorPerNumberOfGames.entries()).find(e => matchesPlayed >= parseInt(e[0]))?.[1] || 40
         k /= Math.max(1, 0.3 * Math.exp(zscore))
 
         let elo = new Elo(k)
-            .playerA(roleRating)
+            .playerA(rating)
             .playerB(opponentLineupRatingAverage)
         if (this.matchResult === MatchResult.DRAW) {
             elo.setDraw()
@@ -1205,8 +1202,7 @@ class LineupRating {
             rankedStats.stats.totalNumberOfRankedLosses++
         }
 
-        const newRating = elo.calculate().getResults()[0]
-        rankedStats.stats.setRoleRating(rankedStats.role.type, newRating)
+        rankedStats.stats.rating = elo.calculate().getResults()[0]
         return rankedStats
     }
 }

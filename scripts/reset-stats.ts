@@ -14,10 +14,7 @@ async function resetStats(): Promise<void> {
             totalNumberOfRankedWins: 0,
             totalNumberOfRankedDraws: 0,
             totalNumberOfRankedLosses: 0,
-            attackRating: DEFAULT_RATING,
-            midfieldRating: DEFAULT_RATING,
-            defenseRating: DEFAULT_RATING,
-            goalKeeperRating: DEFAULT_RATING,
+            rating: DEFAULT_RATING,
             mixCaptainsRating: DEFAULT_RATING
         }
     })

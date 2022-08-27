@@ -4,7 +4,6 @@ import { IStats, ITeam, Stats, Team } from "../mongoSchema"
 import { handle } from "../utils"
 import { GameType } from "./interactionUtils"
 import { Region, regionService } from "./regionService"
-import { ROLE_ATTACKER, ROLE_DEFENDER, ROLE_GOAL_KEEPER, ROLE_MIDFIELDER } from "./teamService"
 
 class StatsService {
     getLevelEmojiFromMember(member: GuildMember): string {
@@ -38,12 +37,7 @@ class StatsService {
             match.region = region;
         }
 
-        const ratingsAverage = gameType === GameType.TEAM_AND_MIX ? [
-            "$attackRating",
-            "$midfieldRating",
-            "$defenseRating",
-            "$goalKeeperRating"
-        ] : ["$mixCaptainsRating"]
+        const rating = gameType === GameType.TEAM_AND_MIX ? ["$rating"] : ["$mixCaptainsRating"]
 
         const pipeline = <any>[
             { $match: match },
@@ -71,17 +65,8 @@ class StatsService {
                     totalNumberOfRankedLosses: {
                         $sum: '$totalNumberOfRankedLosses'
                     },
-                    attackRating: {
-                        $avg: '$attackRating'
-                    },
-                    midfieldRating: {
-                        $avg: '$midfieldRating'
-                    },
-                    defenseRating: {
-                        $avg: '$defenseRating'
-                    },
-                    goalKeeperRating: {
-                        $avg: '$goalKeeperRating'
+                    rating: {
+                        $avg: '$rating'
                     },
                     mixCaptainsRating: {
                         $avg: '$mixCaptainsRating'
@@ -97,7 +82,7 @@ class StatsService {
                     totalNumberOfRankedWins: 1,
                     totalNumberOfRankedDraws: 1,
                     totalNumberOfRankedLosses: 1,
-                    rating: { $avg: ratingsAverage }
+                    rating: { $avg: rating }
                 }
             },
             {
@@ -195,17 +180,8 @@ class StatsService {
                     totalNumberOfRankedLosses: {
                         $sum: '$totalNumberOfRankedLosses'
                     },
-                    attackRating: {
-                        $avg: '$attackRating'
-                    },
-                    midfieldRating: {
-                        $avg: '$midfieldRating'
-                    },
-                    defenseRating: {
-                        $avg: '$defenseRating'
-                    },
-                    goalKeeperRating: {
-                        $avg: '$goalKeeperRating'
+                    rating: {
+                        $avg: '$rating'
                     },
                     mixCaptainsRating: {
                         $avg: '$mixCaptainsRating'
@@ -230,10 +206,7 @@ class StatsService {
                     totalNumberOfRankedWins: newStats.totalNumberOfRankedWins,
                     totalNumberOfRankedDraws: newStats.totalNumberOfRankedDraws,
                     totalNumberOfRankedLosses: newStats.totalNumberOfRankedLosses,
-                    attackRating: newStats.attackRating,
-                    defenseRating: newStats.defenseRating,
-                    midfieldRating: newStats.midfieldRating,
-                    goalKeeperRating: newStats.goalKeeperRating,
+                    rating: newStats.rating,
                     mixCaptainsRating: newStats.mixCaptainsRating
                 }
             },
@@ -255,25 +228,8 @@ class StatsService {
         ])
     }
 
-    async downgradePlayerStats(region: Region, userId: string, position: number): Promise<IStats | null> {
-        let ratingField: string
-        switch (position) {
-            case ROLE_ATTACKER:
-                ratingField = 'attackRating'
-                break
-            case ROLE_MIDFIELDER:
-                ratingField = 'midfieldRating'
-                break
-            case ROLE_DEFENDER:
-                ratingField = 'defenseRating'
-                break
-            case ROLE_GOAL_KEEPER:
-                ratingField = 'goalKeeperRating'
-                break
-            default:
-                throw new Error(`Unknown position ${position}`)
-        }
-        return Stats.findOneAndUpdate({ userId, region }, { $inc: { [ratingField]: -RATING_DOWNGRADE_AMOUNT } }, { new: true })
+    async downgradePlayerStats(region: Region, userId: string): Promise<IStats | null> {
+        return Stats.findOneAndUpdate({ userId, region }, { $inc: { rating: -RATING_DOWNGRADE_AMOUNT } }, { new: true })
     }
 }
 
