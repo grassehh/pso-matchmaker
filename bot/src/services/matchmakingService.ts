@@ -847,39 +847,6 @@ class MatchmakingService {
         await Promise.all(promises)
     }
 
-    async findHighestRatedUserId(lineup: ILineup): Promise<string> {
-        const userIds: string[] = lineup.getNonMercSignedRoles().map(role => role.user?.id).filter(notEmpty)
-
-        let pipeline = <any>[]
-        pipeline.push(
-            {
-                $match: { 'userId': { $in: userIds }, 'region': lineup.team.region }
-            }
-        )
-
-        pipeline = pipeline.concat([
-            {
-                $group: {
-                    _id: '$userId'
-                }
-            },
-            {
-                $sort: { 'rating': -1 },
-            },
-            {
-                $limit: 1
-            }
-        ])
-
-        const stats: IStats[] = await Stats.aggregate(pipeline)
-
-        if (stats.length === 0) {
-            return userIds[0]
-        }
-
-        return (stats[0] as any)._id
-    }
-
     async findTwoMostRelevantCaptains(userIds: string[]): Promise<IStats[]> {
         let pipeline = <any>[]
         pipeline.push(
@@ -952,6 +919,42 @@ class MatchmakingService {
             this.updateTeamsRating(match),
             this.updatePlayersRating(client, match)
         ])
+    }
+
+    private async findHighestRatedUserId(lineup: ILineup): Promise<string> {
+        const userIds: string[] = lineup.getNonMercSignedRoles().map(role => role.user?.id).filter(notEmpty)
+
+        let pipeline = <any>[]
+        pipeline.push(
+            {
+                $match: { 'userId': { $in: userIds }, 'region': lineup.team.region }
+            }
+        )
+
+        pipeline = pipeline.concat([
+            {
+                $group: {
+                    _id: '$userId',
+                    rating: {
+                        $avg: '$rating',
+                    }
+                }
+            },
+            {
+                $sort: { 'rating': -1 },
+            },
+            {
+                $limit: 1
+            }
+        ])
+
+        const stats: IStats[] = await Stats.aggregate(pipeline)
+
+        if (stats.length === 0) {
+            return userIds[0]
+        }
+
+        return (stats[0] as any)._id
     }
 
     private async updateTeamsRating(match: IMatch): Promise<void> {
