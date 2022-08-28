@@ -46,7 +46,7 @@ export default {
 
         const userToAdd = await userService.findUserByDiscordUserId(interaction.user.id) as IUser
         const stats = await statsService.findUserStats(interaction.user.id, lineup.team.region)
-        userToAdd.rating = stats?.mixCaptainsRating
+        userToAdd.rating = stats!.mixCaptainsRating
         userToAdd.emoji = statsService.getLevelEmojiFromMember(interaction.member as GuildMember)
 
         lineup = await teamService.addUserToLineup(interaction.channelId, roleToSign.name, userToAdd, roleToSign.lineupNumber) as ILineup

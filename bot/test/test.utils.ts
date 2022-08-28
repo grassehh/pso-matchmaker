@@ -2,7 +2,7 @@ import { MongoMemoryServer } from "mongodb-memory-server";
 import mongoose from "mongoose";
 import { Bans, Challenge, Lineup, LineupQueue, Match, Stats, Team, User } from "../src/mongoSchema";
 import { Region } from "../src/services/regionService";
-import { DEFAULT_PLAYER_ROLES, LINEUP_TYPE_TEAM, LINEUP_VISIBILITY_PUBLIC, ROLE_ATTACKER } from "../src/services/teamService";
+import { DEFAULT_PLAYER_ROLES, LINEUP_TYPE_TEAM, LINEUP_VISIBILITY_PUBLIC } from "../src/services/teamService";
 
 let mongod: MongoMemoryServer
 

@@ -13,7 +13,7 @@ export interface IUser {
     name: string,
     mention: string,
     emoji?: string,
-    rating?: number
+    rating: number
 }
 const userSchema = new Schema<IUser>({
     id: { type: String, required: true },
@@ -21,7 +21,7 @@ const userSchema = new Schema<IUser>({
     name: { type: String, required: true },
     mention: { type: String, required: true },
     emoji: { type: String, required: false },
-    rating: { type: Number, required: false, default: DEFAULT_RATING }
+    rating: { type: Number, required: true, default: DEFAULT_RATING }
 })
 userSchema.index({ id: 1 });
 userSchema.index({ steamId: 1 });
@@ -56,7 +56,7 @@ const teamSchema = new Schema<ITeam>({
     code: { type: String, required: false },
     codeUpperCase: { type: String, required: false },
     logo: { type: String, required: false },
-    type: { type: Number, enum: TeamType, required: true, default: TeamType.CLUB },
+    type: { type: Number, enum: TeamType, required: true, default: () => TeamType.CLUB },
     region: { type: String, enum: Region, required: true },
     lastMatchDate: { type: Date, required: false, default: () => Date.now() },
     rating: { type: Number, required: true, default: DEFAULT_RATING },
@@ -126,6 +126,7 @@ export interface ILineup {
     getTierRoleId(client: Client): Promise<string>,
     isAnonymous(): boolean,
     hasSignedRole(roleName: string): boolean,
+    computeRolesForSoloQueue(): void,
     channelId: string,
     size: number,
     roles: IRole[],
@@ -340,6 +341,25 @@ lineupSchema.methods.isAnonymous = function (): boolean {
 lineupSchema.methods.hasSignedRole = function (roleName: string): boolean {
     return this.roles.filter((role: IRole) => role.user).some((role: IRole) => role.name === roleName)
 }
+lineupSchema.methods.computeRolesForSoloQueue = function (): void {
+    const newRoles: IRole[] = []
+    this.roles.sort((a: IRole, b: IRole) => b.user!.rating - a.user!.rating)
+    this.roles.forEach((role: IRole, i: number) => {
+        if (!newRoles.some(r => r.name === role.name)) {
+            const lineup1Roles = newRoles.filter(role => role.lineupNumber === 1)
+            const lineup2Roles = newRoles.filter(role => role.lineupNumber === 2)
+            const lineup1RatingAverage = lineup1Roles.map(r => r.user!.rating).reduce((a, b) => a + b, 0) / lineup1Roles.length;
+            const lineup2RatingAverage = lineup2Roles.map(r => r.user!.rating).reduce((a, b) => a + b, 0) / lineup2Roles.length;
+            const [lineupNumber, oppositeLineupNumber] = lineup1RatingAverage > lineup2RatingAverage ? [2, 1] : [1, 2]
+            role.lineupNumber = lineupNumber
+            const oppositeRole = this.roles.slice(i + 1).find((r: IRole) => r.name === role.name)!
+            newRoles.push(role)
+            oppositeRole.lineupNumber = oppositeLineupNumber
+            newRoles.push(oppositeRole)
+        }
+    })
+    this.roles = newRoles
+}
 export const Lineup = model<ILineup>('Lineup', lineupSchema, 'lineups')
 
 export interface INotificationMessage {
@@ -529,7 +549,6 @@ export interface IStats {
     _id: Types.ObjectId,
     userId: string,
     region: Region,
-    numberOfGames?: number,
     numberOfRankedGames: number,
     numberOfRankedWins: number,
     numberOfRankedDraws: number,
@@ -537,10 +556,6 @@ export interface IStats {
     totalNumberOfRankedWins: number,
     totalNumberOfRankedDraws: number,
     totalNumberOfRankedLosses: number,
-    attackRating?: number,
-    midfieldRating?: number,
-    defenseRating?: number,
-    goalKeeperRating?: number,
     rating: number,
     mixCaptainsRating: number
 }
@@ -553,10 +568,6 @@ const statsSchema = new Schema<IStats>({
         type: String,
         enum: Region,
         required: true
-    },
-    numberOfGames: {
-        type: String,
-        required: false
     },
     numberOfRankedGames: {
         type: Number,
@@ -592,22 +603,6 @@ const statsSchema = new Schema<IStats>({
         type: Number,
         required: true,
         default: 0
-    },
-    attackRating: {
-        type: Number,
-        required: false
-    },
-    defenseRating: {
-        type: Number,
-        required: false
-    },
-    midfieldRating: {
-        type: Number,
-        required: false
-    },
-    goalKeeperRating: {
-        type: Number,
-        required: false
     },
     rating: {
         type: Number,
