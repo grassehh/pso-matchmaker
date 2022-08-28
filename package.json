@@ -12,7 +12,8 @@
         "test:debug": "jest --verbose --runInBand ./bot/test/*",
         "dev": "npx nodemon bot/src/bot.ts",
         "start": "node index.js",
-        "deploy-commands": "node build/scripts/deploy-commands.js"
+        "deploy-commands": "node build/scripts/deploy-commands.js",
+        "end-season": "node build/scripts/end-season.js"
     },
     "dependencies": {
         "@discordjs/rest": "^1.0.1",

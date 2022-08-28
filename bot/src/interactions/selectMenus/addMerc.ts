@@ -1,5 +1,5 @@
 import { Message, MessageOptions, SelectMenuInteraction } from "discord.js";
-import { MERC_USER_ID } from "../../constants";
+import { DEFAULT_RATING, MERC_USER_ID } from "../../constants";
 import { ISelectMenuHandler } from "../../handlers/selectMenuHandler";
 import { ILineup, IUser } from "../../mongoSchema";
 import { interactionUtils } from "../../services/interactionUtils";
