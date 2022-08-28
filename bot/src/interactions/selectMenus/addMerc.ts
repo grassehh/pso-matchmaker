@@ -1,5 +1,5 @@
 import { Message, MessageOptions, SelectMenuInteraction } from "discord.js";
-import { DEFAULT_RATING, MERC_USER_ID } from "../../constants";
+import { DEFAULT_RATING, MAX_NUMBER_OF_MERCS, MERC_USER_ID } from "../../constants";
 import { ISelectMenuHandler } from "../../handlers/selectMenuHandler";
 import { ILineup, IUser } from "../../mongoSchema";
 import { interactionUtils } from "../../services/interactionUtils";
@@ -17,6 +17,11 @@ export default {
         let lineup = await teamService.retrieveLineup(interaction.channelId)
         if (lineup === null) {
             await interaction.reply(interactionUtils.createReplyLineupNotSetup())
+            return
+        }
+
+        if (lineup.getMercSignedRoles().length >= MAX_NUMBER_OF_MERCS) {
+            await interaction.reply({ content: `⛔ This cannot sign more than ${MAX_NUMBER_OF_MERCS} merc`, ephemeral: true })
             return
         }
 

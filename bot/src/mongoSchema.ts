@@ -120,6 +120,7 @@ export interface ILineup {
     numberOfSignedPlayers(): number,
     moveAllBenchToLineup(lineupNumber?: number, clearLineup?: boolean): ILineup,
     getNonMercSignedRoles(lineupNumber?: number): IRole[],
+    getMercSignedRoles(lineupNumber?: number): IRole[],
     computePlayersAverageRating(lineupNumber?: number): number,
     isAllowedToPlayRanked(): boolean,
     prettyPrintName(teamLogoDisplay?: TeamLogoDisplay, includeRating?: boolean): string,
@@ -238,6 +239,15 @@ lineupSchema.methods.getNonMercSignedRoles = function (lineupNumber?: number) {
         roles = this.roles
     }
     return roles.filter((role: IRole) => role.user).filter((role: IRole) => !role.user?.isMerc())
+}
+lineupSchema.methods.getMercSignedRoles = function (lineupNumber?: number) {
+    let roles
+    if (lineupNumber) {
+        roles = this.roles.filter((role: IRole) => role.lineupNumber === lineupNumber)
+    } else {
+        roles = this.roles
+    }
+    return roles.filter((role: IRole) => role.user).filter((role: IRole) => role.user?.isMerc())
 }
 lineupSchema.methods.moveAllBenchToLineup = function (lineupNumber: number = 1, clearLineup: boolean = true) {
     if (clearLineup) {
@@ -449,7 +459,7 @@ const subSchema = new Schema<ISub>({
 
 export interface ILineupMatchResult {
     captainUserId: string,
-    result: MatchResult
+    result?: MatchResult
 }
 const lineupMatchResultSchema = new Schema<ILineupMatchResult>({
     captainUserId: {
@@ -459,15 +469,15 @@ const lineupMatchResultSchema = new Schema<ILineupMatchResult>({
     result: {
         type: Number,
         enum: MatchResult,
-        required: true
+        required: false
     }
 })
 
 export interface IMatchResult {
     isVoted(): boolean,
     isCancelled(): boolean,
-    firstLineup?: ILineupMatchResult,
-    secondLineup?: ILineupMatchResult,
+    firstLineup: ILineupMatchResult,
+    secondLineup: ILineupMatchResult,
 }
 const matchResultSchema = new Schema<IMatchResult>({
     firstLineup: {
@@ -480,10 +490,10 @@ const matchResultSchema = new Schema<IMatchResult>({
     }
 })
 matchResultSchema.methods.isVoted = function (): boolean {
-    return this.firstLineup !== undefined && this.secondLineup !== undefined
+    return this.firstLineup.result != null && this.secondLineup.result != null
 }
 matchResultSchema.methods.isCancelled = function (): boolean {
-    return this.firstLineup?.result === MatchResult.CANCEL && this.secondLineup?.result === MatchResult.CANCEL
+    return this.firstLineup.result === MatchResult.CANCEL && this.secondLineup.result === MatchResult.CANCEL
 }
 
 export interface IMatch {
@@ -496,7 +506,7 @@ export interface IMatch {
     lobbyPassword: string,
     subs: ISub[],
     ranked: boolean,
-    result: IMatchResult
+    result?: IMatchResult
 }
 const matchSchema = new Schema<IMatch>({
     matchId: {
@@ -534,11 +544,10 @@ const matchSchema = new Schema<IMatch>({
     },
     result: {
         type: matchResultSchema,
-        required: true,
-        default: {}
+        required: false
     }
 })
-matchSchema.index({ schedule: 1 }, { expireAfterSeconds: 4 * 60 * 60 });
+matchSchema.index({ schedule: 1 }, { expireAfterSeconds: 24 * 60 * 60 });
 matchSchema.methods.findUserRole = function (user: DiscordUser): IRole | null {
     const existingUserInSubs = this.subs.filter((role: IRole) => role.user).find((role: IRole) => role.user?.id === user.id)
     let existingUserInFirstLineup

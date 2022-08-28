@@ -19,7 +19,7 @@ export default {
 
         if (lineup.allowRanked) {
             const latestMatch = await matchmakingService.findLatestRankedMatch(interaction.user.id)
-            if (latestMatch && !latestMatch.result.isVoted() && Date.now() - latestMatch.schedule.getTime() < 1800000) {
+            if (latestMatch && !latestMatch.result?.isVoted() && Date.now() - latestMatch.schedule.getTime() < 1800000) {
                 await interaction.reply({ content: '⛔ Your previous ranked match has not be voted yet and is too recent', ephemeral: true })
                 return
             }

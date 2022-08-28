@@ -1,6 +1,6 @@
-import { BaseGuildTextChannel, ButtonInteraction, EmbedBuilder, TextChannel } from "discord.js";
+import { BaseGuildTextChannel, ButtonInteraction, EmbedBuilder, GuildMember, TextChannel } from "discord.js";
 import { IButtonHandler } from "../../handlers/buttonHandler";
-import { ILineupMatchResult } from "../../mongoSchema";
+import { authorizationService } from "../../services/authorizationService";
 import { interactionUtils } from "../../services/interactionUtils";
 import { matchmakingService, MatchResult, MatchResultType } from "../../services/matchmakingService";
 import { regionService } from "../../services/regionService";
@@ -12,13 +12,7 @@ export default {
     async execute(interaction: ButtonInteraction) {
         const result = parseInt(interaction.customId.split('_')[3]) as MatchResult
         const matchId = interaction.customId.split('_')[4]
-        const userId = interaction.customId.split('_')[5]
-
-        if (interaction.user.id !== userId) {
-            const [user] = await handle(interaction.client.users.fetch(userId))
-            await interaction.reply({ content: `Only ${user} is allowed to vote`, ephemeral: true })
-            return
-        }
+        const lineupNumber = parseInt(interaction.customId.split('_')[5])
 
         let match = await matchmakingService.findMatchByMatchId(matchId)
         if (match === null) {
@@ -26,42 +20,30 @@ export default {
             return
         }
 
-        if (match.result.firstLineup && match.result.secondLineup) {
+        const captainUserId = lineupNumber === 1 ? match.result?.firstLineup.captainUserId! : match.result?.secondLineup.captainUserId!
+        if (!authorizationService.isMatchmakingAdmin(interaction.member as GuildMember) && interaction.user.id !== captainUserId) {
+            const [user] = await handle(interaction.client.users.fetch(captainUserId))
+            await interaction.reply({ content: `Only ${user} is allowed to vote`, ephemeral: true })
+            return
+        }
+
+        if (match.result!.isVoted()) {
             await interaction.reply({ content: '⛔ The outcome of this match has already been voted', ephemeral: true })
             return
         }
 
-        let lineup, opponentLineup
-        let otherLineupChannel
-        let existingLineupResult
-        let teamName
-        let lineupToUpdate
-        if (match.firstLineup.isNotTeam() && match.secondLineup.isNotTeam()) {
-            lineup = match.firstLineup
-            opponentLineup = match.secondLineup
-            otherLineupChannel = interaction.channel!
-            existingLineupResult = match.firstLineup.roles.some(role => role.user?.id === interaction.user.id) ? match.result.firstLineup : match.result.secondLineup
-            teamName = match.firstLineup.roles.some(role => role.user?.id === interaction.user.id) ? "Red Team" : "Blue Team"
-            lineupToUpdate = match.firstLineup.roles.some(role => role.user?.id === interaction.user.id) ? 1 : 2
-        } else {
-            lineup = interaction.channelId === match.firstLineup.channelId ? match.firstLineup : match.secondLineup
-            opponentLineup = interaction.channelId === match.firstLineup.channelId ? match.secondLineup : match.firstLineup
-            otherLineupChannel = await interaction.client.channels.fetch(opponentLineup.channelId) as BaseGuildTextChannel
-            existingLineupResult = interaction.channelId === match.firstLineup.channelId ? match.result.firstLineup : match.result.secondLineup
-            teamName = lineup.prettyPrintName()
-            lineupToUpdate = interaction.channelId === match.firstLineup.channelId ? 1 : 2
-        }
-
-        if (existingLineupResult) {
+        let existingLineupResult = lineupNumber === 1 ? match.result!.firstLineup.result : match.result!.secondLineup.result
+        if (existingLineupResult != null) {
             await interaction.reply({ content: '⛔ You have already voted for this match outcome', ephemeral: true })
             return
         }
 
-        let lineupResult: ILineupMatchResult = {
-            captainUserId: userId,
-            result
-        }
-        match = (await matchmakingService.updateMatchResult(matchId, lineupToUpdate, lineupResult))!
+        let [lineup, opponentLineup] = lineupNumber === 1 ? [match.firstLineup, match.secondLineup] : [match.secondLineup, match.firstLineup]
+        const lineupChannel = await interaction.client.channels.fetch(lineup.channelId) as BaseGuildTextChannel
+        const opponentLineupChannel = opponentLineup.isNotTeam() ? lineupChannel : await interaction.client.channels.fetch(opponentLineup.channelId) as BaseGuildTextChannel
+        const teamName = lineup.isTeam() ? lineup.prettyPrintName() : lineupNumber === 1 ? "Red Team" : "Blue Team"
+
+        match = (await matchmakingService.updateMatchResult(matchId, lineupNumber, result))!
 
         const voteNotificationMessageEmbed = new EmbedBuilder()
             .setColor('#6aa84f')
@@ -76,22 +58,22 @@ export default {
             .setTimestamp()
             .setFooter({ text: `Author: ${interaction.user.username}` })
         const voteNotificationMessage = { embeds: [voteNotificationMessageEmbed] }
-        if (interaction.channelId !== opponentLineup.channelId) {
-            await otherLineupChannel.send(voteNotificationMessage)
+        if (lineupChannel.id !== opponentLineup.channelId) {
+            await opponentLineupChannel.send(voteNotificationMessage)
         }
         await interaction.update({ components: [] })
-        await interaction.followUp(voteNotificationMessage)
+        await lineupChannel.send(voteNotificationMessage)
 
-        if (match.result.isVoted()) {
-            const firstLineupResult = match.result.firstLineup!.result
-            const secondLineupResult = match.result.secondLineup!.result
+        if (match.result!.isVoted()) {
+            const firstLineupResult = match.result!.firstLineup!.result
+            const secondLineupResult = match.result!.secondLineup!.result
             if ((firstLineupResult === MatchResult.DRAW && secondLineupResult === MatchResult.DRAW) ||
                 (firstLineupResult === MatchResult.WIN && secondLineupResult === MatchResult.LOSS) ||
                 (firstLineupResult === MatchResult.LOSS && secondLineupResult === MatchResult.WIN) ||
                 (firstLineupResult === MatchResult.CANCEL && secondLineupResult === MatchResult.CANCEL)
             ) {
                 let votesResultEmbed
-                if (match.result.isCancelled()) {
+                if (match.result!.isCancelled()) {
                     votesResultEmbed = new EmbedBuilder()
                         .setColor('#ed4245')
                         .setTitle('❌ Match Cancelled')
@@ -106,10 +88,10 @@ export default {
                         .setTimestamp()
                 }
                 const votesResultMessage = { embeds: [votesResultEmbed] }
-                if (interaction.channelId !== opponentLineup.channelId) {
-                    await otherLineupChannel.send(votesResultMessage)
+                if (lineupChannel.id !== opponentLineup.channelId) {
+                    await opponentLineupChannel.send(votesResultMessage)
                 }
-                await interaction.followUp(votesResultMessage)
+                await lineupChannel.send(votesResultMessage)
 
                 const channelId = regionService.getRegionData(match.firstLineup.team.region).matchResultsChannelId
                 if (channelId) {
@@ -117,7 +99,7 @@ export default {
                     if (channel instanceof TextChannel) {
                         const matchResultEmbed = new EmbedBuilder()
                             .setTitle(`${match.firstLineup.size}v${match.secondLineup.size}`)
-                            .setDescription(`${match.firstLineup.prettyPrintName(TeamLogoDisplay.RIGHT)} ${MatchResultType.toEmoji(match.result.firstLineup!.result)} **VS** ${MatchResultType.toEmoji(match.result.secondLineup!.result)} ${match.secondLineup.prettyPrintName(TeamLogoDisplay.LEFT)}`)
+                            .setDescription(`${match.firstLineup.prettyPrintName(TeamLogoDisplay.RIGHT)} ${MatchResultType.toEmoji(match.result!.firstLineup.result!)} **VS** ${MatchResultType.toEmoji(match.result!.secondLineup.result!)} ${match.secondLineup.prettyPrintName(TeamLogoDisplay.LEFT)}`)
                             .setColor('#6aa84f')
                             .setFooter({ text: `Match ID: ${match.matchId}` })
                             .setTimestamp()
@@ -131,14 +113,16 @@ export default {
                     .setTitle('⛔ Results are inconsistent. Please submit again.')
                     .setTimestamp()
                 const inconsistentVotesMessage = { embeds: [inconsistentVotesMessageEmbed] }
-                if (interaction.channelId !== opponentLineup.channelId) {
-                    await otherLineupChannel.send(inconsistentVotesMessage)
+                if (lineupChannel.id !== opponentLineup.channelId) {
+                    await opponentLineupChannel.send(inconsistentVotesMessage)
                 }
-                await interaction.followUp(inconsistentVotesMessage)
-                const firstTeamCaptainUser = await interaction.client.users.fetch(match.result.firstLineup!.captainUserId)
-                const opponentTeamCaptainUser = await interaction.client.users.fetch(match.result.secondLineup!.captainUserId)
-                await interaction.channel?.send(interactionUtils.createMatchResultVoteMessage(match.matchId, match.firstLineup.team.region, firstTeamCaptainUser))
-                await otherLineupChannel.send(interactionUtils.createMatchResultVoteMessage(match.matchId, match.firstLineup.team.region, opponentTeamCaptainUser))
+                await lineupChannel.send(inconsistentVotesMessage)
+
+                const captainUser = await interaction.client.users.fetch(captainUserId)
+                await lineupChannel.send(interactionUtils.createMatchResultVoteMessage(match.matchId, match.firstLineup.team.region, captainUser, lineupNumber))
+
+                const opponentTeamCaptainUser = await interaction.client.users.fetch(lineupNumber === 1 ? match.result?.secondLineup.captainUserId! : match.result?.firstLineup.captainUserId!)
+                await opponentLineupChannel.send(interactionUtils.createMatchResultVoteMessage(match.matchId, match.firstLineup.team.region, opponentTeamCaptainUser, lineupNumber === 1 ? 2 : 1))
             }
         }
     }
