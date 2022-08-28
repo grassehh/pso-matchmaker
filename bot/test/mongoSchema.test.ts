@@ -58,7 +58,7 @@ describe('testing ILineup model', () => {
         ]
 
         //When
-        lineup.computeRolesForSoloQueue()
+        lineup.distributeRolesForSoloQueue()
 
         //Then
         const firstLineupRoles = lineup.roles.filter(role => role.lineupNumber === 1)

@@ -637,10 +637,18 @@ class InteractionUtils {
             new ButtonBuilder()
                 .setCustomId(`match_result_vote_${MatchResult.LOSS}_${matchId}_${user.id}`)
                 .setLabel("LOSS")
-                .setStyle(ButtonStyle.Danger),
+                .setStyle(ButtonStyle.Danger)
         )
 
-        return { embeds: [matchVoteEmbed], components: [matchVoteActionRow] }
+        const cancelVoteActionRow = new ActionRowBuilder<ButtonBuilder>()
+        cancelVoteActionRow.addComponents(
+            new ButtonBuilder()
+                .setCustomId(`match_result_vote_${MatchResult.CANCEL}_${matchId}_${user.id}`)
+                .setLabel("CANCEL")
+                .setStyle(ButtonStyle.Danger)
+        )
+
+        return { embeds: [matchVoteEmbed], components: [matchVoteActionRow, cancelVoteActionRow] }
     }
 
     createMatchResultVoteUserMessage(message: Message): MessageOptions {

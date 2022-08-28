@@ -82,24 +82,34 @@ export default {
         await interaction.update({ components: [] })
         await interaction.followUp(voteNotificationMessage)
 
-        if (match.result.firstLineup && match.result.secondLineup) {
-            const firstLineupResult = match.result.firstLineup.result
-            const secondLineupResult = match.result.secondLineup.result
+        if (match.result.isVoted()) {
+            const firstLineupResult = match.result.firstLineup!.result
+            const secondLineupResult = match.result.secondLineup!.result
             if ((firstLineupResult === MatchResult.DRAW && secondLineupResult === MatchResult.DRAW) ||
                 (firstLineupResult === MatchResult.WIN && secondLineupResult === MatchResult.LOSS) ||
-                (firstLineupResult === MatchResult.LOSS && secondLineupResult === MatchResult.WIN)
+                (firstLineupResult === MatchResult.LOSS && secondLineupResult === MatchResult.WIN) ||
+                (firstLineupResult === MatchResult.CANCEL && secondLineupResult === MatchResult.CANCEL)
             ) {
-                await matchmakingService.updateRatings(interaction.client, match)
-                const ratingUpdatedEmbed = new EmbedBuilder()
-                    .setColor('#6aa84f')
-                    .setTitle('✅ Votes are consistent')
-                    .setDescription('Team and Players ratings have been updated !')
-                    .setTimestamp()
-                const ratingUpdatedMessage = { embeds: [ratingUpdatedEmbed] }
-                if (interaction.channelId !== opponentLineup.channelId) {
-                    await otherLineupChannel.send(ratingUpdatedMessage)
+                let votesResultEmbed
+                if (match.result.isCancelled()) {
+                    votesResultEmbed = new EmbedBuilder()
+                        .setColor('#ed4245')
+                        .setTitle('❌ Match Cancelled')
+                        .setDescription('Both captains voted to cancel the match')
+                        .setTimestamp()
+                } else {
+                    await matchmakingService.updateRatings(interaction.client, match)
+                    votesResultEmbed = new EmbedBuilder()
+                        .setColor('#6aa84f')
+                        .setTitle('✅ Votes are consistent')
+                        .setDescription('Team and Players ratings have been updated !')
+                        .setTimestamp()
                 }
-                await interaction.followUp(ratingUpdatedMessage)
+                const votesResultMessage = { embeds: [votesResultEmbed] }
+                if (interaction.channelId !== opponentLineup.channelId) {
+                    await otherLineupChannel.send(votesResultMessage)
+                }
+                await interaction.followUp(votesResultMessage)
 
                 const channelId = regionService.getRegionData(match.firstLineup.team.region).matchResultsChannelId
                 if (channelId) {
@@ -107,7 +117,7 @@ export default {
                     if (channel instanceof TextChannel) {
                         const matchResultEmbed = new EmbedBuilder()
                             .setTitle(`${match.firstLineup.size}v${match.secondLineup.size}`)
-                            .setDescription(`${match.firstLineup.prettyPrintName(TeamLogoDisplay.RIGHT)} ${MatchResultType.toEmoji(match.result.firstLineup.result)} **VS** ${MatchResultType.toEmoji(match.result.secondLineup.result)} ${match.secondLineup.prettyPrintName(TeamLogoDisplay.LEFT)}`)
+                            .setDescription(`${match.firstLineup.prettyPrintName(TeamLogoDisplay.RIGHT)} ${MatchResultType.toEmoji(match.result.firstLineup!.result)} **VS** ${MatchResultType.toEmoji(match.result.secondLineup!.result)} ${match.secondLineup.prettyPrintName(TeamLogoDisplay.LEFT)}`)
                             .setColor('#6aa84f')
                             .setFooter({ text: `Match ID: ${match.matchId}` })
                             .setTimestamp()
@@ -125,8 +135,8 @@ export default {
                     await otherLineupChannel.send(inconsistentVotesMessage)
                 }
                 await interaction.followUp(inconsistentVotesMessage)
-                const firstTeamCaptainUser = await interaction.client.users.fetch(match.result.firstLineup.captainUserId)
-                const opponentTeamCaptainUser = await interaction.client.users.fetch(match.result.secondLineup.captainUserId)
+                const firstTeamCaptainUser = await interaction.client.users.fetch(match.result.firstLineup!.captainUserId)
+                const opponentTeamCaptainUser = await interaction.client.users.fetch(match.result.secondLineup!.captainUserId)
                 await interaction.channel?.send(interactionUtils.createMatchResultVoteMessage(match.matchId, match.firstLineup.team.region, firstTeamCaptainUser))
                 await otherLineupChannel.send(interactionUtils.createMatchResultVoteMessage(match.matchId, match.firstLineup.team.region, opponentTeamCaptainUser))
             }

@@ -15,7 +15,8 @@ const ZScore = require("math-z-score");
 export enum MatchResult {
     WIN = 1,
     DRAW = 0,
-    LOSS = -1
+    LOSS = -1,
+    CANCEL = -2
 }
 
 export namespace MatchResultType {
@@ -27,6 +28,8 @@ export namespace MatchResultType {
                 return "DRAW"
             case MatchResult.LOSS:
                 return "LOSS"
+            case MatchResult.CANCEL:
+                return "CANCELLED"
         }
     }
 
@@ -38,6 +41,8 @@ export namespace MatchResultType {
                 return '🔲'
             case MatchResult.LOSS:
                 return '🟥'
+            case MatchResult.CANCEL:
+                return '❌'
         }
     }
 }
@@ -65,6 +70,18 @@ class MatchmakingService {
 
         let missingRoleName = lineup.roles.find(role => !role.user)?.name || ''
         return numberOfMissingPlayers === 0 || (lineup.size > 3 && (numberOfMissingPlayers === 1 && missingRoleName.includes('GK')))
+    }
+
+    async findLatestRankedMatch(userId: string): Promise<IMatch | null> {
+        return Match.findOne({
+            ranked: true,
+            $or: [
+                { 'firstLineup.roles.user.id': userId },
+                { 'firstLineup.roles.user.id': userId }
+            ]
+        })
+            .sort({ schedule: -1 })
+            .limit(1)
     }
 
     async updateBansListChannel(client: Client): Promise<void> {
@@ -698,7 +715,7 @@ class MatchmakingService {
             ])
         } else {
             if (mixLineup!.isSoloQueue() && mixLineup?.allowRanked) {
-                mixLineup.computeRolesForSoloQueue()
+                mixLineup.distributeRolesForSoloQueue()
             }
             initiatingLineup = Lineup.hydrate((mixLineup as any).toObject())
             initiatingLineup.roles = initiatingLineup.roles.filter(role => role.lineupNumber === 1) as IRole[]

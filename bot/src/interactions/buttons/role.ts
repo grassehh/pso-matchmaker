@@ -16,13 +16,21 @@ export default {
             return
         }
 
+        if (lineup.allowRanked) {
+            const latestMatch = await matchmakingService.findLatestRankedMatch(interaction.user.id)
+            if (latestMatch && !latestMatch.result.isVoted() && Date.now() - latestMatch.schedule.getTime() < 1800000) {
+                await interaction.reply({ content: '⛔ Your previous ranked match has not be voted yet and is too recent', ephemeral: true })
+                return
+            }
+        }
+
         const split = interaction.customId.split('_')
         const selectedRoleName = split[1]
         const lineupNumber = parseInt(split[2])
         const selectedRole = lineup.roles.filter(role => role.lineupNumber === lineupNumber).find(role => role.name == selectedRoleName)!
 
         if (selectedRole.user) {
-            await interaction.reply({ content: 'A player is already signed at this position', ephemeral: true })
+            await interaction.reply({ content: '⛔ A player is already signed at this position', ephemeral: true })
             return
         }
 
