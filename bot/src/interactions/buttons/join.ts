@@ -1,4 +1,5 @@
 import { ButtonInteraction, ComponentType, EmbedBuilder, GuildMember, Interaction, MessageOptions } from "discord.js";
+import { DEFAULT_RATING } from "../../constants";
 import { IButtonHandler } from "../../handlers/buttonHandler";
 import { ILineup, IRole, IUser } from "../../mongoSchema";
 import { interactionUtils } from "../../services/interactionUtils";
@@ -46,7 +47,7 @@ export default {
 
         const userToAdd = await userService.findUserByDiscordUserId(interaction.user.id) as IUser
         const stats = await statsService.findUserStats(interaction.user.id, lineup.team.region)
-        userToAdd.rating = stats!.mixCaptainsRating
+        userToAdd.rating = stats ? stats.mixCaptainsRating : DEFAULT_RATING
         userToAdd.emoji = statsService.getLevelEmojiFromMember(interaction.member as GuildMember)
 
         lineup = await teamService.addUserToLineup(interaction.channelId, roleToSign.name, userToAdd, roleToSign.lineupNumber) as ILineup
