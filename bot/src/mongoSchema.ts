@@ -126,7 +126,7 @@ export interface ILineup {
     getTierRoleId(client: Client): Promise<string>,
     isAnonymous(): boolean,
     hasSignedRole(roleName: string): boolean,
-    computeRolesForSoloQueue(): void,
+    distributeRolesForSoloQueue(): void,
     channelId: string,
     size: number,
     roles: IRole[],
@@ -341,7 +341,7 @@ lineupSchema.methods.isAnonymous = function (): boolean {
 lineupSchema.methods.hasSignedRole = function (roleName: string): boolean {
     return this.roles.filter((role: IRole) => role.user).some((role: IRole) => role.name === roleName)
 }
-lineupSchema.methods.computeRolesForSoloQueue = function (): void {
+lineupSchema.methods.distributeRolesForSoloQueue = function (): void {
     const newRoles: IRole[] = []
     this.roles.sort((a: IRole, b: IRole) => b.user!.rating - a.user!.rating)
     this.roles.forEach((role: IRole, i: number) => {
@@ -464,6 +464,8 @@ const lineupMatchResultSchema = new Schema<ILineupMatchResult>({
 })
 
 export interface IMatchResult {
+    isVoted(): boolean,
+    isCancelled(): boolean,
     firstLineup?: ILineupMatchResult,
     secondLineup?: ILineupMatchResult,
 }
@@ -477,6 +479,12 @@ const matchResultSchema = new Schema<IMatchResult>({
         required: false
     }
 })
+matchResultSchema.methods.isVoted = function (): boolean {
+    return this.firstLineup !== undefined && this.secondLineup !== undefined
+}
+matchResultSchema.methods.isCancelled = function (): boolean {
+    return this.firstLineup?.result === MatchResult.CANCEL && this.secondLineup?.result === MatchResult.CANCEL
+}
 
 export interface IMatch {
     findUserRole(user: DiscordUser): IRole | null,
