@@ -77,7 +77,7 @@ class MatchmakingService {
             ranked: true,
             $or: [
                 { 'firstLineup.roles.user.id': userId },
-                { 'firstLineup.roles.user.id': userId }
+                { 'secondLineup.roles.user.id': userId }
             ]
         })
             .sort({ schedule: -1 })
