@@ -10,8 +10,6 @@ beforeAll(async () => await dbConnect())
 afterAll(async () => await dbDisconnect())
 afterEach(async () => await dbClean())
 
-jest.setTimeout(15000)
-
 describe('testing matchmakingService', () => {
     it('should make casual match when both teams have GK', async () => {
         //Given

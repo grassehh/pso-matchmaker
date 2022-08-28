@@ -64,7 +64,7 @@ export default {
                 addedPlayerName = m.mentions.users.at(0)?.toString()
                 const stats = await statsService.findUserStats(interaction.user.id, lineup.team.region)
                 userToAdd = await userService.findUserByDiscordUserId(user.id) as IUser
-                userToAdd.rating = stats?.rating
+                userToAdd.rating = stats!.rating
             } else {
                 addedPlayerName = m.content
             }

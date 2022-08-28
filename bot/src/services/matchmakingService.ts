@@ -697,6 +697,9 @@ class MatchmakingService {
                 await this.freeLineupQueuesByChallengeId(challenge._id.toString())
             ])
         } else {
+            if (mixLineup!.isSoloQueue() && mixLineup?.allowRanked) {
+                mixLineup.computeRolesForSoloQueue()
+            }
             initiatingLineup = Lineup.hydrate((mixLineup as any).toObject())
             initiatingLineup.roles = initiatingLineup.roles.filter(role => role.lineupNumber === 1) as IRole[]
             initiatingLineup.name = "Red Team"
