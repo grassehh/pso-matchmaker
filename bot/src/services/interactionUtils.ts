@@ -610,13 +610,13 @@ class InteractionUtils {
         return rolesActionRows
     }
 
-    createMatchResultVoteMessage(matchId: string, region: Region, user: User): MessageOptions {
+    createMatchResultVoteMessage(matchId: string, region: Region, submitter: User, lineupNumber: number): MessageOptions {
         const matchVoteEmbed = new EmbedBuilder()
             .setColor('#6aa84f')
             .setTitle(":bangbang::bangbang: Submit for you team result ! :bangbang::bangbang:")
             .setFields([
                 { name: 'Match ID', value: matchId, inline: true },
-                { name: 'Submitter', value: `${user}`, inline: true }]
+                { name: 'Submitter', value: `${submitter}`, inline: true }]
             )
             .setDescription(
                 `Ranks will be updated **ONLY** if **BOTH TEAMS** votes are consistent.
@@ -627,15 +627,15 @@ class InteractionUtils {
         const matchVoteActionRow = new ActionRowBuilder<ButtonBuilder>()
         matchVoteActionRow.addComponents(
             new ButtonBuilder()
-                .setCustomId(`match_result_vote_${MatchResult.WIN}_${matchId}_${user.id}`)
+                .setCustomId(`match_result_vote_${MatchResult.WIN}_${matchId}_${lineupNumber}`)
                 .setLabel("WIN !")
                 .setStyle(ButtonStyle.Success),
             new ButtonBuilder()
-                .setCustomId(`match_result_vote_${MatchResult.DRAW}_${matchId}_${user.id}`)
+                .setCustomId(`match_result_vote_${MatchResult.DRAW}_${matchId}_${lineupNumber}`)
                 .setLabel("DRAW")
                 .setStyle(ButtonStyle.Secondary),
             new ButtonBuilder()
-                .setCustomId(`match_result_vote_${MatchResult.LOSS}_${matchId}_${user.id}`)
+                .setCustomId(`match_result_vote_${MatchResult.LOSS}_${matchId}_${lineupNumber}`)
                 .setLabel("LOSS")
                 .setStyle(ButtonStyle.Danger)
         )
@@ -643,7 +643,7 @@ class InteractionUtils {
         const cancelVoteActionRow = new ActionRowBuilder<ButtonBuilder>()
         cancelVoteActionRow.addComponents(
             new ButtonBuilder()
-                .setCustomId(`match_result_vote_${MatchResult.CANCEL}_${matchId}_${user.id}`)
+                .setCustomId(`match_result_vote_${MatchResult.CANCEL}_${matchId}_${lineupNumber}`)
                 .setLabel("CANCEL")
                 .setStyle(ButtonStyle.Danger)
         )
