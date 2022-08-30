@@ -8,7 +8,7 @@ export default {
     async execute(interaction: ButtonInteraction) {
         const choice = interaction.customId!.split('_')[2]
         if (choice === 'yes') {
-            await userService.deleteUser(interaction.user.id)
+            await userService.deleteUser(interaction.client, interaction.user)
             await interaction.update({ embeds: [interactionUtils.createInformationEmbed('✅ Your account has been deleted')], components: [] })
             return
         }
