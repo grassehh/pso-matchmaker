@@ -1,5 +1,7 @@
+import { Client, User as DiscordUser } from "discord.js"
 import { UpdateWriteOpResult } from "mongoose"
 import { IUser, User, Stats, Lineup, Team } from "../mongoSchema"
+import { teamService } from "./teamService"
 
 class UserService {
     async findUserByDiscordUserId(discordUserId: string): Promise<IUser | null> {
@@ -14,12 +16,18 @@ class UserService {
         return User.findOneAndUpdate({ id: discordUserId }, { $unset: { steamId: "" } })
     }
 
-    async deleteUser(discordUserId: string): Promise<void | null> {
-        Promise.all([
-            User.deleteOne({ id: discordUserId }),
-            Stats.deleteMany({ userId: discordUserId }),
-            Lineup.updateMany({}, { $pull: { 'team.players': { id: discordUserId }, 'team.captains': { id: discordUserId } }, 'team.verified': false }),
-            Team.updateMany({}, { $pull: { players: { id: discordUserId }, captains: { id: discordUserId } }, verified: false }, { new: true })
+    async deleteUser(client: Client, user: DiscordUser): Promise<void | null> {
+        const userTeams = await teamService.findTeams(user.id)
+        await Promise.all(userTeams.map(team => {
+            teamService.verify(team.guildId, false)
+            teamService.notifyNoLongerVerified(client, team, `${user} unregistered from the PSO Matchmaker bot`)
+        }))
+
+        await Promise.all([
+            User.deleteOne({ id: user.id }),
+            Stats.deleteMany({ userId: user.id }),
+            Lineup.updateMany({}, { $pull: { 'team.players': { id: user.id }, 'team.captains': { id: user.id } } }),
+            Team.updateMany({}, { $pull: { players: { id: user.id }, captains: { id: user.id } } })
         ])
     }
 }
