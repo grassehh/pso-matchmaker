@@ -4,12 +4,12 @@ import { UpdateWriteOpResult } from "mongoose";
 import { Elo } from "simple-elo-rating";
 import { v4 as uuidv4 } from 'uuid';
 import { DEFAULT_RATING } from "../constants";
-import { Challenge, IChallenge, ILineup, ILineupMatchResult, ILineupQueue, IMatch, IRole, IStats, ISub, IUser, Lineup, LineupQueue, Match, Stats } from "../mongoSchema";
+import { Challenge, IChallenge, ILineup, ILineupQueue, IMatch, IMatchResult, IRole, IStats, ISub, IUser, Lineup, LineupQueue, Match, Stats } from "../mongoSchema";
 import { handle, notEmpty } from "../utils";
 import { interactionUtils } from "./interactionUtils";
 import { Region, regionService } from "./regionService";
 import { statsService } from "./statsService";
-import { GK, LINEUP_TYPE_CAPTAINS, LINEUP_TYPE_MIX, LINEUP_TYPE_TEAM, LINEUP_VISIBILITY_PUBLIC, LINEUP_VISIBILITY_TEAM, RankedStats, ROLE_GOAL_KEEPER, TeamLogoDisplay, teamService } from "./teamService";
+import { LINEUP_TYPE_CAPTAINS, LINEUP_TYPE_MIX, LINEUP_TYPE_TEAM, LINEUP_VISIBILITY_PUBLIC, LINEUP_VISIBILITY_TEAM, RankedStats, TeamLogoDisplay, teamService } from "./teamService";
 const ZScore = require("math-z-score");
 
 export enum MatchResult {
@@ -125,14 +125,14 @@ class MatchmakingService {
                 ranked: lineupQueue.ranked,
                 challengeId: null
             }
-            if (!lineupQueue.lineup.hasSignedRole(GK.name)) {
-                match['lineup.roles'] = {
-                    $elemMatch: {
-                        type: ROLE_GOAL_KEEPER,
-                        user: { $ne: null }
-                    }
-                }
-            }
+            // if (!lineupQueue.lineup.hasSignedRole(GK.name)) {
+            //     match['lineup.roles'] = {
+            //         $elemMatch: {
+            //             type: ROLE_GOAL_KEEPER,
+            //             user: { $ne: null }
+            //         }
+            //     }
+            // }
             const lineupQueueToChallenge = await LineupQueue.aggregate([
                 {
                     $match: match
@@ -161,7 +161,7 @@ class MatchmakingService {
 
             if (lineupQueueToChallenge.length > 0) {
                 if (await this.checkForDuplicatedPlayers(client, lineupQueue.lineup, Lineup.hydrate(lineupQueueToChallenge[0].lineup))) {
-                    return
+                    continue
                 }
 
                 const initiatingUser = lineupQueue.lineup.getNonMercSignedRoles()[0].user!
@@ -732,7 +732,7 @@ class MatchmakingService {
             `${challenge.initiatingTeam.lineup.prettyPrintName(TeamLogoDisplay.RIGHT)} **vs** ${challenge.challengedTeam.lineup.prettyPrintName(TeamLogoDisplay.LEFT)}`
             : `**${mixLineup!.prettyPrintName()} #${Math.floor(Math.random() * 10000).toString().padStart(4, '0')}**`
         const lobbyPassword = Math.random().toString(36).slice(-4)
-        const match = await new Match({
+        const match = new Match({
             matchId: uuidv4().substring(0, 8),
             schedule: Date.now(),
             lobbyName,
@@ -740,8 +740,22 @@ class MatchmakingService {
             firstLineup: initiatingLineup,
             secondLineup: challengedLineup,
             ranked
-        }).save()
+        })
 
+        if (ranked) {
+            const firstLineupCaptainId = await this.findHighestRatedUserId(match.firstLineup)
+            const secondLineupCaptainId = await this.findHighestRatedUserId(match.secondLineup)
+            match.result = {
+                firstLineup: {
+                    captainUserId: firstLineupCaptainId,
+                },
+                secondLineup: {
+                    captainUserId: secondLineupCaptainId
+                }
+            } as IMatchResult
+        }
+
+        await match.save()
         await this.notifyForMatchReady(client, match, lobbyHost, initiatingLineup, challengedLineup)
         await this.sendMatchResultVoteMessage(client, match)
 
@@ -828,18 +842,16 @@ class MatchmakingService {
 
         let promises = []
         promises.push(new Promise<void>(async (resolve) => {
-            const firstLineupUserId = await this.findHighestRatedUserId(match.firstLineup)
-            const firstLineupUser = await client.users.fetch(firstLineupUserId)
+            const firstLineupUser = await client.users.fetch(match.result!.firstLineup.captainUserId)
             const firstLineupChannel = await client.channels.fetch(match.firstLineup.channelId) as TextChannel
-            const message = await firstLineupChannel.send(interactionUtils.createMatchResultVoteMessage(match.matchId, match.firstLineup.team.region, firstLineupUser))
+            const message = await firstLineupChannel.send(interactionUtils.createMatchResultVoteMessage(match.matchId, match.firstLineup.team.region, firstLineupUser, 1))
             handle(firstLineupUser.send(interactionUtils.createMatchResultVoteUserMessage(message)))
             resolve()
         }))
         promises.push(new Promise<void>(async (resolve) => {
-            const secondLineupUserId = await this.findHighestRatedUserId(match.secondLineup)
-            const secondLineupUser = await client.users.fetch(secondLineupUserId)
+            const secondLineupUser = await client.users.fetch(match.result!.secondLineup.captainUserId)
             const secondLineupChannel = await client.channels.fetch(match.secondLineup.channelId) as TextChannel
-            const message = await secondLineupChannel.send(interactionUtils.createMatchResultVoteMessage(match.matchId, match.firstLineup.team.region, secondLineupUser))
+            const message = await secondLineupChannel.send(interactionUtils.createMatchResultVoteMessage(match.matchId, match.firstLineup.team.region, secondLineupUser, 2))
             handle(secondLineupUser.send(interactionUtils.createMatchResultVoteUserMessage(message)))
             resolve()
         }))
@@ -899,10 +911,10 @@ class MatchmakingService {
         )
     }
 
-    async updateMatchResult(matchId: string, lineupToUpdate: number, lineupResult: ILineupMatchResult): Promise<IMatch | null> {
+    async updateMatchResult(matchId: string, lineupToUpdate: number, result: MatchResult): Promise<IMatch | null> {
         return Match.findOneAndUpdate(
             { matchId },
-            { "$set": lineupToUpdate === 1 ? { "result.firstLineup": lineupResult } : { "result.secondLineup": lineupResult } },
+            { "$set": lineupToUpdate === 1 ? { "result.firstLineup.result": result } : { "result.secondLineup.result": result } },
             { new: true }
         )
     }
@@ -910,7 +922,7 @@ class MatchmakingService {
     async resetMatchResult(matchId: string): Promise<UpdateWriteOpResult> {
         return Match.updateOne(
             { matchId },
-            { "$set": { "result": {} } }
+            { "$unset": { "result.firstLineup.result": "", "result.secondLineup.result": "" } }
         )
     }
 
@@ -961,9 +973,9 @@ class MatchmakingService {
         let elo = new Elo()
             .playerA(match.firstLineup.team.rating)
             .playerB(match.secondLineup.team.rating)
-        if (match.result.firstLineup!.result === MatchResult.DRAW) {
+        if (match.result!.firstLineup.result === MatchResult.DRAW) {
             elo.setDraw()
-        } else if (match.result.firstLineup!.result === MatchResult.WIN) {
+        } else if (match.result!.firstLineup.result === MatchResult.WIN) {
             elo.setWinnerA()
         } else {
             elo.setWinnerB()
@@ -979,8 +991,8 @@ class MatchmakingService {
     }
 
     private async updatePlayersRating(client: Client, match: IMatch): Promise<void> {
-        const firstLineupRating = await new LineupRating(match.firstLineup, match.result.firstLineup!.result).init()
-        const secondLineupRating = await new LineupRating(match.secondLineup, match.result.secondLineup!.result).init()
+        const firstLineupRating = await new LineupRating(match.firstLineup, match.result!.firstLineup.result!).init()
+        const secondLineupRating = await new LineupRating(match.secondLineup, match.result!.secondLineup.result!).init()
 
         const regionData = regionService.getRegionData(match.firstLineup.team.region)
         const officialGuild = await client.guilds.fetch(regionData.guildId)

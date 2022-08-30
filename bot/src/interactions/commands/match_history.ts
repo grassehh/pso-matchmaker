@@ -15,12 +15,12 @@ export default {
             .setTitle('Recent Matches')
             .addFields(matches.map(match => {
                 let name = ''
-                if (match.result.firstLineup && match.result.secondLineup) {
-                    name = `${match.firstLineup.prettyPrintName(TeamLogoDisplay.RIGHT)} ${MatchResultType.toEmoji(match.result.firstLineup.result)} **VS** ${MatchResultType.toEmoji(match.result.secondLineup.result)} ${match.secondLineup.prettyPrintName(TeamLogoDisplay.LEFT)}`
+                if (match.ranked && match.result?.isVoted()) {
+                    name = `${match.firstLineup.prettyPrintName(TeamLogoDisplay.RIGHT)} ${MatchResultType.toEmoji(match.result!.firstLineup.result!)} **VS** ${MatchResultType.toEmoji(match.result!.secondLineup.result!)} ${match.secondLineup.prettyPrintName(TeamLogoDisplay.LEFT)}`
                 } else {
                     name = `${match.firstLineup.prettyPrintName(TeamLogoDisplay.RIGHT)} **VS** ${match.secondLineup.prettyPrintName(TeamLogoDisplay.LEFT)}`
                 }
-                const value = `Match ID: ${match.matchId}\nDate: ${match.schedule.toUTCString()}`
+                const value = `Match ID: ${match.matchId}\nRanked: ${match.ranked ? 'Yes' : 'No'}\nDate: ${match.schedule.toUTCString()}`
                 return { name, value }
             }))
 
