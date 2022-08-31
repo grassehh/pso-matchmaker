@@ -12,6 +12,6 @@ export const MAX_BENCH_SIZE = 11
 export const MAX_NUMBER_OF_MERCS = 2
 
 export const DEFAULT_LEADERBOARD_PAGE_SIZE = 10
-export const DEFAULT_RATING = 1000
+export const DEFAULT_RATING = 800
 export const MINIMUM_MATCHES_BEFORE_RANKED = 25
 export const RATING_DOWNGRADE_AMOUNT = 5
