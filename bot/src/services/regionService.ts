@@ -151,7 +151,7 @@ class RegionService {
     /**
      * This is used only in EU region
      */
-    private getActivityRoleId(numberOfGames: number): string {
+    getActivityRoleId(numberOfGames: number): string {
         if (numberOfGames >= 800) {
             return process.env.PSO_EU_DISCORD_VETERAN_ROLE_ID as string
         }
