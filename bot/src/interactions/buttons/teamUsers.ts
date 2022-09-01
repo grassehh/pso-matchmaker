@@ -18,10 +18,9 @@ export default {
 
         let team: ITeam = await teamService.findTeamByGuildId(guildId) as ITeam
         const teamWasVerified = team.verified
-
-        await interaction.update({ content: `Type the ids or the mentions (@user) of the users you want to ${action}\nType **end** once you have finished.`, components: [] })
-
         let teamChanged = false
+        const [regionDiscord] = await handle(interaction.client.guilds.fetch(regionService.getRegionData(team.region).guildId))
+        await interaction.update({ content: `Type the ids or the mentions (@user) of the users you want to ${action}\nType **end** once you have finished.`, components: [] })
         const filter = (m: Message) => interaction.user.id === m.author.id
         const collector = interaction.channel!.createMessageCollector({ filter, time: 20000 });
         collector.on('collect', async m => {
@@ -82,8 +81,10 @@ export default {
                         return
                     }
                     team = (await teamService.addCaptain(guildId, user!))!
+                    await regionService.addTeamCodeToNickName(discordUser.id, team, regionDiscord)
                 } else {
                     team = (await teamService.removeCaptain(guildId, discordUser.id))!
+                    await regionService.removeTeamCodeFromNickName(discordUser.id, regionDiscord)
                 }
             } else {
                 if (action === 'add') {
@@ -92,8 +93,10 @@ export default {
                         return
                     }
                     team = (await teamService.addPlayer(guildId, user!))!
+                    await regionService.addTeamCodeToNickName(discordUser.id, team, regionDiscord)
                 } else {
                     team = (await teamService.removePlayer(guildId, discordUser.id))!
+                    await regionService.removeTeamCodeFromNickName(discordUser.id, regionDiscord)
                 }
             }
             await interaction.followUp({ content: `${category === 'captains' ? 'Captain' : 'Player'} ${discordUser} successfully ${action === 'add' ? 'added' : 'removed'}` })

@@ -19,7 +19,7 @@ export default {
             .setTitle(`How to configure the bot ?`)
             .setTimestamp()
             .addFields([
-                { name: '1) Invite the bot on your discord', value: 'Click on the following link to invite the bot on your discord server: https://discord.com/api/oauth2/authorize?client_id=914818953707151420&permissions=2416077824&scope=bot%20applications.commands' },
+                { name: '1) Invite the bot on your discord', value: 'Click on the following link to invite the bot on your discord server: https://discord.com/api/oauth2/authorize?client_id=914818953707151420&permissions=2550295552&scope=bot%20applications.commands' },
                 { name: '2) Create your team', value: 'Use the **/team_create** command anywhere on your discord server to create your team. Make sure you select the correct region.' },
                 {
                     name: '3) Create lineups',

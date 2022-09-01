@@ -9,7 +9,7 @@ import { handle, notEmpty } from "../utils";
 import { interactionUtils } from "./interactionUtils";
 import { Region, regionService } from "./regionService";
 import { statsService } from "./statsService";
-import { LINEUP_TYPE_CAPTAINS, LINEUP_TYPE_MIX, LINEUP_TYPE_TEAM, LINEUP_VISIBILITY_PUBLIC, LINEUP_VISIBILITY_TEAM, RankedStats, TeamLogoDisplay, teamService } from "./teamService";
+import { GK, LINEUP_TYPE_CAPTAINS, LINEUP_TYPE_MIX, LINEUP_TYPE_TEAM, LINEUP_VISIBILITY_PUBLIC, LINEUP_VISIBILITY_TEAM, RankedStats, ROLE_GOAL_KEEPER, TeamLogoDisplay, teamService } from "./teamService";
 const ZScore = require("math-z-score");
 
 export enum MatchResult {
@@ -125,14 +125,14 @@ class MatchmakingService {
                 ranked: lineupQueue.ranked,
                 challengeId: null
             }
-            // if (!lineupQueue.lineup.hasSignedRole(GK.name)) {
-            //     match['lineup.roles'] = {
-            //         $elemMatch: {
-            //             type: ROLE_GOAL_KEEPER,
-            //             user: { $ne: null }
-            //         }
-            //     }
-            // }
+            if (!lineupQueue.lineup.hasSignedRole(GK.name)) {
+                match['lineup.roles'] = {
+                    $elemMatch: {
+                        type: ROLE_GOAL_KEEPER,
+                        user: { $ne: null }
+                    }
+                }
+            }
             const lineupQueueToChallenge = await LineupQueue.aggregate([
                 {
                     $match: match

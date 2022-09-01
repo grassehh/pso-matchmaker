@@ -45,7 +45,7 @@ describe('testing /team_create command', () => {
     expect(team.type).toBe(TeamType.CLUB)
     expect(team.region).toBe(Region.EUROPE);
     expect(team.lastMatchDate?.getTime()).toBe(fakeNowDate)
-    expect(team.rating).toBe(1000)
+    expect(team.rating).toBe(800)
     expect(team.verified).toBe(false)
     expect(team.captains.length).toBe(0)
     expect(team.players.length).toBe(0)
