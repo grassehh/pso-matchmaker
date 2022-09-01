@@ -60,22 +60,24 @@ export default {
             .addFields(fields)
 
         const matchResultActionRow = new ActionRowBuilder<ButtonBuilder>()
-        if (match.result!.firstLineup.result == null) {
-            matchResultActionRow.addComponents(
-                new ButtonBuilder()
-                    .setCustomId(`match_result_edit_${matchId}_1`)
-                    .setLabel(`Edit ${match.firstLineup.prettyPrintName()} result`)
-                    .setStyle(ButtonStyle.Primary)
-            )
-        }
+        if (match.ranked) {
+            if (match.result!.firstLineup.result == null) {
+                matchResultActionRow.addComponents(
+                    new ButtonBuilder()
+                        .setCustomId(`match_result_edit_${matchId}_1`)
+                        .setLabel(`Edit ${match.firstLineup.prettyPrintName()} result`)
+                        .setStyle(ButtonStyle.Primary)
+                )
+            }
 
-        if (match.result!.secondLineup.result == null) {
-            matchResultActionRow.addComponents(
-                new ButtonBuilder()
-                    .setCustomId(`match_result_edit_${matchId}_2`)
-                    .setLabel(`Edit ${match.secondLineup.prettyPrintName()} result`)
-                    .setStyle(ButtonStyle.Primary)
-            )
+            if (match.result!.secondLineup.result == null) {
+                matchResultActionRow.addComponents(
+                    new ButtonBuilder()
+                        .setCustomId(`match_result_edit_${matchId}_2`)
+                        .setLabel(`Edit ${match.secondLineup.prettyPrintName()} result`)
+                        .setStyle(ButtonStyle.Primary)
+                )
+            }
         }
         await interaction.reply({ embeds: [matchManageEmbed], components: matchResultActionRow.components.length === 0 ? [] : [matchResultActionRow], ephemeral: true })
     }
