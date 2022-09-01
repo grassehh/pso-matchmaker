@@ -1,4 +1,4 @@
-import { Client, Guild, GuildMember, MessageOptions, PermissionFlagsBits, Team, TextChannel } from "discord.js"
+import { Client, Guild, GuildMember, MessageOptions, PermissionFlagsBits, TextChannel } from "discord.js"
 import { MINIMUM_MATCHES_BEFORE_RANKED } from "../constants"
 import { IStats, ITeam } from "../mongoSchema"
 import { handle } from "../utils"
@@ -68,6 +68,10 @@ class RegionService {
 
     isOfficialDiscord(guildId: string): boolean {
         return this.regionsDataByGuildId.has(guildId)
+    }
+
+    async getRegionGuild(client: Client, region: Region): Promise<Guild | null> {
+        return (await handle(client.guilds.fetch(regionService.getRegionData(region).guildId)))[0] || null
     }
 
     async updateMemberTierRole(region: Region, member: GuildMember, newStats: IStats): Promise<void> {
@@ -166,25 +170,24 @@ class RegionService {
         return process.env.PSO_EU_DISCORD_CASUAL_ROLE_ID as string
     }
 
-    async addTeamCodeToNickName(userId: string, team: ITeam, regionDiscord?: Guild) {
-        if (!regionDiscord || !team.code || team.type !== TeamType.CLUB) {
+    async addTeamCodeToNickname(userId: string, team: ITeam, regionGuild: Guild | null) {
+        if (regionGuild == null || !team.code || team.type !== TeamType.CLUB) {
             return
         }
 
-        const [member] = await handle(regionDiscord.members.fetch(userId))
-        if (member && regionDiscord!.members.me?.permissions.has(PermissionFlagsBits.ManageNicknames) && !/^\[.*\] /i.test(member.displayName)) {
-            console.log(`Updating user ${member.user.username}`)
-            await member.setNickname(`[${team.code}] ${member.displayName}`)
+        const [member] = await handle(regionGuild.members.fetch(userId))
+        if (member && regionGuild!.members.me?.permissions.has(PermissionFlagsBits.ManageNicknames)) {
+            await handle(member.setNickname(`[${team.code}] ${member.displayName.replace(/^\[.*\] /i, '')}`))
         }
     }
 
-    async removeTeamCodeFromNickName(userId: string, regionDiscord?: Guild) {
-        if (!regionDiscord) {
+    async removeTeamCodeFromNickName(userId: string, regionGuild: Guild | null) {
+        if (regionGuild == null) {
             return
         }
 
-        const [member] = await handle(regionDiscord.members.fetch(userId))
-        if (member && regionDiscord!.members.me?.permissions.has(PermissionFlagsBits.ManageNicknames)) {
+        const [member] = await handle(regionGuild.members.fetch(userId))
+        if (member && regionGuild!.members.me?.permissions.has(PermissionFlagsBits.ManageNicknames)) {
             await handle(member.setNickname(`${member.displayName.replace(/^\[.*\] /i, '')}`))
         }
     }

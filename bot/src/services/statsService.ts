@@ -1,4 +1,4 @@
-import { Client, Guild, GuildMember, Role } from "discord.js"
+import { Client, GuildMember, Role } from "discord.js"
 import { MERC_USER_ID, MIN_LINEUP_SIZE_FOR_RANKED, RATING_DOWNGRADE_AMOUNT } from "../constants"
 import { IStats, ITeam, Stats, Team } from "../mongoSchema"
 import { handle } from "../utils"
@@ -126,23 +126,24 @@ class StatsService {
         await Stats.bulkWrite(bulks)
 
         if (lineupSize >= MIN_LINEUP_SIZE_FOR_RANKED) {
-            const regionData = regionService.getRegionData(region)
-            const officialGuild = await client.guilds.fetch(regionData.guildId) as Guild
-            const usersStats = await this.findUsersStats(nonMercUserIds, region)
-            await Promise.all(usersStats.map(async (userStats) => {
-                const stats = Stats.hydrate(userStats)
-                const [member] = await handle(officialGuild.members.fetch(userStats._id.toString()))
-                if (member instanceof GuildMember) {
-                    await regionService.updateMemberTierRole(region, member, stats)
+            const regionGuild = await regionService.getRegionGuild(client, region)
+            if (regionGuild) {
+                const usersStats = await this.findUsersStats(nonMercUserIds, region)
+                await Promise.all(usersStats.map(async (userStats) => {
+                    const stats = Stats.hydrate(userStats)
+                    const [member] = await handle(regionGuild.members.fetch(userStats._id.toString()))
+                    if (member instanceof GuildMember) {
+                        await regionService.updateMemberTierRole(region, member, stats)
 
-                    /**
-                     * This is deprecated but we will keep it just for information
-                     */
-                    if (region === Region.EUROPE) {
-                        await regionService.updateMemberActivityRole(member, stats.numberOfRankedGames)
+                        /**
+                         * This is deprecated but we will keep it just for information
+                         */
+                        if (region === Region.EUROPE) {
+                            await regionService.updateMemberActivityRole(member, stats.numberOfRankedGames)
+                        }
                     }
-                }
-            }))
+                }))
+            }
         }
     }
 

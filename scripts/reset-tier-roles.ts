@@ -29,16 +29,16 @@ async function resetStats(): Promise<void> {
     await client.login(process.env.TOKEN)
     await mongoose.connect(process.env.MONGO_URI || '', { keepAlive: true })
 
-    const regionData = regionService.getRegionData(Region.EUROPE)
-    console.log(`Updating member tier role for region ${regionData.label}`)
-    const guild = await client.guilds.fetch(regionData.guildId)
-    if (guild) {
-        const regionStats = await Stats.find({ region: regionData.region, numberOfRankedGames: { $gte: MINIMUM_MATCHES_BEFORE_RANKED } })
+    const region = Region.EUROPE
+    console.log(`Updating member tier role for region ${region}`)
+    const regionGuild = await regionService.getRegionGuild(client, region)
+    if (regionGuild) {
+        const regionStats = await Stats.find({ region: region, numberOfRankedGames: { $gte: MINIMUM_MATCHES_BEFORE_RANKED } })
         const chunkedStats = sliceIntoChunks(regionStats, CHUNK_SIZE)
         let chunk = 0
         for (const statsChunk of chunkedStats) {
             console.log(`Updating member chunk ${chunk}/${chunkedStats.length}`)
-            const members = await guild.members.fetch({ user: statsChunk.map(stats => stats.userId) })
+            const members = await regionGuild.members.fetch({ user: statsChunk.map(stats => stats.userId) })
 
             await Promise.all(members.map(async (member) => {
                 if (member) {
@@ -51,7 +51,7 @@ async function resetStats(): Promise<void> {
                         newRating = 1200
                     }
                     await Stats.updateOne(
-                        { 'userId': member.id, 'region': regionData.region },
+                        { 'userId': member.id, 'region': region },
                         {
                             $set: {
                                 numberOfRankedWins: 0,
@@ -65,12 +65,12 @@ async function resetStats(): Promise<void> {
                         }
                     )
 
-                    const tierRoleId = regionService.getTierRoleId(regionData.region, newRating)
+                    const tierRoleId = regionService.getTierRoleId(region, newRating)
                     if (!tierRoleId || member.roles.cache.some(role => role.id === tierRoleId)) {
                         return
                     }
 
-                    await handle(member.roles.remove(regionService.getAllTierRoleIds(regionData.region)))
+                    await handle(member.roles.remove(regionService.getAllTierRoleIds(region)))
                     await handle(member.roles.add(tierRoleId))
                 }
             }))

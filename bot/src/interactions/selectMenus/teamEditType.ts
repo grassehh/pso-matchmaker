@@ -23,7 +23,7 @@ export default {
         }
 
         if (unallowedUsers.length > 0) {
-            await interaction.reply({ content: `⛔ You canno't change your team to a **${TeamTypeHelper.toString(type)}** because the following players are already in a **${TeamTypeHelper.toString(type)}**: ${unallowedUsers.map(u => u.username).join(', ')}`, ephemeral: true })
+            await interaction.reply({ content: `⛔ You cannot change your team to a **${TeamTypeHelper.toString(type)}** because the following players are already in a **${TeamTypeHelper.toString(type)}**: ${unallowedUsers.map(u => u.username).join(', ')}`, ephemeral: true })
             return
         }
 
