@@ -1,4 +1,4 @@
-import { BaseGuildTextChannel, Client, EmbedBuilder, Guild, GuildMember, MessageOptions, TextChannel, User } from "discord.js";
+import { BaseGuildTextChannel, Client, EmbedBuilder, GuildMember, MessageOptions, TextChannel, User } from "discord.js";
 import { DeleteResult } from "mongodb";
 import { UpdateWriteOpResult } from "mongoose";
 import { MAX_LINEUP_NAME_LENGTH, MAX_TEAM_CODE_LENGTH, MAX_TEAM_NAME_LENGTH } from "../constants";
@@ -694,14 +694,13 @@ class TeamService {
     }
 
     async notifyNoLongerVerified(client: Client, team: ITeam, reason?: string) {
-        const regionData = regionService.getRegionData(team.region)
-        const officialGuild = await client.guilds.fetch(regionData.guildId) as Guild
+        const regionGuild = await regionService.getRegionGuild(client, team.region)
         const informationEmbed = new EmbedBuilder()
             .setColor('#566573')
             .setTimestamp()
             .setTitle('🛑 Team Unverified')
         let description = '**Your team is no longer verified.**'
-        description += `\n\nPlease contact the admins of the official **${officialGuild.name}** discord to get your team verified by providing your team id: **${team.guildId}**.`
+        description += `\n\nPlease contact the admins of the official **${regionGuild?.name}** discord to get your team verified by providing your team id: **${team.guildId}**.`
         informationEmbed.setDescription(description)
         if (reason) {
             informationEmbed.addFields([{ name: 'Reason', value: `*${reason}*` }])

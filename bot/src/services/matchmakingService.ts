@@ -993,9 +993,7 @@ class MatchmakingService {
     private async updatePlayersRating(client: Client, match: IMatch): Promise<void> {
         const firstLineupRating = await new LineupRating(match.firstLineup, match.result!.firstLineup.result!).init()
         const secondLineupRating = await new LineupRating(match.secondLineup, match.result!.secondLineup.result!).init()
-
-        const regionData = regionService.getRegionData(match.firstLineup.team.region)
-        const officialGuild = await client.guilds.fetch(regionData.guildId)
+        const regionGuild = await regionService.getRegionGuild(client, match.firstLineup.team.region)
         const firstLineupRatingAverage = match.firstLineup.computePlayersAverageRating()
         const secondLineupRatingAverage = match.secondLineup.computePlayersAverageRating()
 
@@ -1005,9 +1003,9 @@ class MatchmakingService {
                 await statsService.updatePlayerRating(user.id, match.firstLineup.team.region, newRating.stats)
 
                 if (!match.firstLineup.isCaptains()) {
-                    const member = await officialGuild.members.fetch(user.id)
+                    const member = await regionGuild?.members.fetch(user.id)
                     if (member) {
-                        await regionService.updateMemberTierRole(regionData.region, member, newRating.stats)
+                        await regionService.updateMemberTierRole(match.firstLineup.team.region, member, newRating.stats)
                     }
                 }
             }
@@ -1019,9 +1017,9 @@ class MatchmakingService {
                 await statsService.updatePlayerRating(user.id, match.secondLineup.team.region, newRating.stats)
 
                 if (!match.secondLineup.isCaptains()) {
-                    const member = await officialGuild.members.fetch(user.id)
+                    const member = await regionGuild?.members.fetch(user.id)
                     if (member) {
-                        await regionService.updateMemberTierRole(regionData.region, member, newRating.stats)
+                        await regionService.updateMemberTierRole(match.firstLineup.team.region, member, newRating.stats)
                     }
                 }
             }

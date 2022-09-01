@@ -1,4 +1,4 @@
-import { ActionRowBuilder, ButtonBuilder, ButtonInteraction, ButtonStyle, EmbedBuilder, Guild } from "discord.js";
+import { ActionRowBuilder, ButtonBuilder, ButtonInteraction, ButtonStyle, EmbedBuilder } from "discord.js";
 import { MAX_TEAM_CAPTAINS, MAX_TEAM_PLAYERS, MIN_LINEUP_SIZE_FOR_RANKED } from "../../constants";
 import { IButtonHandler } from "../../handlers/buttonHandler";
 import { interactionUtils } from "../../services/interactionUtils";
@@ -19,12 +19,12 @@ export default {
 
         const isAllowedToPlayRanked = lineup.isAllowedToPlayRanked()
         if (!isAllowedToPlayRanked) {
-            const officialGuild = await interaction.client.guilds.fetch(regionService.getRegionData(lineup.team.region).guildId) as Guild
+            const regionGuild = await regionService.getRegionGuild(interaction.client, lineup.team.region)
             searchModeEmbed.setDescription(`
             **In order to play ranked mode:**
              1. Create a lineup with a **${MIN_LINEUP_SIZE_FOR_RANKED}v${MIN_LINEUP_SIZE_FOR_RANKED}** format or more
              2. Manage your team using **/team_manage** command and add maximum **${MAX_TEAM_CAPTAINS} captains** and **${MAX_TEAM_PLAYERS} players**
-             3. Contact the admins of the official **${officialGuild.name}** discord by providing your team id: **${lineup.team.guildId}**
+             3. Contact the admins of the official **${regionGuild?.name}** discord by providing your team id: **${lineup.team.guildId}**
              4. Every player signed in the lineup must have been declared in the **/team_manage** command
              5. You must have a **goal keeper** signed
             `)

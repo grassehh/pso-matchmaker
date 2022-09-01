@@ -1,4 +1,4 @@
-import { ActionRowBuilder, ButtonBuilder, ButtonInteraction, ButtonStyle, EmbedBuilder, Guild, InteractionUpdateOptions, Message, SelectMenuBuilder } from "discord.js";
+import { ActionRowBuilder, ButtonBuilder, ButtonInteraction, ButtonStyle, EmbedBuilder, InteractionUpdateOptions, Message, SelectMenuBuilder } from "discord.js";
 import { MAX_TEAM_CODE_LENGTH, MAX_TEAM_NAME_LENGTH } from "../../constants";
 import { IButtonHandler } from "../../handlers/buttonHandler";
 import { ITeam } from "../../mongoSchema";
@@ -108,6 +108,7 @@ async function editTeamCode(interaction: ButtonInteraction, guildId: string) {
     const filter = (m: Message) => interaction.user.id === m.author.id
     const collector = interaction.channel!.createMessageCollector({ filter, time: 20000 });
     let team = await teamService.findTeamByGuildId(guildId) as ITeam
+    const regionGuild = await regionService.getRegionGuild(interaction.client, team.region)
     const teamWasVerified = team.verified
     let teamChanged = false
     collector.on('collect', async m => {
@@ -134,6 +135,10 @@ async function editTeamCode(interaction: ButtonInteraction, guildId: string) {
 
         teamChanged = true
         team = await teamService.updateTeamCode(guildId, validatedTeamCode) as ITeam
+        const allPlayers = team.players.concat(team.captains)
+        for (const player of allPlayers) {
+            await regionService.addTeamCodeToNickname(player.id, team, regionGuild)
+        }
         collector.stop()
     })
 
@@ -185,8 +190,8 @@ async function editTeamVerification(interaction: ButtonInteraction) {
         informationEmbed.setDescription("Congratulations ! Your team has been verified and is now allowed to use ranked matchmaking.")
     } else {
         informationEmbed.setTitle('🛑 Team Unverified')
-        const officialGuild = await interaction.client.guilds.fetch(regionService.getRegionData(team.region).guildId) as Guild
-        informationEmbed.setDescription(`Your team has been unverified by the admins. You can no longer participate in ranked matches.\nPlease contact the admins of the official ** ${officialGuild.name} ** discord to get your team verified by providing your team id: ** ${team.guildId} **.`)
+        const regionGuild = await regionService.getRegionGuild(interaction.client, team.region)
+        informationEmbed.setDescription(`Your team has been unverified by the admins. You can no longer participate in ranked matches.\nPlease contact the admins of the official ** ${regionGuild?.name} ** discord to get your team verified by providing your team id: ** ${team.guildId} **.`)
     }
     teamService.sendMessage(interaction.client, team.guildId, { embeds: [informationEmbed] })
 

@@ -19,7 +19,7 @@ export default {
         let team: ITeam = await teamService.findTeamByGuildId(guildId) as ITeam
         const teamWasVerified = team.verified
         let teamChanged = false
-        const [regionDiscord] = await handle(interaction.client.guilds.fetch(regionService.getRegionData(team.region).guildId))
+        const regionGuild = await regionService.getRegionGuild(interaction.client, team.region)
         await interaction.update({ content: `Type the ids or the mentions (@user) of the users you want to ${action}\nType **end** once you have finished.`, components: [] })
         const filter = (m: Message) => interaction.user.id === m.author.id
         const collector = interaction.channel!.createMessageCollector({ filter, time: 20000 });
@@ -81,10 +81,10 @@ export default {
                         return
                     }
                     team = (await teamService.addCaptain(guildId, user!))!
-                    await regionService.addTeamCodeToNickName(discordUser.id, team, regionDiscord)
+                    await regionService.addTeamCodeToNickname(discordUser.id, team, regionGuild)
                 } else {
                     team = (await teamService.removeCaptain(guildId, discordUser.id))!
-                    await regionService.removeTeamCodeFromNickName(discordUser.id, regionDiscord)
+                    await regionService.removeTeamCodeFromNickName(discordUser.id, regionGuild)
                 }
             } else {
                 if (action === 'add') {
@@ -93,10 +93,10 @@ export default {
                         return
                     }
                     team = (await teamService.addPlayer(guildId, user!))!
-                    await regionService.addTeamCodeToNickName(discordUser.id, team, regionDiscord)
+                    await regionService.addTeamCodeToNickname(discordUser.id, team, regionGuild)
                 } else {
                     team = (await teamService.removePlayer(guildId, discordUser.id))!
-                    await regionService.removeTeamCodeFromNickName(discordUser.id, regionDiscord)
+                    await regionService.removeTeamCodeFromNickName(discordUser.id, regionGuild)
                 }
             }
             await interaction.followUp({ content: `${category === 'captains' ? 'Captain' : 'Player'} ${discordUser} successfully ${action === 'add' ? 'added' : 'removed'}` })
