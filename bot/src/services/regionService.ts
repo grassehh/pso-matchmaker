@@ -1,7 +1,8 @@
-import { Client, GuildMember, MessageOptions, TextChannel } from "discord.js"
+import { Client, Guild, GuildMember, MessageOptions, PermissionFlagsBits, Team, TextChannel } from "discord.js"
 import { MINIMUM_MATCHES_BEFORE_RANKED } from "../constants"
-import { IStats } from "../mongoSchema"
+import { IStats, ITeam } from "../mongoSchema"
 import { handle } from "../utils"
+import { TeamType } from "./teamService"
 
 const dotenv = require("dotenv")
 dotenv.config()
@@ -139,7 +140,7 @@ class RegionService {
     }
 
     async sendToModerationChannel(client: Client, region: Region, messageOptions: MessageOptions) {
-        const regionData = regionService.getRegionData(region)
+        const regionData = this.getRegionData(region)
         if (regionData.moderationChannelId) {
             const [channel] = await handle(client.channels.fetch(regionData.moderationChannelId))
             if (channel instanceof TextChannel) {
@@ -163,6 +164,29 @@ class RegionService {
         }
 
         return process.env.PSO_EU_DISCORD_CASUAL_ROLE_ID as string
+    }
+
+    async addTeamCodeToNickName(userId: string, team: ITeam, regionDiscord?: Guild) {
+        if (!regionDiscord || !team.code || team.type !== TeamType.CLUB) {
+            return
+        }
+
+        const [member] = await handle(regionDiscord.members.fetch(userId))
+        if (member && regionDiscord!.members.me?.permissions.has(PermissionFlagsBits.ManageNicknames) && !/^\[.*\] /i.test(member.displayName)) {
+            console.log(`Updating user ${member.user.username}`)
+            await member.setNickname(`[${team.code}] ${member.displayName}`)
+        }
+    }
+
+    async removeTeamCodeFromNickName(userId: string, regionDiscord?: Guild) {
+        if (!regionDiscord) {
+            return
+        }
+
+        const [member] = await handle(regionDiscord.members.fetch(userId))
+        if (member && regionDiscord!.members.me?.permissions.has(PermissionFlagsBits.ManageNicknames)) {
+            await handle(member.setNickname(`${member.displayName.replace(/^\[.*\] /i, '')}`))
+        }
     }
 
     private getAllActivityRolesId(): string[] {
