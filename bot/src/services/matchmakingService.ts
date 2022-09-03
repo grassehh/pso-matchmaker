@@ -1197,7 +1197,8 @@ class LineupRating {
                 stats: playerStats
             })
         }))
-        const allPlayersRatings = Array.from(this.rankedStatsByUserId.values()).map(rankedStats => rankedStats.stats.rating)
+
+        const allPlayersRatings = Array.from(this.rankedStatsByUserId.values()).map(rankedStats => this.lineup.isCaptains() ? rankedStats.stats.mixCaptainsRating : rankedStats.stats.rating)
         this.zscore.setMeanAndDeviationFromDataset(allPlayersRatings, true)
         return this
     }
@@ -1212,7 +1213,7 @@ class LineupRating {
             return null
         }
 
-        const rating = rankedStats.stats.rating
+        const rating = this.lineup.isCaptains() ? rankedStats.stats.mixCaptainsRating : rankedStats.stats.rating
         const matchesPlayed = rankedStats.stats.numberOfRankedWins + rankedStats.stats.numberOfRankedDraws + rankedStats.stats.numberOfRankedLosses
         const zscore = Math.abs(this.zscore.getZScore(rating)) || 0
         let k = Array.from(this.kFactorPerNumberOfGames.entries()).find(e => matchesPlayed >= parseInt(e[0]))?.[1] || 40
@@ -1235,7 +1236,13 @@ class LineupRating {
             rankedStats.stats.totalNumberOfRankedLosses++
         }
 
-        rankedStats.stats.rating = elo.calculate().getResults()[0]
+        const newRating = elo.calculate().getResults()[0]
+        if (this.lineup.isCaptains()) {
+            rankedStats.stats.mixCaptainsRating = newRating
+        } else {
+            rankedStats.stats.rating = newRating
+        }
+
         return rankedStats
     }
 }

@@ -18,11 +18,7 @@ async function resetStats(): Promise<void> {
             mixCaptainsRating: DEFAULT_RATING
         }
     })
-    await Team.updateMany({}, {
-        $set: {
-            rating: DEFAULT_RATING
-        }
-    })
+    await Team.updateMany({}, { $set: { rating: DEFAULT_RATING } })
 }
 
 resetStats().finally(async () => {
