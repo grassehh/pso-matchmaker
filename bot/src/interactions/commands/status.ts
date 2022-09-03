@@ -40,8 +40,8 @@ export default {
             .setTitle(`Lineup information`)
             .setColor('#566573')
             .addFields([
-                { name: 'Lineup size', value: `${lineup.size}v${lineup.size}`, inline: true },
-                { name: 'Lineup name', value: lineup.name ? lineup.name : '*none*', inline: true },
+                { name: 'Format', value: `${lineup.size}v${lineup.size}`, inline: true },
+                { name: 'Name', value: lineup.name ? lineup.name : '*none*', inline: true },
                 { name: 'Allow ranked', value: `${lineup.allowRanked ? '**enabled**' : '*disabled*'}`, inline: true },
                 { name: 'Auto-matchmaking', value: `${lineup.autoMatchmaking ? '**enabled**' : '*disabled*'}`, inline: true },
                 { name: 'Auto-search', value: `${lineup.autoSearch ? '**enabled**' : '*disabled*'}`, inline: true }
