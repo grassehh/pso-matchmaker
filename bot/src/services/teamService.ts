@@ -2,7 +2,7 @@ import { BaseGuildTextChannel, Client, EmbedBuilder, GuildMember, MessageOptions
 import { DeleteResult } from "mongodb";
 import { UpdateWriteOpResult } from "mongoose";
 import { MAX_LINEUP_NAME_LENGTH, MAX_TEAM_CODE_LENGTH, MAX_TEAM_NAME_LENGTH } from "../constants";
-import { Bans, IBan, ILineup, IRole, IRoleBench, IStats, ITeam, IUser, Lineup, LineupQueue, Team } from "../mongoSchema";
+import { Bans, IBan, ILineup, IRole, IRoleBench, IPlayerStats, ITeam, IUser, Lineup, LineupQueue, Team, TeamStats, ITeamStats } from "../mongoSchema";
 import { getEmojis, handle } from "../utils";
 import { interactionUtils } from "./interactionUtils";
 import { matchmakingService } from "./matchmakingService";
@@ -142,11 +142,26 @@ class TeamService {
         return Team.updateOne({ guildId }, { lastMatchDate: date })
     }
 
-    async updateTeamRating(guildId: string, rating: number): Promise<void> {
+    async updateTeamRating(guildId: string, region: Region, newStats: ITeamStats): Promise<void> {
         await Promise.all([
-            Team.updateOne({ guildId }, { rating }),
-            Lineup.updateMany({ 'team.guildId': guildId }, { 'team.rating': rating }),
-            LineupQueue.updateMany({ 'lineup.team.guildId': guildId }, { 'lineup.team.rating': rating })
+            Team.updateOne({ guildId }, { rating: newStats.rating }),
+            Lineup.updateMany({ 'team.guildId': guildId }, { 'team.rating': newStats.rating }),
+            LineupQueue.updateMany({ 'lineup.team.guildId': guildId }, { 'lineup.team.rating': newStats.rating }),
+            TeamStats.updateOne(
+                { guildId, region },
+                {
+                    $set: {
+                        numberOfRankedWins: newStats.numberOfRankedWins,
+                        numberOfRankedDraws: newStats.numberOfRankedDraws,
+                        numberOfRankedLosses: newStats.numberOfRankedLosses,
+                        totalNumberOfRankedWins: newStats.totalNumberOfRankedWins,
+                        totalNumberOfRankedDraws: newStats.totalNumberOfRankedDraws,
+                        totalNumberOfRankedLosses: newStats.totalNumberOfRankedLosses,
+                        rating: newStats.rating
+                    }
+                },
+                { upsert: true }
+            )
         ])
     }
 
@@ -700,7 +715,7 @@ class TeamService {
             .setTimestamp()
             .setTitle('🛑 Team Unverified')
         let description = '**Your team is no longer verified.**'
-        description += `\n\nPlease contact the admins of the official **${regionGuild?.name}** discord to get your team verified by providing your team id: **${team.guildId}**.`
+        description += `\n\nPlease contact the admins of the regional **${regionGuild?.name}** discord to get your team verified by providing your team id: **${team.guildId}**.`
         informationEmbed.setDescription(description)
         if (reason) {
             informationEmbed.addFields([{ name: 'Reason', value: `*${reason}*` }])
@@ -790,5 +805,5 @@ export const teamService = new TeamService()
 
 export interface RankedStats {
     role: IRole,
-    stats: IStats
+    stats: IPlayerStats
 }

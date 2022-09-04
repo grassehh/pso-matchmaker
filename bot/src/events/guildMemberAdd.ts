@@ -7,7 +7,7 @@ import { userService } from '../services/userService';
 export default {
 	name: 'guildMemberAdd',
 	async execute(guildMember: GuildMember) {
-		if (!regionService.isOfficialDiscord(guildMember.guild.id)) {
+		if (!regionService.isRegionalDiscord(guildMember.guild.id)) {
 			return
 		}
 
@@ -17,7 +17,7 @@ export default {
 		}
 
 		const region = regionService.getRegionByGuildId(guildMember.guild.id)!
-		const stats = await statsService.findUserStats(guildMember.id, region)
+		const stats = await statsService.findPlayerStats(guildMember.id, region)
 		if (!stats) {
 			return
 		}

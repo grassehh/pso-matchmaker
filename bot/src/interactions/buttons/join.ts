@@ -46,7 +46,7 @@ export default {
 
 
         const userToAdd = await userService.findUserByDiscordUserId(interaction.user.id) as IUser
-        const stats = await statsService.findUserStats(interaction.user.id, lineup.team.region)
+        const stats = await statsService.findPlayerStats(interaction.user.id, lineup.team.region)
         userToAdd.rating = stats ? stats.mixCaptainsRating : DEFAULT_RATING
         userToAdd.emoji = statsService.getLevelEmojiFromMember(interaction.member as GuildMember)
 

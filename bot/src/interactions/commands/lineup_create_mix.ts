@@ -59,8 +59,8 @@ export default {
         const lineupSize = interaction.options.getInteger("size")!
         const ranked = interaction.options.getBoolean("ranked") === true
         if (ranked) {
-            if (!regionService.isOfficialDiscord(interaction.guildId!)) {
-                await interaction.reply({ content: "⛔ Only official community discords can create ranked mixes", ephemeral: true })
+            if (!regionService.isRegionalDiscord(interaction.guildId!)) {
+                await interaction.reply({ content: "⛔ Only regional community discords can create ranked mixes", ephemeral: true })
                 return
             }
 

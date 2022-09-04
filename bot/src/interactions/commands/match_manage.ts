@@ -14,8 +14,8 @@ export default {
             .setDescription('The id of the match to manage')),
     authorizedRoles: [BOT_ADMIN_ROLE],
     async execute(interaction: ChatInputCommandInteraction) {
-        if (!regionService.isOfficialDiscord(interaction.guildId!)) {
-            await interaction.reply({ content: '⛔ Only official discords can manage matches', ephemeral: true })
+        if (!regionService.isRegionalDiscord(interaction.guildId!)) {
+            await interaction.reply({ content: '⛔ Only regional discords can manage matches', ephemeral: true })
             return
         }
         const matchId = interaction.options.getString('match_id')!

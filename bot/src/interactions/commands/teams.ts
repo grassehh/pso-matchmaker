@@ -14,8 +14,8 @@ export default {
             .setDescription('Only display the team in which the given player is')),
     authorizedRoles: [BOT_ADMIN_ROLE],
     async execute(interaction: ChatInputCommandInteraction) {
-        if (!regionService.isOfficialDiscord(interaction.guildId!)) {
-            await interaction.reply({ content: '⛔ Only official discords can use this command', ephemeral: true })
+        if (!regionService.isRegionalDiscord(interaction.guildId!)) {
+            await interaction.reply({ content: '⛔ Only regional discords can use this command', ephemeral: true })
             return
         }
 

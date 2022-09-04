@@ -1,7 +1,7 @@
 import { Client, GatewayIntentBits } from 'discord.js';
 import mongoose from 'mongoose';
 import { DEFAULT_RATING, MINIMUM_MATCHES_BEFORE_RANKED } from '../bot/src/constants';
-import { Stats } from '../bot/src/mongoSchema';
+import { PlayerStats } from '../bot/src/mongoSchema';
 import { Region, regionService } from '../bot/src/services/regionService';
 import { handle } from '../bot/src/utils';
 import dotenv = require('dotenv');
@@ -33,7 +33,7 @@ async function resetStats(): Promise<void> {
     console.log(`Updating member tier role for region ${region}`)
     const regionGuild = await regionService.getRegionGuild(client, region)
     if (regionGuild) {
-        const regionStats = await Stats.find({ region: region, numberOfRankedGames: { $gte: MINIMUM_MATCHES_BEFORE_RANKED } })
+        const regionStats = await PlayerStats.find({ region: region, numberOfRankedGames: { $gte: MINIMUM_MATCHES_BEFORE_RANKED } })
         const chunkedStats = sliceIntoChunks(regionStats, CHUNK_SIZE)
         let chunk = 0
         for (const statsChunk of chunkedStats) {
@@ -50,7 +50,7 @@ async function resetStats(): Promise<void> {
                     } else if (activityRoleId === process.env.PSO_EU_DISCORD_VETERAN_ROLE_ID) {
                         newRating = 1200
                     }
-                    await Stats.updateOne(
+                    await PlayerStats.updateOne(
                         { 'userId': member.id, 'region': region },
                         {
                             $set: {

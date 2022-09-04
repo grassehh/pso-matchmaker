@@ -1,5 +1,5 @@
 import mongoose from 'mongoose';
-import { Stats } from '../bot/src/mongoSchema';
+import { PlayerStats } from '../bot/src/mongoSchema';
 import dotenv = require('dotenv');
 import { DEFAULT_RATING } from '../bot/src/constants';
 dotenv.config()
@@ -8,8 +8,8 @@ async function removePositionRating() {
     await mongoose.connect(process.env.MONGO_URI || '', { keepAlive: true })
 
     const statsBulkWrites = []
-    await Stats.updateMany({}, { $unset: { numberOfGames: "", attackRating: "", midfieldRating: "", defenseRating: "", goalKeeperRating: "" } })
-    const stats = await Stats.find({})
+    await PlayerStats.updateMany({}, { $unset: { numberOfGames: "", attackRating: "", midfieldRating: "", defenseRating: "", goalKeeperRating: "" } })
+    const stats = await PlayerStats.find({})
     for (const stat of stats) {
         statsBulkWrites.push({
             updateOne: {
@@ -28,7 +28,7 @@ async function removePositionRating() {
             }
         })
     }
-    await Stats.bulkWrite(statsBulkWrites)
+    await PlayerStats.bulkWrite(statsBulkWrites)
 }
 
 removePositionRating()

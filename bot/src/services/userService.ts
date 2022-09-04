@@ -1,6 +1,6 @@
 import { Client, User as DiscordUser } from "discord.js"
 import { UpdateWriteOpResult } from "mongoose"
-import { IUser, User, Stats, Lineup, Team } from "../mongoSchema"
+import { IUser, User, PlayerStats, Lineup, Team } from "../mongoSchema"
 import { teamService } from "./teamService"
 
 class UserService {
@@ -25,7 +25,7 @@ class UserService {
 
         await Promise.all([
             User.deleteOne({ id: user.id }),
-            Stats.deleteMany({ userId: user.id }),
+            PlayerStats.deleteMany({ userId: user.id }),
             Lineup.updateMany({}, { $pull: { 'team.players': { id: user.id }, 'team.captains': { id: user.id } } }),
             Team.updateMany({}, { $pull: { players: { id: user.id }, captains: { id: user.id } } })
         ])

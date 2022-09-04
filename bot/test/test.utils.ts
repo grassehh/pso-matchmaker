@@ -1,6 +1,6 @@
 import { MongoMemoryServer } from "mongodb-memory-server";
 import mongoose from "mongoose";
-import { Bans, Challenge, Lineup, LineupQueue, Match, Stats, Team, User } from "../src/mongoSchema";
+import { Bans, Challenge, Lineup, LineupQueue, Match, PlayerStats, Team, TeamStats, User } from "../src/mongoSchema";
 import { Region } from "../src/services/regionService";
 import { DEFAULT_PLAYER_ROLES, LINEUP_TYPE_TEAM, LINEUP_VISIBILITY_PUBLIC } from "../src/services/teamService";
 
@@ -24,12 +24,13 @@ export const dbClean = async () => {
     await LineupQueue.deleteMany({})
     await Challenge.deleteMany({})
     await User.deleteMany({})
-    await Stats.deleteMany({})
+    await PlayerStats.deleteMany({})
+    await TeamStats.deleteMany({})
     await Match.deleteMany({})
     await Bans.deleteMany({})
 };
 
-export const buildStats = () => new Stats({ userId: 'userId', region: Region.EUROPE })
+export const buildStats = () => new PlayerStats({ userId: 'userId', region: Region.EUROPE })
 
 export const buildUser = () => new User({ id: 'userId' })
 

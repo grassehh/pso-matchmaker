@@ -1,7 +1,7 @@
 const dotenv = require('dotenv');
 import { Client, GatewayIntentBits } from 'discord.js';
 import mongoose from 'mongoose'
-import { Lineup, Stats, Team } from '../bot/src/mongoSchema';
+import { Lineup, PlayerStats, Team } from '../bot/src/mongoSchema';
 import { handle } from '../bot/src/utils';
 dotenv.config()
 
@@ -83,7 +83,7 @@ async function cleanOrphanTeams() {
 
 async function cleanOrphanStats() {
   console.log('Cleaning orphan stats')
-  const userIds = (await Stats.aggregate([
+  const userIds = (await PlayerStats.aggregate([
     {
       '$group': {
         _id: null,
@@ -108,7 +108,7 @@ async function cleanOrphanStats() {
   }
 
   console.log(`${unknownUserIds.length} orphan stats to delete: ${unknownUserIds}`)
-  await Stats.deleteMany({ 'userId': { $in: unknownUserIds } })
+  await PlayerStats.deleteMany({ 'userId': { $in: unknownUserIds } })
   console.log(`Orphan stats deleted`)
 }
 
