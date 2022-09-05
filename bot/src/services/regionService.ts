@@ -1,6 +1,6 @@
 import { Client, Guild, GuildMember, MessageOptions, PermissionFlagsBits, TextChannel } from "discord.js"
 import { MINIMUM_MATCHES_BEFORE_RANKED } from "../constants"
-import { IStats, ITeam } from "../mongoSchema"
+import { IPlayerStats, ITeam } from "../mongoSchema"
 import { handle } from "../utils"
 import { TeamType } from "./teamService"
 
@@ -66,7 +66,7 @@ class RegionService {
         return this.regionsDataByGuildId.get(guildId)?.region || null
     }
 
-    isOfficialDiscord(guildId: string): boolean {
+    isRegionalDiscord(guildId: string): boolean {
         return this.regionsDataByGuildId.has(guildId)
     }
 
@@ -74,7 +74,7 @@ class RegionService {
         return (await handle(client.guilds.fetch(regionService.getRegionData(region).guildId)))[0] || null
     }
 
-    async updateMemberTierRole(region: Region, member: GuildMember, newStats: IStats): Promise<void> {
+    async updateMemberTierRole(region: Region, member: GuildMember, newStats: IPlayerStats): Promise<void> {
         if (newStats.numberOfRankedGames < MINIMUM_MATCHES_BEFORE_RANKED) {
             return
         }

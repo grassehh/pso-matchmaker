@@ -1,6 +1,6 @@
 import { ActionRowBuilder, ButtonBuilder, ButtonInteraction, ButtonStyle, Client, CommandInteraction, EmbedBuilder, Interaction, InteractionReplyOptions, InteractionUpdateOptions, Message, MessageOptions, SelectMenuBuilder, SelectMenuInteraction, User, UserManager } from "discord.js";
 import { BOT_ADMIN_ROLE, DEFAULT_RATING, MAX_TEAM_CAPTAINS, MAX_TEAM_PLAYERS } from "../constants";
-import { IChallenge, ILineup, ILineupQueue, IRole, IRoleBench, IStats, ITeam, IUser, Stats } from "../mongoSchema";
+import { IChallenge, ILineup, ILineupQueue, IRole, IRoleBench, IPlayerStats, ITeam, IUser, PlayerStats, TeamStats, ITeamStats } from "../mongoSchema";
 import { handle } from "../utils";
 import { matchmakingService, MatchResult, RoleWithDiscordUser } from "./matchmakingService";
 import { Region, regionService } from "./regionService";
@@ -162,7 +162,7 @@ class InteractionUtils {
     async createPlayerStatsReply(user: User, region: Region): Promise<InteractionReplyOptions | InteractionUpdateOptions> {
         const statsTypeComponent = new ActionRowBuilder<SelectMenuBuilder>().addComponents(
             new SelectMenuBuilder()
-                .setCustomId(`stats_scope_select_${user.id}`)
+                .setCustomId(`player_stats_scope_select_${user.id}`)
                 .setPlaceholder('Stats Type')
                 .addOptions([
                     {
@@ -203,10 +203,10 @@ class InteractionUtils {
     }
 
     async createPlayerStatsEmbed(user: User, region: Region): Promise<EmbedBuilder[]> {
-        const foundStats = await statsService.findUsersStats([user.id], region)
-        let stats: IStats
+        const foundStats = await statsService.findPlayersStats([user.id], region)
+        let stats: IPlayerStats
         if (foundStats.length === 0) {
-            stats = new Stats({
+            stats = new PlayerStats({
                 userId: user.id,
                 region,
                 numberOfRankedGames: 0,
@@ -235,7 +235,81 @@ class InteractionUtils {
                     { name: '📅 All Seasons', value: `**Wins:** ${stats.totalNumberOfRankedWins} \n **Draws:** ${stats.totalNumberOfRankedDraws} \n **Losses:** ${stats.totalNumberOfRankedLosses}`, inline: true },
                     { name: '📈 Ratings', value: `**Teams & Solo Queue:** ${stats.rating || DEFAULT_RATING} \n **Captains Mix:** ${stats.mixCaptainsRating || DEFAULT_RATING}` },
                     { name: '\u200B', value: '\u200B' },
-                    { name: 'Ranked Games Played *(deprecated)*', value: stats.numberOfRankedGames.toString() }
+                    { name: 'Number of games (6v6 and more)', value: stats.numberOfRankedGames.toString() }
+                ])
+        ]
+    }
+
+    async createTeamStatsReply(team: ITeam, region: Region): Promise<InteractionReplyOptions | InteractionUpdateOptions> {
+        const statsTypeComponent = new ActionRowBuilder<SelectMenuBuilder>().addComponents(
+            new SelectMenuBuilder()
+                .setCustomId(`team_stats_scope_select_${team.guildId}`)
+                .setPlaceholder('Stats Type')
+                .addOptions([
+                    {
+                        emoji: '🌎',
+                        label: 'International',
+                        value: Region.INTERNATIONAL,
+                        default: region === Region.INTERNATIONAL
+                    },
+                    {
+                        emoji: '🇪🇺',
+                        label: 'Europe',
+                        value: Region.EUROPE,
+                        default: region === Region.EUROPE
+                    },
+                    {
+                        emoji: '🇺🇸',
+                        label: 'North America',
+                        value: Region.NORTH_AMERICA,
+                        default: region === Region.NORTH_AMERICA
+                    },
+                    {
+                        emoji: '🇧🇷',
+                        label: 'South America',
+                        value: Region.SOUTH_AMERICA,
+                        default: region === Region.SOUTH_AMERICA
+                    },
+                    {
+                        emoji: '🇰🇷',
+                        label: 'East Asia',
+                        value: Region.EAST_ASIA,
+                        default: region === Region.EAST_ASIA
+                    }
+                ])
+        )
+
+        let statsEmbeds = await interactionUtils.createTeamStatsEmbed(team, region)
+        return { embeds: statsEmbeds, components: [statsTypeComponent], ephemeral: true }
+    }
+
+    async createTeamStatsEmbed(team: ITeam, region: Region): Promise<EmbedBuilder[]> {
+        const foundStats = await statsService.findTeamsStats([team.guildId], region)
+        let stats: ITeamStats
+        if (foundStats.length === 0) {
+            stats = new TeamStats({
+                guildId: team.guildId,
+                region: region,
+                numberOfRankedWins: 0,
+                numberOfRankedDraws: 0,
+                numberOfRankedLosses: 0,
+                totalNumberOfRankedWins: 0,
+                totalNumberOfRankedDraws: 0,
+                totalNumberOfRankedLosses: 0,
+                rating: DEFAULT_RATING
+            })
+        } else {
+            stats = foundStats[0]
+        }
+
+        return [
+            new EmbedBuilder()
+                .setColor('#566573')
+                .setTitle(`Stats for ${team.prettyPrintName()}`)
+                .addFields([
+                    { name: '⚽ Current Season', value: `**Wins:** ${stats.numberOfRankedWins} \n **Draws:** ${stats.numberOfRankedDraws} \n **Losses:** ${stats.numberOfRankedLosses}`, inline: true },
+                    { name: '📅 All Seasons', value: `**Wins:** ${stats.totalNumberOfRankedWins} \n **Draws:** ${stats.totalNumberOfRankedDraws} \n **Losses:** ${stats.totalNumberOfRankedLosses}`, inline: true },
+                    { name: '📈 Rating', value: `${stats.rating || DEFAULT_RATING}` }
                 ])
         ]
     }
@@ -348,7 +422,7 @@ class InteractionUtils {
     }
 
     async createTeamLeaderboardEmbed(numberOfPages: number, searchOptions: StatsSearchOptions): Promise<EmbedBuilder> {
-        const teamsStats = await statsService.findTeamsStats(searchOptions.page, searchOptions.pageSize, searchOptions.region) as ITeam[]
+        const teamsStats = await statsService.findPaginatedTeamsStats(searchOptions.page, searchOptions.pageSize, searchOptions.region)
 
         let teamStatsEmbed = new EmbedBuilder()
             .setColor('#566573')
@@ -359,6 +433,7 @@ class InteractionUtils {
             let fieldValue = ''
             let pos = (searchOptions.pageSize * searchOptions.page) + 1
             for (let teamStats of teamsStats) {
+                const team = await teamService.findTeamByGuildId(teamStats._id.toString()) as ITeam
                 let emoji = ''
                 if (pos === 1) {
                     emoji = '🥇'
@@ -368,7 +443,7 @@ class InteractionUtils {
                     emoji = '🥉'
                 }
                 let isTop3 = pos <= 3
-                fieldValue += `${isTop3 ? '**' : ''}${pos}. ${emoji} ${teamStats.logo ? `${teamStats.logo} ` : ''}${teamStats.name} *(${teamStats.rating || DEFAULT_RATING})* ${emoji}${isTop3 ? '**' : ''}\n`
+                fieldValue += `${isTop3 ? '**' : ''}${pos}. ${emoji} ${team.prettyPrintName()} - ${teamStats.rating || DEFAULT_RATING}  *(${teamStats.totalNumberOfRankedWins} - ${teamStats.totalNumberOfRankedDraws} - ${teamStats.totalNumberOfRankedLosses})* ${emoji}${isTop3 ? '**' : ''}\n`
                 pos++
             }
             teamStatsEmbed.addFields([{ name: `Page ${searchOptions.page + 1}/${numberOfPages}`, value: fieldValue }])
@@ -378,7 +453,7 @@ class InteractionUtils {
     }
 
     async createPlayersLeaderboardEmbed(usersManager: UserManager, numberOfPages: number, searchOptions: StatsSearchOptions): Promise<EmbedBuilder> {
-        let playersStats = await statsService.findPlayersStats(searchOptions.page, searchOptions.pageSize, searchOptions.gameType, searchOptions.region)
+        let playersStats = await statsService.findPaginatedPlayersStats(searchOptions.page, searchOptions.pageSize, searchOptions.gameType, searchOptions.region)
         let playersStatsEmbed = new EmbedBuilder()
             .setColor('#566573')
             .setTitle('🏆 Leaderboard 🏆')
@@ -399,7 +474,7 @@ class InteractionUtils {
                     emoji = '🥉'
                 }
                 let isTop3 = pos <= 3
-                fieldValue += `${isTop3 ? '**' : ''}${pos}. ${emoji} ${username} - ${(playerStats as any).rating || DEFAULT_RATING}  *(${playerStats.totalNumberOfRankedWins} - ${playerStats.totalNumberOfRankedDraws} - ${playerStats.totalNumberOfRankedLosses})* ${emoji}${isTop3 ? '**' : ''}\n`
+                fieldValue += `${isTop3 ? '**' : ''}${pos}. ${emoji} ${username} - ${playerStats.rating || DEFAULT_RATING}  *(${playerStats.totalNumberOfRankedWins} - ${playerStats.totalNumberOfRankedDraws} - ${playerStats.totalNumberOfRankedLosses})* ${emoji}${isTop3 ? '**' : ''}\n`
                 pos++
             }
 
@@ -715,7 +790,7 @@ class InteractionUtils {
 
         let components = [teamManagementActionRow, playersManagementActionRow
         ]
-        if (regionService.isOfficialDiscord(interaction.guildId!)) {
+        if (regionService.isRegionalDiscord(interaction.guildId!)) {
             const adminTeamManagementActionRow: ActionRowBuilder<ButtonBuilder> = new ActionRowBuilder<ButtonBuilder>()
             if (!team.verified) {
                 adminTeamManagementActionRow.addComponents(

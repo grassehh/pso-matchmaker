@@ -3,7 +3,7 @@ import { ChatInputCommandInteraction, CommandInteractionOptionResolver, EmbedBui
 import { anything, capture, instance, mock, verify, when } from 'ts-mockito';
 
 import command from "../../../src/interactions/commands/player_stats_downgrade";
-import { IStats, Stats } from '../../../src/mongoSchema';
+import { IPlayerStats, PlayerStats } from '../../../src/mongoSchema';
 import { ROLE_MIDFIELDER } from '../../../src/services/teamService';
 import { buildStats, buildTeam, dbClean, dbConnect, dbDisconnect, setupFakeDate, tearDownFakedDate } from "../../test.utils";
 
@@ -41,11 +41,11 @@ describe('testing /player_stats_downgrade command', () => {
     verify(interaction.reply(anything())).once()
     const replyOptions = capture(interaction.reply).first()[0] as InteractionReplyOptions;
     expect((replyOptions.embeds![0] as EmbedBuilder).data.description).toBe("✅ Player (<@Player>) rating has been downgraded by 5 (new rating 795)")
-    const stats = await Stats.findOne() as IStats
+    const stats = await PlayerStats.findOne() as IPlayerStats
     expect(stats.rating).toBe(795)
   })
 
-  it('should not downgrade player rating when not on official discord', async () => {
+  it('should not downgrade player rating when not on regional discord', async () => {
     //Given
     await buildStats().save()
     await buildTeam().save()
@@ -58,9 +58,9 @@ describe('testing /player_stats_downgrade command', () => {
     //Then    
     verify(interaction.reply(anything())).once()
     const replyOptions = capture(interaction.reply).first()[0] as InteractionReplyOptions;
-    expect(replyOptions.content).toBe("⛔ Only official discords can use this command")
+    expect(replyOptions.content).toBe("⛔ Only regional discords can use this command")
     expect(replyOptions.ephemeral).toBe(true)
-    const stats = await Stats.findOne() as IStats
+    const stats = await PlayerStats.findOne() as IPlayerStats
     expect(stats.rating).toBe(800)
   })
 })

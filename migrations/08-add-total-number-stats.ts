@@ -1,5 +1,5 @@
 import mongoose from 'mongoose';
-import { Stats } from '../bot/src/mongoSchema';
+import { PlayerStats } from '../bot/src/mongoSchema';
 import dotenv = require('dotenv');
 dotenv.config()
 
@@ -7,8 +7,8 @@ async function addTotalNumberStats() {
     await mongoose.connect(process.env.MONGO_URI || '', { keepAlive: true })
 
     const statsBulkWrites = []
-    await Stats.updateMany({}, { $unset: { numberOfGames: "" } })
-    const stats = await Stats.find({})
+    await PlayerStats.updateMany({}, { $unset: { numberOfGames: "" } })
+    const stats = await PlayerStats.find({})
     for (const stat of stats) {
         statsBulkWrites.push({
             updateOne: {
@@ -23,7 +23,7 @@ async function addTotalNumberStats() {
             }
         })
     }
-    await Stats.bulkWrite(statsBulkWrites)
+    await PlayerStats.bulkWrite(statsBulkWrites)
 }
 
 addTotalNumberStats()

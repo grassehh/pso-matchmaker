@@ -45,7 +45,7 @@ export default {
             let discordUser: User | undefined
             if (m.mentions.users.size === 1) {
                 discordUser = m.mentions.users.first()
-            } else if (regionService.isOfficialDiscord(interaction.guildId!)) {
+            } else if (regionService.isRegionalDiscord(interaction.guildId!)) {
                 [discordUser] = await handle(interaction.client.users.fetch(m.content))
             }
 

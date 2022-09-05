@@ -1,6 +1,6 @@
 import { Client, GuildMember, Role } from "discord.js"
 import { MERC_USER_ID, MIN_LINEUP_SIZE_FOR_RANKED, RATING_DOWNGRADE_AMOUNT } from "../constants"
-import { IStats, ITeam, Stats, Team } from "../mongoSchema"
+import { IPlayerStats, ITeamStats, PlayerStats, TeamStats } from "../mongoSchema"
 import { handle } from "../utils"
 import { GameType } from "./interactionUtils"
 import { Region, regionService } from "./regionService"
@@ -24,14 +24,62 @@ class StatsService {
     }
 
     async countNumberOfPlayers(region: Region): Promise<number> {
-        return (await Stats.distinct('userId', region !== Region.INTERNATIONAL ? { region } : {})).length
+        return (await PlayerStats.distinct('userId', region !== Region.INTERNATIONAL ? { region } : {})).length
     }
 
     async countNumberOfTeams(region: Region): Promise<number> {
-        return (await Team.count(region !== Region.INTERNATIONAL ? { region, verified: true, rating: { $exists: true } } : { verified: true, rating: { $exists: true } }))
+        return (await TeamStats.distinct('guildId', region !== Region.INTERNATIONAL ? { region } : {})).length
     }
 
-    async findPlayersStats(page: number, pageSize: number, gameType: GameType, region?: Region): Promise<IStats[]> {
+    async updatePlayersStats(client: Client, region: Region, lineupSize: number, userIds: string[]): Promise<void> {
+        const nonMercUserIds = userIds.filter(userId => userId !== MERC_USER_ID)
+        if (nonMercUserIds.length === 0) {
+            return
+        }
+
+        const bulks = nonMercUserIds.map(userId => ({
+            updateOne: {
+                filter: {
+                    region,
+                    userId
+                },
+                update: {
+                    $inc: {
+                        numberOfRankedGames: lineupSize >= MIN_LINEUP_SIZE_FOR_RANKED ? 1 : 0
+                    },
+                    $setOnInsert: {
+                        userId,
+                        region
+                    },
+                },
+                upsert: true
+            }
+        }))
+        await PlayerStats.bulkWrite(bulks)
+
+        if (lineupSize >= MIN_LINEUP_SIZE_FOR_RANKED) {
+            const regionGuild = await regionService.getRegionGuild(client, region)
+            if (regionGuild) {
+                const usersStats = await this.findPlayersStats(nonMercUserIds, region)
+                await Promise.all(usersStats.map(async (userStats) => {
+                    const stats = PlayerStats.hydrate(userStats)
+                    const [member] = await handle(regionGuild.members.fetch(userStats._id.toString()))
+                    if (member instanceof GuildMember) {
+                        await regionService.updateMemberTierRole(region, member, stats)
+
+                        /**
+                         * This is deprecated but we will keep it just for information
+                         */
+                        if (region === Region.EUROPE) {
+                            await regionService.updateMemberActivityRole(member, stats.numberOfRankedGames)
+                        }
+                    }
+                }))
+            }
+        }
+    }
+
+    async findPaginatedPlayersStats(page: number, pageSize: number, gameType: GameType, region?: Region): Promise<IPlayerStats[]> {
         let match: any = {}
         if (region !== Region.INTERNATIONAL) {
             match.region = region;
@@ -82,11 +130,17 @@ class StatsService {
                     totalNumberOfRankedWins: 1,
                     totalNumberOfRankedDraws: 1,
                     totalNumberOfRankedLosses: 1,
+                    totalNumberOfRankedGames: {
+                        $sum: ['$totalNumberOfRankedWins', '$totalNumberOfRankedDraws', '$totalNumberOfRankedLosses']
+                    },
                     rating: { $avg: rating }
                 }
             },
             {
-                $sort: { 'rating': -1 }
+                $sort: {
+                    'rating': -1,
+                    'totalNumberOfRankedGames': 1
+                }
             },
             {
                 $skip: page * pageSize
@@ -96,64 +150,16 @@ class StatsService {
             }
         ]
 
-        return Stats.aggregate(pipeline)
+        return PlayerStats.aggregate(pipeline)
     }
 
-    async updateStats(client: Client, region: Region, lineupSize: number, userIds: string[]): Promise<void> {
-        const nonMercUserIds = userIds.filter(userId => userId !== MERC_USER_ID)
-        if (nonMercUserIds.length === 0) {
-            return
-        }
-
-        const bulks = nonMercUserIds.map(userId => ({
-            updateOne: {
-                filter: {
-                    region,
-                    userId
-                },
-                update: {
-                    $inc: {
-                        numberOfRankedGames: lineupSize >= MIN_LINEUP_SIZE_FOR_RANKED ? 1 : 0
-                    },
-                    $setOnInsert: {
-                        userId,
-                        region
-                    },
-                },
-                upsert: true
-            }
-        }))
-        await Stats.bulkWrite(bulks)
-
-        if (lineupSize >= MIN_LINEUP_SIZE_FOR_RANKED) {
-            const regionGuild = await regionService.getRegionGuild(client, region)
-            if (regionGuild) {
-                const usersStats = await this.findUsersStats(nonMercUserIds, region)
-                await Promise.all(usersStats.map(async (userStats) => {
-                    const stats = Stats.hydrate(userStats)
-                    const [member] = await handle(regionGuild.members.fetch(userStats._id.toString()))
-                    if (member instanceof GuildMember) {
-                        await regionService.updateMemberTierRole(region, member, stats)
-
-                        /**
-                         * This is deprecated but we will keep it just for information
-                         */
-                        if (region === Region.EUROPE) {
-                            await regionService.updateMemberActivityRole(member, stats.numberOfRankedGames)
-                        }
-                    }
-                }))
-            }
-        }
-    }
-
-    async findUsersStats(userIds: string[], region: Region): Promise<IStats[]> {
+    async findPlayersStats(userIds: string[], region: Region): Promise<IPlayerStats[]> {
         let match: any = { userId: { $in: userIds } }
         if (region !== Region.INTERNATIONAL) {
             match.region = region;
         }
 
-        return Stats.aggregate([
+        return PlayerStats.aggregate([
             {
                 $match: match
             },
@@ -192,12 +198,12 @@ class StatsService {
         ])
     }
 
-    async findUserStats(userId: string, region: Region): Promise<IStats | null> {
-        return Stats.findOne({ userId, region })
+    async findPlayerStats(userId: string, region: Region): Promise<IPlayerStats | null> {
+        return PlayerStats.findOne({ userId, region })
     }
 
-    async updatePlayerRating(userId: string, region: Region, newStats: IStats): Promise<IStats | null> {
-        return Stats.findOneAndUpdate(
+    async updatePlayerRating(userId: string, region: Region, newStats: IPlayerStats): Promise<IPlayerStats | null> {
+        return PlayerStats.findOneAndUpdate(
             { userId, region },
             {
                 $set: {
@@ -215,22 +221,117 @@ class StatsService {
         )
     }
 
-    async findTeamsStats(page: number, pageSize: number, region: Region): Promise<ITeam[] | null> {
-        let match: any = { verified: true, rating: { $exists: true } }
+    async downgradePlayerStats(region: Region, userId: string): Promise<IPlayerStats | null> {
+        return PlayerStats.findOneAndUpdate({ userId, region }, { $inc: { rating: -RATING_DOWNGRADE_AMOUNT } }, { new: true })
+    }
+
+    async findPaginatedTeamsStats(page: number, pageSize: number, region: Region): Promise<ITeamStats[]> {
+        let match: any = {}
         if (region !== Region.INTERNATIONAL) {
             match.region = region;
         }
 
-        return Team.aggregate([
+        const pipeline = <any>[
             { $match: match },
-            { $sort: { 'rating': -1 }, },
-            { $skip: page * pageSize },
-            { $limit: pageSize }
+            {
+                $group: {
+                    _id: '$guildId',
+                    numberOfRankedWins: {
+                        $sum: '$numberOfRankedWins'
+                    },
+                    numberOfRankedDraws: {
+                        $sum: '$numberOfRankedDraws'
+                    },
+                    numberOfRankedLosses: {
+                        $sum: '$numberOfRankedLosses'
+                    },
+                    totalNumberOfRankedWins: {
+                        $sum: '$totalNumberOfRankedWins'
+                    },
+                    totalNumberOfRankedDraws: {
+                        $sum: '$totalNumberOfRankedDraws'
+                    },
+                    totalNumberOfRankedLosses: {
+                        $sum: '$totalNumberOfRankedLosses'
+                    },
+                    rating: {
+                        $avg: '$rating'
+                    }
+                }
+            },
+            {
+                $project: {
+                    numberOfRankedWins: 1,
+                    numberOfRankedDraws: 1,
+                    numberOfRankedLosses: 1,
+                    totalNumberOfRankedWins: 1,
+                    totalNumberOfRankedDraws: 1,
+                    totalNumberOfRankedLosses: 1,
+                    totalNumberOfRankedGames: {
+                        $sum: ['$totalNumberOfRankedWins', '$totalNumberOfRankedDraws', '$totalNumberOfRankedLosses']
+                    },
+                    rating: { $avg: '$rating' }
+                }
+            },
+            {
+                $sort: {
+                    'rating': -1,
+                    'totalNumberOfRankedGames': 1
+                }
+            },
+            {
+                $skip: page * pageSize
+            },
+            {
+                $limit: pageSize
+            }
+        ]
+
+        return TeamStats.aggregate(pipeline)
+    }
+
+
+    async findTeamsStats(guildIds: string[], region: Region): Promise<ITeamStats[]> {
+        let match: any = { guildId: { $in: guildIds } }
+        if (region !== Region.INTERNATIONAL) {
+            match.region = region;
+        }
+
+        return TeamStats.aggregate([
+            {
+                $match: match
+            },
+            {
+                $group: {
+                    _id: '$guildId',
+                    numberOfRankedWins: {
+                        $sum: '$numberOfRankedWins'
+                    },
+                    numberOfRankedDraws: {
+                        $sum: '$numberOfRankedDraws'
+                    },
+                    numberOfRankedLosses: {
+                        $sum: '$numberOfRankedLosses'
+                    },
+                    totalNumberOfRankedWins: {
+                        $sum: '$totalNumberOfRankedWins'
+                    },
+                    totalNumberOfRankedDraws: {
+                        $sum: '$totalNumberOfRankedDraws'
+                    },
+                    totalNumberOfRankedLosses: {
+                        $sum: '$totalNumberOfRankedLosses'
+                    },
+                    rating: {
+                        $avg: '$rating'
+                    }
+                }
+            }
         ])
     }
 
-    async downgradePlayerStats(region: Region, userId: string): Promise<IStats | null> {
-        return Stats.findOneAndUpdate({ userId, region }, { $inc: { rating: -RATING_DOWNGRADE_AMOUNT } }, { new: true })
+    async findTeamStats(guildId: string, region: Region): Promise<ITeamStats | null> {
+        return TeamStats.findOne({ guildId, region })
     }
 }
 

@@ -19,8 +19,8 @@ export default {
         let team: ITeam | null
 
         if (teamId) {
-            if (!regionService.isOfficialDiscord(interaction.guildId!)) {
-                await interaction.reply({ content: '⛔ Only official discords can manage other teams than yours', ephemeral: true })
+            if (!regionService.isRegionalDiscord(interaction.guildId!)) {
+                await interaction.reply({ content: '⛔ Only regional discords can manage other teams than yours', ephemeral: true })
                 return
             }
 

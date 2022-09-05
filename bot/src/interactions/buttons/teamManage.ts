@@ -191,7 +191,7 @@ async function editTeamVerification(interaction: ButtonInteraction) {
     } else {
         informationEmbed.setTitle('🛑 Team Unverified')
         const regionGuild = await regionService.getRegionGuild(interaction.client, team.region)
-        informationEmbed.setDescription(`Your team has been unverified by the admins. You can no longer participate in ranked matches.\nPlease contact the admins of the official ** ${regionGuild?.name} ** discord to get your team verified by providing your team id: ** ${team.guildId} **.`)
+        informationEmbed.setDescription(`Your team has been unverified by the admins. You can no longer participate in ranked matches.\nPlease contact the admins of the regional ** ${regionGuild?.name} ** discord to get your team verified by providing your team id: ** ${team.guildId} **.`)
     }
     teamService.sendMessage(interaction.client, team.guildId, { embeds: [informationEmbed] })
 

@@ -4,7 +4,7 @@ import { UpdateWriteOpResult } from "mongoose";
 import { Elo } from "simple-elo-rating";
 import { v4 as uuidv4 } from 'uuid';
 import { DEFAULT_RATING } from "../constants";
-import { Challenge, IChallenge, ILineup, ILineupQueue, IMatch, IMatchResult, IRole, IStats, ISub, IUser, Lineup, LineupQueue, Match, Stats } from "../mongoSchema";
+import { Challenge, IChallenge, ILineup, ILineupQueue, IMatch, IMatchResult, IPlayerStats, IRole, ISub, IUser, Lineup, LineupQueue, Match, PlayerStats, TeamStats } from "../mongoSchema";
 import { handle, notEmpty } from "../utils";
 import { interactionUtils } from "./interactionUtils";
 import { Region, regionService } from "./regionService";
@@ -812,8 +812,8 @@ class MatchmakingService {
             await Promise.all(promises)
 
             await Promise.all([
-                statsService.updateStats(client, challenge.initiatingTeam.lineup.team.region, challenge.initiatingTeam.lineup.size, initiatingTeamUsers.map(user => user.id)),
-                statsService.updateStats(client, challenge.challengedTeam.lineup.team.region, challenge.challengedTeam.lineup.size, challengedTeamUsers.map(user => user.id))
+                statsService.updatePlayersStats(client, challenge.initiatingTeam.lineup.team.region, challenge.initiatingTeam.lineup.size, initiatingTeamUsers.map(user => user.id)),
+                statsService.updatePlayersStats(client, challenge.challengedTeam.lineup.team.region, challenge.challengedTeam.lineup.size, challengedTeamUsers.map(user => user.id))
             ])
         }
         else { //This is a mix vs mix match     
@@ -831,7 +831,7 @@ class MatchmakingService {
             const [channel] = await handle(client.channels.fetch(newMixLineup.channelId)) as TextChannel[]
             await channel?.send(reply)
             await this.updateLineupQueueRoles(newMixLineup.channelId, newMixLineup.roles)
-            await statsService.updateStats(client, newMixLineup.team.region, newMixLineup.size, allUsers.map(user => user.id))
+            await statsService.updatePlayersStats(client, newMixLineup.team.region, newMixLineup.size, allUsers.map(user => user.id))
         }
     }
 
@@ -859,7 +859,7 @@ class MatchmakingService {
         await Promise.all(promises)
     }
 
-    async findTwoMostRelevantCaptains(userIds: string[]): Promise<IStats[]> {
+    async findTwoMostRelevantCaptains(userIds: string[]): Promise<IPlayerStats[]> {
         let pipeline = <any>[]
         pipeline.push(
             {
@@ -889,7 +889,7 @@ class MatchmakingService {
             }
         ])
 
-        return Stats.aggregate(pipeline)
+        return PlayerStats.aggregate(pipeline)
     }
 
     async findMatchByMatchId(matchId: string): Promise<IMatch | null> {
@@ -960,7 +960,7 @@ class MatchmakingService {
             }
         ])
 
-        const stats: IStats[] = await Stats.aggregate(pipeline)
+        const stats: IPlayerStats[] = await PlayerStats.aggregate(pipeline)
 
         if (stats.length === 0) {
             return userIds[0]
@@ -970,23 +970,69 @@ class MatchmakingService {
     }
 
     private async updateTeamsRating(match: IMatch): Promise<void> {
+        let firstTeamStats = await statsService.findTeamStats(match.firstLineup.team.guildId, match.firstLineup.team.region)
+        if (!firstTeamStats) {
+            firstTeamStats = new TeamStats({
+                guildId: match.firstLineup.team.guildId,
+                region: match.firstLineup.team.region,
+                numberOfRankedWins: 0,
+                numberOfRankedDraws: 0,
+                numberOfRankedLosses: 0,
+                totalNumberOfRankedWins: 0,
+                totalNumberOfRankedDraws: 0,
+                totalNumberOfRankedLosses: 0,
+                rating: DEFAULT_RATING
+            })
+        }
+        let secondTeamStats = await statsService.findTeamStats(match.secondLineup.team.guildId, match.secondLineup.team.region)
+        if (!secondTeamStats) {
+            secondTeamStats = new TeamStats({
+                guildId: match.secondLineup.team.guildId,
+                region: match.secondLineup.team.region,
+                numberOfRankedWins: 0,
+                numberOfRankedDraws: 0,
+                numberOfRankedLosses: 0,
+                totalNumberOfRankedWins: 0,
+                totalNumberOfRankedDraws: 0,
+                totalNumberOfRankedLosses: 0,
+                rating: DEFAULT_RATING
+            })
+        }
+
+        const firstTeamRating = match.firstLineup.isTeam() ? firstTeamStats.rating : match.firstLineup.computePlayersAverageRating()
+        const secondTeamRating = match.secondLineup.isTeam() ? secondTeamStats.rating : match.secondLineup.computePlayersAverageRating()
+
         let elo = new Elo()
-            .playerA(match.firstLineup.team.rating)
-            .playerB(match.secondLineup.team.rating)
+            .playerA(firstTeamRating)
+            .playerB(secondTeamRating)
         if (match.result!.firstLineup.result === MatchResult.DRAW) {
             elo.setDraw()
+            firstTeamStats.numberOfRankedDraws++
+            firstTeamStats.totalNumberOfRankedDraws++
+            secondTeamStats.numberOfRankedDraws++
+            secondTeamStats.totalNumberOfRankedDraws++
         } else if (match.result!.firstLineup.result === MatchResult.WIN) {
             elo.setWinnerA()
+            firstTeamStats.numberOfRankedWins++
+            firstTeamStats.totalNumberOfRankedWins++
+            secondTeamStats.numberOfRankedLosses++
+            secondTeamStats.totalNumberOfRankedLosses++
         } else {
             elo.setWinnerB()
+            firstTeamStats.numberOfRankedLosses++
+            firstTeamStats.totalNumberOfRankedLosses++
+            secondTeamStats.numberOfRankedWins++
+            secondTeamStats.totalNumberOfRankedWins++
         }
 
         const [firstLineupNewRating, secondLineupNewRating] = elo.calculate().getResults()
+        firstTeamStats.rating = firstLineupNewRating
+        secondTeamStats.rating = secondLineupNewRating
         if (match.firstLineup.isTeam()) {
-            await teamService.updateTeamRating(match.firstLineup.team.guildId, firstLineupNewRating)
+            await teamService.updateTeamRating(match.firstLineup.team.guildId, match.firstLineup.team.region, firstTeamStats)
         }
         if (match.secondLineup.isTeam()) {
-            await teamService.updateTeamRating(match.secondLineup.team.guildId, secondLineupNewRating)
+            await teamService.updateTeamRating(match.secondLineup.team.guildId, match.firstLineup.team.region, secondTeamStats)
         }
     }
 
@@ -1175,9 +1221,9 @@ class LineupRating {
 
     public async init() {
         await Promise.all(this.lineup.getNonMercSignedRoles().map(async role => {
-            let playerStats = await statsService.findUserStats(role.user!.id, this.lineup.team.region)
+            let playerStats = await statsService.findPlayerStats(role.user!.id, this.lineup.team.region)
             if (!playerStats) {
-                playerStats = new Stats({
+                playerStats = new PlayerStats({
                     userId: role.user?.id,
                     region: this.lineup.team.region,
                     numberOfRankedGames: 0,
