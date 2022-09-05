@@ -562,11 +562,9 @@ matchSchema.methods.findUserRole = function (user: DiscordUser): IRole | null {
 }
 export const Match = model<IMatch>('Match', matchSchema, 'matches')
 
-export interface IStats {
+interface IStats {
     _id: Types.ObjectId,
-    userId: string,
     region: Region,
-    numberOfRankedGames: number,
     numberOfRankedWins: number,
     numberOfRankedDraws: number,
     numberOfRankedLosses: number,
@@ -574,9 +572,14 @@ export interface IStats {
     totalNumberOfRankedDraws: number,
     totalNumberOfRankedLosses: number,
     rating: number,
+}
+
+export interface IPlayerStats extends IStats {
+    userId: string,
+    numberOfRankedGames: number,
     mixCaptainsRating: number
 }
-const statsSchema = new Schema<IStats>({
+const playerStatsSchema = new Schema<IPlayerStats>({
     userId: {
         type: String,
         required: true
@@ -632,9 +635,61 @@ const statsSchema = new Schema<IStats>({
         default: DEFAULT_RATING
     }
 })
-statsSchema.index({ userId: 1, region: 1 });
-statsSchema.index({ region: 1 });
-export const Stats = model<IStats>('Stats', statsSchema, 'stats')
+playerStatsSchema.index({ userId: 1, region: 1 });
+playerStatsSchema.index({ region: 1 });
+export const PlayerStats = model<IPlayerStats>('PlayerStats', playerStatsSchema, 'player-stats')
+
+export interface ITeamStats extends IStats {
+    guildId: string
+}
+const teamStatsSchema = new Schema<ITeamStats>({
+    guildId: {
+        type: String,
+        required: true
+    },
+    region: {
+        type: String,
+        enum: Region,
+        required: true
+    },
+    numberOfRankedWins: {
+        type: Number,
+        required: true,
+        default: 0
+    },
+    numberOfRankedDraws: {
+        type: Number,
+        required: true,
+        default: 0
+    },
+    numberOfRankedLosses: {
+        type: Number,
+        required: true,
+        default: 0
+    },
+    totalNumberOfRankedWins: {
+        type: Number,
+        required: true,
+        default: 0
+    },
+    totalNumberOfRankedDraws: {
+        type: Number,
+        required: true,
+        default: 0
+    },
+    totalNumberOfRankedLosses: {
+        type: Number,
+        required: true,
+        default: 0
+    },
+    rating: {
+        type: Number,
+        required: true,
+        default: DEFAULT_RATING
+    },
+})
+teamStatsSchema.index({ guildId: 1 });
+export const TeamStats = model<ITeamStats>('TeamStats', teamStatsSchema, 'team-stats')
 
 export interface IBan {
     userId: string,

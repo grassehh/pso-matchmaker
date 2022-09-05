@@ -18,8 +18,8 @@ export default {
         .setDefaultMemberPermissions(PermissionFlagsBits.BanMembers),
     authorizedRoles: [BOT_ADMIN_ROLE],
     async execute(interaction: ChatInputCommandInteraction) {
-        if (!regionService.isOfficialDiscord(interaction.guild!.id)) {
-            await interaction.reply({ content: '⛔ Only official discords can use this command', ephemeral: true })
+        if (!regionService.isRegionalDiscord(interaction.guild!.id)) {
+            await interaction.reply({ content: '⛔ Only regional discords can use this command', ephemeral: true })
             return;
         }
 

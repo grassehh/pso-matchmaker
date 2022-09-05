@@ -53,9 +53,9 @@ export default {
                             `
                 },
                 {
-                    name: '5) Official regional command permissions',
+                    name: '5) Regional command permissions',
                     value: `
-                            The following commands can only be used on official regional discords. 
+                            The following commands can only be used on regional regional discords. 
                             - **/team_manage** with the *team_id* optional parameter
                             - **/teams**
                             - **/lineup_create_mix** with the *ranked* optional paramter set to **true**
