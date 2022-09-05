@@ -33,12 +33,11 @@ export default {
                 return
             }
 
-            const ban = await teamService.findBanByUserIdAndGuildId(interaction.user.id, interaction.guildId!)
+            const ban = await teamService.findPlayerBanByUserIdAndGuildId(interaction.user.id, interaction.guildId!)
             if (ban) {
                 await interaction.reply({ content: `⛔ You are ${ban.expireAt ? `banned until ${ban.expireAt.toUTCString()}` : 'permanently banned'}. You cannot use the bot on this server.`, ephemeral: true })
                 return
             }
-
 
             if (interaction.isChatInputCommand()) {
                 const command = commands.get(interaction.commandName);

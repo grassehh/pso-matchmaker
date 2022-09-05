@@ -1,11 +1,11 @@
 import { ActionRowBuilder, ButtonBuilder, ButtonInteraction, ButtonStyle, Client, CommandInteraction, EmbedBuilder, Interaction, InteractionReplyOptions, InteractionUpdateOptions, Message, BaseMessageOptions, StringSelectMenuBuilder, AnySelectMenuInteraction, User, UserManager } from "discord.js";
 import { BOT_ADMIN_ROLE, DEFAULT_RATING, MAX_TEAM_CAPTAINS, MAX_TEAM_PLAYERS } from "../constants";
-import { IChallenge, ILineup, ILineupQueue, IRole, IRoleBench, IPlayerStats, ITeam, IUser, PlayerStats, TeamStats, ITeamStats, IBan } from "../mongoSchema";
+import { IChallenge, ILineup, ILineupQueue, IPlayerBan, IPlayerStats, IRole, IRoleBench, ITeam, ITeamBan, ITeamStats, IUser, PlayerStats, TeamStats } from "../mongoSchema";
 import { handle } from "../utils";
 import { matchmakingService, MatchResult, RoleWithDiscordUser } from "./matchmakingService";
 import { Region, regionService } from "./regionService";
 import { statsService } from "./statsService";
-import { LINEUP_VISIBILITY_PUBLIC, ROLE_ATTACKER, ROLE_DEFENDER, ROLE_GOAL_KEEPER, ROLE_MIDFIELDER, TeamLogoDisplay, teamService, TeamTypeHelper } from "./teamService";
+import { LINEUP_VISIBILITY_PUBLIC, ROLE_ATTACKER, ROLE_DEFENDER, ROLE_GOAL_KEEPER, ROLE_MIDFIELDER, TeamLogoDisplay, teamService, TeamType, TeamTypeHelper } from "./teamService";
 
 class InteractionUtils {
     createReplyAlreadyQueued(lineupSize: number): InteractionReplyOptions {
@@ -25,6 +25,13 @@ class InteractionUtils {
     createReplyTeamNotRegistered(): InteractionReplyOptions {
         return {
             content: '⛔ Please register your team with the /team_create command first',
+            ephemeral: true
+        }
+    }
+
+    createReplyTeamBanned(ban: ITeamBan): InteractionReplyOptions {
+        return {
+            content: `⛔ Your team is ${ban.expireAt ? `banned until **${ban.expireAt.toUTCString()}**` : '**permanently** banned'}.`,
             ephemeral: true
         }
     }
@@ -325,7 +332,7 @@ class InteractionUtils {
     async createLeaderboardReply(interaction: Interaction, searchOptions: StatsSearchOptions): Promise<InteractionReplyOptions | InteractionUpdateOptions> {
         let numberOfItems
         if (searchOptions.statsType === StatsType.TEAMS) {
-            numberOfItems = await statsService.countNumberOfTeams(searchOptions.region)
+            numberOfItems = await statsService.countNumberOfTeams(searchOptions.region, searchOptions.teamType)
         } else {
             numberOfItems = await statsService.countNumberOfPlayers(searchOptions.region)
         }
@@ -398,30 +405,55 @@ class InteractionUtils {
                     }
                 ])
         )
-        const gameTypeActionRow = new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(
-            new StringSelectMenuBuilder()
-                .setCustomId(`leaderboard_game_type_select_${searchOptions.statsType}_${searchOptions.region}`)
-                .setPlaceholder('Game Type')
-                .addOptions([
-                    {
-                        emoji: '👕',
-                        label: 'Teams And Mixes',
-                        value: GameType.TEAM_AND_MIX.toString(),
-                        default: searchOptions.gameType === GameType.TEAM_AND_MIX
-                    },
-                    {
-                        emoji: '🤼',
-                        label: 'Captains Mixes',
-                        value: GameType.CAPTAINS_MIX.toString(),
-                        default: searchOptions.gameType === GameType.CAPTAINS_MIX
-                    }
-                ])
-        )
 
         const paginationActionRow = this.createLeaderboardPaginationActionRow(numberOfPages, searchOptions)
         const components: ActionRowBuilder<ButtonBuilder | StringSelectMenuBuilder>[] = [scopeActionRow, statsTypeActionRow]
         if (searchOptions.statsType === StatsType.PLAYERS) {
-            components.push(gameTypeActionRow)
+            components.push(new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(
+                new StringSelectMenuBuilder()
+                    .setCustomId(`leaderboard_game_type_select_${searchOptions.statsType}_${searchOptions.region}`)
+                    .setPlaceholder('Game Type')
+                    .addOptions([
+                        {
+                            emoji: '👕',
+                            label: 'Teams And Mixes',
+                            value: GameType.TEAM_AND_MIX.toString(),
+                            default: searchOptions.gameType === GameType.TEAM_AND_MIX
+                        },
+                        {
+                            emoji: '🤼',
+                            label: 'Captains Mixes',
+                            value: GameType.CAPTAINS_MIX.toString(),
+                            default: searchOptions.gameType === GameType.CAPTAINS_MIX
+                        }
+                    ])
+            ))
+        }
+        else if (searchOptions.statsType === StatsType.TEAMS) {
+            components.push(new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(
+                new StringSelectMenuBuilder()
+                    .setCustomId(`leaderboard_team_type_select_${searchOptions.region}`)
+                    .setPlaceholder('Team Type')
+                    .addOptions([
+                        {
+                            label: 'All',
+                            value: "undefined",
+                            default: searchOptions.teamType == null
+                        },
+                        {
+                            emoji: '👕',
+                            label: 'Clubs',
+                            value: TeamType.CLUB.toString(),
+                            default: searchOptions.teamType === TeamType.CLUB
+                        },
+                        {
+                            emoji: '🗺',
+                            label: 'Nations',
+                            value: TeamType.NATION.toString(),
+                            default: searchOptions.teamType === TeamType.NATION
+                        }
+                    ])
+            ))
         }
         components.push(paginationActionRow)
 
@@ -430,13 +462,13 @@ class InteractionUtils {
 
     async createLeaderboardEmbed(interaction: Interaction, numberOfPages: number, searchOptions: StatsSearchOptions): Promise<EmbedBuilder> {
         if (searchOptions.statsType === StatsType.TEAMS) {
-            return this.createTeamLeaderboardEmbed(numberOfPages, searchOptions)
+            return this.createTeamsLeaderboardEmbed(numberOfPages, searchOptions)
         }
         return this.createPlayersLeaderboardEmbed(interaction.client.users, numberOfPages, searchOptions)
     }
 
-    async createTeamLeaderboardEmbed(numberOfPages: number, searchOptions: StatsSearchOptions): Promise<EmbedBuilder> {
-        const teamsStats = await statsService.findPaginatedTeamsStats(searchOptions.page, searchOptions.pageSize, searchOptions.region)
+    async createTeamsLeaderboardEmbed(numberOfPages: number, searchOptions: StatsSearchOptions): Promise<EmbedBuilder> {
+        const teamsStats = await statsService.findPaginatedTeamsStats(searchOptions.page, searchOptions.pageSize, searchOptions.region, searchOptions.teamType)
 
         let teamStatsEmbed = new EmbedBuilder()
             .setColor('#566573')
@@ -561,16 +593,16 @@ class InteractionUtils {
         return embed
     }
 
-    async createBanListEmbeds(client: Client, guildId: string): Promise<EmbedBuilder[]> {
-        const bans = await teamService.findBansByGuildId(guildId)
+    async createPlayerBanListEmbeds(client: Client, guildId: string): Promise<EmbedBuilder[]> {
+        const bans = await teamService.findPlayerBansByGuildId(guildId)
 
         return [
-            await this.createBanListEmbed(client, 'Permanent Bans', bans.filter(ban => !ban.expireAt)),
-            await this.createBanListEmbed(client, 'Temporary Bans', bans.filter(ban => ban.expireAt))
+            await this.createPlayerBanListEmbed(client, 'Permanent Bans', bans.filter(ban => !ban.expireAt)),
+            await this.createPlayerBanListEmbed(client, 'Temporary Bans', bans.filter(ban => ban.expireAt))
         ]
     }
 
-    private async createBanListEmbed(client: Client, title: string, bans: IBan[]) {
+    private async createPlayerBanListEmbed(client: Client, title: string, bans: IPlayerBan[]) {
         const banListEmbed = new EmbedBuilder()
             .setColor('#566573')
             .setTitle(title)
@@ -587,6 +619,45 @@ class InteractionUtils {
                 continue
             }
             description += `**${user.username}**`
+            if (ban.reason) {
+                description += ` (Reason: *${ban.reason}*)`
+            }
+            if (ban.expireAt) {
+                description += `\nExpiracy: <t:${Math.floor(ban.expireAt.getTime() / 1000)}:R>`
+            }
+            description += '\n\n'
+        }
+
+        banListEmbed.setDescription(description)
+        return banListEmbed
+    }
+
+    async createTeamBanListEmbeds(region: Region): Promise<EmbedBuilder[]> {
+        const bans = await teamService.findTeamBansByRegion(region)
+
+        return [
+            await this.createTeamBanListEmbed('Permanent Bans', bans.filter(ban => !ban.expireAt)),
+            await this.createTeamBanListEmbed('Temporary Bans', bans.filter(ban => ban.expireAt))
+        ]
+    }
+
+    async createTeamBanListEmbed(title: string, bans: ITeamBan[]): Promise<EmbedBuilder> {
+        const banListEmbed = new EmbedBuilder()
+            .setColor('#566573')
+            .setTitle(title)
+
+        if (bans.length === 0) {
+            banListEmbed.setDescription("✅ No team is banned")
+            return banListEmbed
+        }
+
+        let description = ''
+        for (let ban of bans) {
+            const team = await teamService.findTeamByGuildId(ban.guildId)
+            if (!team) {
+                continue
+            }
+            description += `**${team.prettyPrintName()}**`
             if (ban.reason) {
                 description += ` (Reason: *${ban.reason}*)`
             }
@@ -1043,7 +1114,8 @@ export interface StatsSearchOptions {
     pageSize: number,
     region: Region,
     statsType: StatsType,
-    gameType: GameType
+    gameType: GameType,
+    teamType?: TeamType
 }
 
 export enum GameType {

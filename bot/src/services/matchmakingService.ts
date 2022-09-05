@@ -84,11 +84,27 @@ class MatchmakingService {
             .limit(1)
     }
 
-    async updateBansListChannel(client: Client): Promise<void> {
+    async updatePlayerBansListChannel(client: Client): Promise<void> {
         regionService.getAllRegionsData().forEach(async (regionData) => {
-            if (regionData.bansListChannelId) {
-                const banListEmbeds = await interactionUtils.createBanListEmbeds(client, regionData.guildId)
-                const channel = await client.channels.fetch(regionData.bansListChannelId) as TextChannel
+            if (regionData.playerBansListChannelId) {
+                const banListEmbeds = await interactionUtils.createPlayerBanListEmbeds(client, regionData.guildId)
+                const channel = await client.channels.fetch(regionData.playerBansListChannelId) as TextChannel
+                const messages = await channel.messages.fetch({ limit: 1 })
+                if (messages.size === 0) {
+                    handle(channel.send({ embeds: banListEmbeds }))
+                } else {
+                    messages.first()?.edit({ embeds: banListEmbeds })
+                        .catch(async () => handle(channel.send({ embeds: banListEmbeds })))
+                }
+            }
+        })
+    }
+
+    async updateTeamBansListChannel(client: Client): Promise<void> {
+        regionService.getAllRegionsData().forEach(async (regionData) => {
+            if (regionData.teamBansListChannelId) {
+                const banListEmbeds = await interactionUtils.createTeamBanListEmbeds(regionData.region)
+                const channel = await client.channels.fetch(regionData.teamBansListChannelId) as TextChannel
                 const messages = await channel.messages.fetch({ limit: 1 })
                 if (messages.size === 0) {
                     handle(channel.send({ embeds: banListEmbeds }))
@@ -486,6 +502,12 @@ class MatchmakingService {
     }
 
     async challenge(interaction: ButtonInteraction | AnySelectMenuInteraction, lineupQueueIdToChallenge: string): Promise<void> {
+        const ban = await teamService.findTeamBanByGuildId(interaction.guildId!)
+        if (ban) {
+            await interaction.reply(interactionUtils.createReplyTeamBanned(ban))
+            return
+        }
+
         let lineupQueueToChallenge = await this.findLineupQueueById(lineupQueueIdToChallenge)
         if (!lineupQueueToChallenge) {
             await interaction.reply({ content: "⛔ This team is no longer challenging", ephemeral: true })
@@ -1071,7 +1093,7 @@ class MatchmakingService {
 
     private async enhanceWithDiscordUsers(client: Client, roles: IRole[]): Promise<RoleWithDiscordUser[]> {
         const promises = roles.map(async role => {
-            if (!role.user || role.user.isMerc()) {
+            if (!role.user || role.user?.isMerc()) {
                 return { role }
             }
 

@@ -10,6 +10,12 @@ export default {
         .setName('challenges')
         .setDescription('Display the teams looking for a match, with the same lineup size'),
     async execute(interaction: ChatInputCommandInteraction) {
+        const ban = await teamService.findTeamBanByGuildId(interaction.guildId!)
+        if (ban) {
+            await interaction.reply(interactionUtils.createReplyTeamBanned(ban))
+            return
+        }
+
         let team = await teamService.findTeamByGuildId(interaction.guildId!)
         if (!team) {
             await interaction.reply(interactionUtils.createReplyTeamNotRegistered())

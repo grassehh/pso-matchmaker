@@ -20,7 +20,7 @@ export default {
                 } else {
                     name = `${match.firstLineup.prettyPrintName(TeamLogoDisplay.RIGHT)} **VS** ${match.secondLineup.prettyPrintName(TeamLogoDisplay.LEFT)}`
                 }
-                const value = `Match ID: ${match.matchId}\nRanked: ${match.ranked ? 'Yes' : 'No'}\nDate: ${match.schedule.toUTCString()}`
+                const value = `Match ID: ${match.matchId}\nRanked: ${match.ranked ? '**Yes**' : 'No'}\nDate: ${match.schedule.toUTCString()}`
                 return { name, value }
             }))
 

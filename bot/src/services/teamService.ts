@@ -2,8 +2,8 @@ import { BaseGuildTextChannel, Client, EmbedBuilder, GuildMember, BaseMessageOpt
 import { DeleteResult } from "mongodb";
 import { UpdateWriteOpResult } from "mongoose";
 import { MAX_LINEUP_NAME_LENGTH, MAX_TEAM_CODE_LENGTH, MAX_TEAM_NAME_LENGTH } from "../constants";
-import { Bans, IBan, ILineup, IRole, IRoleBench, IPlayerStats, ITeam, IUser, Lineup, LineupQueue, Team, TeamStats, ITeamStats } from "../mongoSchema";
 import { getUnicodeEmojis, handle } from "../utils";
+import { PlayerBans, IPlayerBan, ILineup, IRole, IRoleBench, IPlayerStats, ITeam, IUser, Lineup, LineupQueue, Team, TeamStats, ITeamStats, TeamBans, ITeamBan } from "../mongoSchema";
 import { interactionUtils } from "./interactionUtils";
 import { matchmakingService } from "./matchmakingService";
 import { Region, regionService } from "./regionService";
@@ -145,7 +145,7 @@ class TeamService {
             matchmakingService.deleteChallengesByGuildId(guildId),
             matchmakingService.deleteLineupQueuesByGuildId(guildId),
             this.deleteLineupsByGuildId(guildId),
-            this.deleteBansByGuildId(guildId),
+            this.deletePlayerBansByGuildId(guildId),
             Team.deleteOne({ guildId })
         ])
     }
@@ -649,20 +649,32 @@ class TeamService {
         return Lineup.updateOne({ channelId }, { 'lastSearchTime': time })
     }
 
-    async deleteBansByGuildId(guildId: string): Promise<DeleteResult> {
-        return Bans.deleteMany({ guildId })
+    async deleteTeamBan(guildId: string): Promise<DeleteResult> {
+        return TeamBans.deleteOne({ guildId })
     }
 
-    async deleteBanByUserIdAndGuildId(userId: string, guildId: string): Promise<DeleteResult> {
-        return Bans.deleteOne({ userId, guildId })
+    async findTeamBansByRegion(region: Region): Promise<ITeamBan[]> {
+        return TeamBans.find({ region })
     }
 
-    async findBanByUserIdAndGuildId(userId: string, guildId: string): Promise<IBan | null> {
-        return Bans.findOne({ userId, guildId })
+    async findTeamBanByGuildId(guildId: string): Promise<ITeamBan | null> {
+        return TeamBans.findOne({ guildId })
     }
 
-    async findBansByGuildId(guildId: string): Promise<IBan[]> {
-        return Bans.find({ guildId })
+    async deletePlayerBansByGuildId(guildId: string): Promise<DeleteResult> {
+        return PlayerBans.deleteMany({ guildId })
+    }
+
+    async deletePlayerBanByUserIdAndGuildId(userId: string, guildId: string): Promise<DeleteResult> {
+        return PlayerBans.deleteOne({ userId, guildId })
+    }
+
+    async findPlayerBanByUserIdAndGuildId(userId: string, guildId: string): Promise<IPlayerBan | null> {
+        return PlayerBans.findOne({ userId, guildId })
+    }
+
+    async findPlayerBansByGuildId(guildId: string): Promise<IPlayerBan[]> {
+        return PlayerBans.find({ guildId })
     }
 
     getBenchUserToTransfer(lineup: ILineup, roleLeft?: IRole): IUser | null {
@@ -752,6 +764,28 @@ class TeamService {
 
         informationEmbed.setDescription(`The team ${team.prettyPrintName()} (${team.guildId}) has been unverified.`)
         await regionService.sendToModerationChannel(client, team.region, { embeds: [informationEmbed] })
+    }
+
+    async notifyBanned(client: Client, ban: ITeamBan) {
+        const informationEmbed = new EmbedBuilder()
+            .setColor('#566573')
+            .setTimestamp()
+            .setTitle('⛔ Team Banned')
+        let description = `Your team has been ${ban.expireAt ? `banned until **${ban.expireAt.toUTCString()}**` : '**permanently** banned'}`
+        informationEmbed.setDescription(description)
+        if (ban.reason) {
+            informationEmbed.addFields([{ name: 'Reason', value: `*${ban.reason}*` }])
+        }
+        await teamService.sendMessage(client, ban.guildId, { embeds: [informationEmbed] })
+    }
+
+    async notifyUnbanned(client: Client, team: ITeam) {
+        const informationEmbed = new EmbedBuilder()
+            .setColor('#566573')
+            .setTimestamp()
+            .setTitle('✅ Team Unbanned')
+        informationEmbed.setDescription('Your team is now **unbanned**')
+        await teamService.sendMessage(client, team.guildId, { embeds: [informationEmbed] })
     }
 
     async sendMessage(client: Client, guildId: string, BaseMessageOptions: BaseMessageOptions): Promise<void> {

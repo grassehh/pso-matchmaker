@@ -6,6 +6,7 @@ import mongoose from 'mongoose';
 import { schedule } from 'node-cron';
 import { matchmakingService } from './services/matchmakingService';
 import { teamService } from './services/teamService';
+import { statsService } from './services/statsService';
 
 dotenv.config()
 
@@ -44,7 +45,11 @@ for (const file of eventFiles) {
 
 schedule('0 0 * * *', async () => await teamService.notifyAndPurgeInactiveTeams(client).catch(console.error));
 
-schedule('*/5 * * * *', async () => await matchmakingService.updateBansListChannel(client).catch(console.error));
+schedule('*/5 * * * *', async () => await matchmakingService.updatePlayerBansListChannel(client).catch(console.error));
+schedule('*/5 * * * *', async () => await matchmakingService.updateTeamBansListChannel(client).catch(console.error));
+
+schedule('0 0 1 * *', async () => await statsService.endSeason(client).catch(console.error));
+// schedule('*/10 * * * * *', async () => await statsService.endSeason(client).catch(console.error));
 
 let makingMatches = false
 schedule('*/10 * * * * *', async () => {
