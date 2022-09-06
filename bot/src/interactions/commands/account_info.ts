@@ -1,5 +1,5 @@
 import { SlashCommandBuilder } from "@discordjs/builders";
-import { ChatInputCommandInteraction, EmbedBuilder, PermissionFlagsBits } from "discord.js";
+import { ChatInputCommandInteraction, EmbedBuilder } from "discord.js";
 import { BOT_ADMIN_ROLE } from "../../constants";
 import { ICommandHandler } from "../../handlers/commandHandler";
 import { regionService } from "../../services/regionService";
@@ -14,8 +14,7 @@ export default {
             .setDescription('The discord user mention (@) or ID you want to get information about'))
         .addStringOption(option => option.setName('steam_id')
             .setRequired(false)
-            .setDescription('The Steam ID of the user you want to get information about'))
-        .setDefaultMemberPermissions(PermissionFlagsBits.BanMembers),
+            .setDescription('The Steam ID of the user you want to get information about')),
     authorizedRoles: [BOT_ADMIN_ROLE],
     async execute(interaction: ChatInputCommandInteraction) {
         if (!regionService.isRegionalDiscord(interaction.guild!.id)) {

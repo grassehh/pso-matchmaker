@@ -1,4 +1,4 @@
-import { ChatInputCommandInteraction, PermissionFlagsBits, SlashCommandBuilder } from "discord.js";
+import { ChatInputCommandInteraction, SlashCommandBuilder } from "discord.js";
 import { BOT_ADMIN_ROLE } from "../../constants";
 import { ICommandHandler } from "../../handlers/commandHandler";
 import { Bans } from "../../mongoSchema";
@@ -17,8 +17,7 @@ export default {
             .setDescription('The reason of the ban'))
         .addIntegerOption(option => option.setName('duration')
             .setRequired(false)
-            .setDescription('The duration of the ban in days. A value of -1 means unlimited ban. (Default value is 1)'))
-        .setDefaultMemberPermissions(PermissionFlagsBits.BanMembers),
+            .setDescription('The duration of the ban in days. A value of -1 means unlimited ban. (Default value is 1)')),
     authorizedRoles: [BOT_ADMIN_ROLE],
     async execute(interaction: ChatInputCommandInteraction) {
         const team = await teamService.findTeamByGuildId(interaction.guildId!)
