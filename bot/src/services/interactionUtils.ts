@@ -1,4 +1,4 @@
-import { ActionRowBuilder, ButtonBuilder, ButtonInteraction, ButtonStyle, Client, CommandInteraction, EmbedBuilder, Interaction, InteractionReplyOptions, InteractionUpdateOptions, Message, MessageOptions, SelectMenuBuilder, SelectMenuInteraction, User, UserManager } from "discord.js";
+import { ActionRowBuilder, ButtonBuilder, ButtonInteraction, ButtonStyle, Client, CommandInteraction, EmbedBuilder, Interaction, InteractionReplyOptions, InteractionUpdateOptions, Message, BaseMessageOptions, SelectMenuBuilder, SelectMenuInteraction, User, UserManager } from "discord.js";
 import { BOT_ADMIN_ROLE, DEFAULT_RATING, MAX_TEAM_CAPTAINS, MAX_TEAM_PLAYERS } from "../constants";
 import { IChallenge, ILineup, ILineupQueue, IRole, IRoleBench, IPlayerStats, ITeam, IUser, PlayerStats, TeamStats, ITeamStats } from "../mongoSchema";
 import { handle } from "../utils";
@@ -685,7 +685,7 @@ class InteractionUtils {
         return rolesActionRows
     }
 
-    createMatchResultVoteMessage(matchId: string, region: Region, submitter: User, lineupNumber: number): MessageOptions {
+    createMatchResultVoteMessage(matchId: string, region: Region, submitter: User, lineupNumber: number): BaseMessageOptions {
         const matchVoteEmbed = new EmbedBuilder()
             .setColor('#6aa84f')
             .setTitle(":bangbang::bangbang: Submit for you team result ! :bangbang::bangbang:")
@@ -726,7 +726,7 @@ class InteractionUtils {
         return { embeds: [matchVoteEmbed], components: [matchVoteActionRow, cancelVoteActionRow] }
     }
 
-    createMatchResultVoteUserMessage(message: Message): MessageOptions {
+    createMatchResultVoteUserMessage(message: Message): BaseMessageOptions {
         const matchVoteEmbed = new EmbedBuilder()
             .setColor('#6aa84f')
             .setTitle(":bangbang::bangbang: Submit your team result ! :bangbang::bangbang:")

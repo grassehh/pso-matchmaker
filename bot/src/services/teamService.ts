@@ -1,4 +1,4 @@
-import { BaseGuildTextChannel, Client, EmbedBuilder, GuildMember, MessageOptions, TextChannel, User } from "discord.js";
+import { BaseGuildTextChannel, Client, EmbedBuilder, GuildMember, BaseMessageOptions, TextChannel, User } from "discord.js";
 import { DeleteResult } from "mongodb";
 import { UpdateWriteOpResult } from "mongoose";
 import { MAX_LINEUP_NAME_LENGTH, MAX_TEAM_CODE_LENGTH, MAX_TEAM_NAME_LENGTH } from "../constants";
@@ -439,7 +439,7 @@ class TeamService {
             }
         }
 
-        let reply = await interactionUtils.createReplyForLineup(newLineup, autoSearchResult.updatedLineupQueue) as MessageOptions
+        let reply = await interactionUtils.createReplyForLineup(newLineup, autoSearchResult.updatedLineupQueue) as BaseMessageOptions
         const embed = interactionUtils.createInformationEmbed(description, lineup.isAnonymous() ? undefined : user)
         reply.embeds = (reply.embeds || []).concat(embed)
         await channel.send(reply)
@@ -726,12 +726,12 @@ class TeamService {
         await regionService.sendToModerationChannel(client, team.region, { embeds: [informationEmbed] })
     }
 
-    async sendMessage(client: Client, guildId: string, messageOptions: MessageOptions): Promise<void> {
+    async sendMessage(client: Client, guildId: string, BaseMessageOptions: BaseMessageOptions): Promise<void> {
         const channelIds = await this.findChannelIdsByGuildId(guildId)
         await Promise.all(channelIds.map(async channelId => {
             const [channel] = await handle(client.channels.fetch(channelId))
             if (channel instanceof TextChannel) {
-                channel?.send(messageOptions)
+                channel?.send(BaseMessageOptions)
             }
         }))
     }

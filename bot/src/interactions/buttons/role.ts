@@ -1,4 +1,4 @@
-import { ButtonInteraction, GuildMember, MessageOptions } from "discord.js";
+import { ButtonInteraction, GuildMember, BaseMessageOptions } from "discord.js";
 import { interactionUtils } from "../../services/interactionUtils";
 import { matchmakingService } from "../../services/matchmakingService";
 import { statsService } from "../../services/statsService";
@@ -118,7 +118,7 @@ export default {
             description += `\nThe challenge request has been cancelled.`
         }
 
-        let reply = await interactionUtils.createReplyForLineup(lineup, autoSearchResult.updatedLineupQueue) as MessageOptions
+        let reply = await interactionUtils.createReplyForLineup(lineup, autoSearchResult.updatedLineupQueue) as BaseMessageOptions
         const informationEmbed = interactionUtils.createInformationEmbed(description, lineup.isAnonymous() ? undefined : interaction.user)
         reply.embeds = (reply.embeds || []).concat(informationEmbed)
         await interaction.channel?.send(reply)

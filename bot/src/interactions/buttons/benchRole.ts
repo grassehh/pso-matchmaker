@@ -1,4 +1,4 @@
-import { ButtonInteraction, GuildMember, MessageOptions } from "discord.js";
+import { ButtonInteraction, GuildMember, BaseMessageOptions } from "discord.js";
 import { MAX_BENCH_SIZE } from "../../constants";
 import { IButtonHandler } from "../../handlers/buttonHandler";
 import { ILineup } from "../../mongoSchema";
@@ -30,7 +30,7 @@ export default {
         const roleSelected = interaction.customId.substring(interaction.customId.indexOf('_') + 1)
         lineup = (await teamService.joinBench(interaction.user, lineup, [roleSelected], interaction.member as GuildMember)) as ILineup
 
-        let reply = await interactionUtils.createReplyForLineup(lineup) as MessageOptions
+        let reply = await interactionUtils.createReplyForLineup(lineup) as BaseMessageOptions
         let informationEmbed
         if (lineup.isAnonymous()) {
             informationEmbed = interactionUtils.createInformationEmbed(':inbox_tray: A player joined the bench')

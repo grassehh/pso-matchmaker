@@ -1,4 +1,4 @@
-import { ButtonInteraction, ComponentType, EmbedBuilder, GuildMember, Interaction, MessageOptions } from "discord.js";
+import { ButtonInteraction, ComponentType, EmbedBuilder, GuildMember, Interaction, BaseMessageOptions } from "discord.js";
 import { DEFAULT_RATING } from "../../constants";
 import { IButtonHandler } from "../../handlers/buttonHandler";
 import { ILineup, IRole, IUser } from "../../mongoSchema";
@@ -115,7 +115,7 @@ export default {
 
             lineup.roles = firstTeamRoles.concat(secondTeamRoles)
 
-            let reply = await interactionUtils.createReplyForLineup(lineup) as MessageOptions
+            let reply = await interactionUtils.createReplyForLineup(lineup) as BaseMessageOptions
             const embed = interactionUtils.createInformationEmbed(description, interaction.user)
             reply.embeds = reply.embeds!.concat(embed)
             reply.components = interactionUtils.createCaptainsPickComponent(remainingRoles)
@@ -199,7 +199,7 @@ export default {
         }
 
         const embed = interactionUtils.createInformationEmbed(description, interaction.user)
-        let reply = await interactionUtils.createReplyForLineup(lineup) as MessageOptions
+        let reply = await interactionUtils.createReplyForLineup(lineup) as BaseMessageOptions
         reply.embeds = reply.embeds!.concat(embed)
         await interaction.channel?.send(reply)
     }
