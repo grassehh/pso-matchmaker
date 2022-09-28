@@ -24,7 +24,7 @@
         "dotenv": "16.0.2",
         "emoji-regex": "10.1.0",
         "math-z-score": "1.0.0",
-        "mongoose": "6.6.0",
+        "mongoose": "6.6.2",
         "node-cron": "3.0.2",
         "simple-elo-rating": "1.0.0",
         "uuid": "9.0.0"
