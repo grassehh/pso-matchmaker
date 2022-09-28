@@ -1,4 +1,4 @@
-import { Message, MessageOptions, SelectMenuInteraction } from "discord.js";
+import { Message, BaseMessageOptions, SelectMenuInteraction } from "discord.js";
 import { DEFAULT_RATING, MAX_NUMBER_OF_MERCS, MERC_USER_ID } from "../../constants";
 import { ISelectMenuHandler } from "../../handlers/selectMenuHandler";
 import { ILineup, IUser } from "../../mongoSchema";
@@ -106,7 +106,7 @@ export default {
                 return
             }
 
-            let reply = await interactionUtils.createReplyForLineup(lineup, autoSearchResult.updatedLineupQueue) as MessageOptions
+            let reply = await interactionUtils.createReplyForLineup(lineup, autoSearchResult.updatedLineupQueue) as BaseMessageOptions
             reply.embeds = (reply.embeds || []).concat(embed)
             await interaction.channel?.send(reply)
         })

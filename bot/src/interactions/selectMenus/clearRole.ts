@@ -1,4 +1,4 @@
-import { MessageOptions, SelectMenuInteraction } from "discord.js";
+import { BaseMessageOptions, SelectMenuInteraction } from "discord.js";
 import { ISelectMenuHandler } from "../../handlers/selectMenuHandler";
 import { ILineup } from "../../mongoSchema";
 import { interactionUtils } from "../../services/interactionUtils";
@@ -42,7 +42,7 @@ export default {
             description += `\n:inbox_tray: ${benchUserToTransfer.mention} came off the bench and joined the **${roleToClear.name}** position.`
         }
 
-        let reply = await interactionUtils.createReplyForLineup(lineup, autoSearchResult.updatedLineupQueue) as MessageOptions
+        let reply = await interactionUtils.createReplyForLineup(lineup, autoSearchResult.updatedLineupQueue) as BaseMessageOptions
         const embed = interactionUtils.createInformationEmbed(description, interaction.user)
         reply.embeds = (reply.embeds || []).concat(embed)
         await interaction.update({ components: [] })

@@ -1,4 +1,4 @@
-import { ActionRowBuilder, ButtonBuilder, ButtonInteraction, ButtonStyle, ChannelType, Client, CommandInteraction, EmbedBuilder, Interaction, InteractionReplyOptions, Message, MessageOptions, SelectMenuBuilder, SelectMenuInteraction, TextChannel, User } from "discord.js";
+import { ActionRowBuilder, ButtonBuilder, ButtonInteraction, ButtonStyle, ChannelType, Client, CommandInteraction, EmbedBuilder, Interaction, InteractionReplyOptions, Message, BaseMessageOptions, SelectMenuBuilder, SelectMenuInteraction, TextChannel, User } from "discord.js";
 import { DeleteResult } from "mongodb";
 import { UpdateWriteOpResult } from "mongoose";
 import { Elo } from "simple-elo-rating";
@@ -557,7 +557,7 @@ class MatchmakingService {
         })
 
         let channel = await interaction.client.channels.fetch(challenge.challengedTeam.lineup.channelId) as TextChannel
-        let challengedMessage = await channel!.send(interactionUtils.createDecideChallengeReply(interaction, challenge) as MessageOptions)
+        let challengedMessage = await channel!.send(interactionUtils.createDecideChallengeReply(interaction, challenge) as BaseMessageOptions)
         challenge.challengedMessageId = challengedMessage.id
 
         await this.reserveLineupQueuesByIds([lineupQueueIdToChallenge, lineupQueue._id.toString()], challenge._id.toString())
@@ -771,7 +771,7 @@ class MatchmakingService {
                 newInitiatingTeamLineup.lastMatchDate = match.schedule
                 await teamService.upsertLineup(newInitiatingTeamLineup)
                 await teamService.updateTeamLastMatchDateByGuildId(newInitiatingTeamLineup.team.guildId, match.schedule)
-                const reply = await interactionUtils.createReplyForLineup(newInitiatingTeamLineup) as MessageOptions
+                const reply = await interactionUtils.createReplyForLineup(newInitiatingTeamLineup) as BaseMessageOptions
                 const initiatingTeamChannel = await client.channels.fetch(challenge.initiatingTeam.lineup.channelId) as TextChannel
                 await initiatingTeamChannel.send(reply)
                 if (challenge.initiatingMessageId) {
@@ -796,14 +796,14 @@ class MatchmakingService {
                     await teamService.upsertLineup(newMixLineup)
                     await teamService.updateTeamLastMatchDateByGuildId(newMixLineup.team.guildId, match.schedule)
                     await this.updateLineupQueueRoles(nonNullChallengedLineup.channelId, newMixLineup.roles)
-                    const reply = await interactionUtils.createReplyForLineup(newMixLineup) as MessageOptions
+                    const reply = await interactionUtils.createReplyForLineup(newMixLineup) as BaseMessageOptions
                     const challengedTeamChannel = await client.channels.fetch(challenge.challengedTeam.lineup.channelId) as TextChannel
                     await challengedTeamChannel.send(reply)
                 } else {
                     await this.leaveQueue(challenge.challengedTeam)
                     const newChallengedTeamLineup = nonNullChallengedLineup.moveAllBenchToLineup()
                     await teamService.upsertLineup(newChallengedTeamLineup)
-                    const reply = await interactionUtils.createReplyForLineup(newChallengedTeamLineup) as MessageOptions
+                    const reply = await interactionUtils.createReplyForLineup(newChallengedTeamLineup) as BaseMessageOptions
                     const [channel] = await handle(client.channels.fetch(newChallengedTeamLineup.channelId)) as TextChannel[]
                     await channel?.send(reply)
                 }
@@ -827,7 +827,7 @@ class MatchmakingService {
             newMixLineup.lastMatchDate = match.schedule
             await teamService.upsertLineup(newMixLineup)
             await teamService.updateTeamLastMatchDateByGuildId(newMixLineup.team.guildId, match.schedule)
-            const reply = await interactionUtils.createReplyForLineup(newMixLineup) as MessageOptions
+            const reply = await interactionUtils.createReplyForLineup(newMixLineup) as BaseMessageOptions
             const [channel] = await handle(client.channels.fetch(newMixLineup.channelId)) as TextChannel[]
             await channel?.send(reply)
             await this.updateLineupQueueRoles(newMixLineup.channelId, newMixLineup.roles)

@@ -1,4 +1,4 @@
-import { Client, Guild, GuildMember, MessageOptions, PermissionFlagsBits, TextChannel } from "discord.js"
+import { Client, Guild, GuildMember, BaseMessageOptions, PermissionFlagsBits, TextChannel } from "discord.js"
 import { MINIMUM_MATCHES_BEFORE_RANKED } from "../constants"
 import { IPlayerStats, ITeam } from "../mongoSchema"
 import { handle } from "../utils"
@@ -143,12 +143,12 @@ class RegionService {
         ]
     }
 
-    async sendToModerationChannel(client: Client, region: Region, messageOptions: MessageOptions) {
+    async sendToModerationChannel(client: Client, region: Region, BaseMessageOptions: BaseMessageOptions) {
         const regionData = this.getRegionData(region)
         if (regionData.moderationChannelId) {
             const [channel] = await handle(client.channels.fetch(regionData.moderationChannelId))
             if (channel instanceof TextChannel) {
-                await channel.send(messageOptions)
+                await channel.send(BaseMessageOptions)
             }
         }
     }

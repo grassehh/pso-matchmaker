@@ -1,5 +1,5 @@
 import { SlashCommandBuilder } from "@discordjs/builders";
-import { ChatInputCommandInteraction, MessageOptions } from "discord.js";
+import { ChatInputCommandInteraction, BaseMessageOptions } from "discord.js";
 import { ICommandHandler } from "../../handlers/commandHandler";
 import { interactionUtils } from "../../services/interactionUtils";
 import { teamService } from "../../services/teamService";
@@ -28,7 +28,7 @@ export default {
             return
         }
 
-        const reply = await interactionUtils.createReplyForLineup(lineup) as MessageOptions
+        const reply = await interactionUtils.createReplyForLineup(lineup) as BaseMessageOptions
         reply.content = "Wake up @everyone ! It's time to sign !"
 
         await teamService.updateLastNotificationTime(interaction.channelId, now)

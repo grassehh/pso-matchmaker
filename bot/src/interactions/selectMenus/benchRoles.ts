@@ -1,4 +1,4 @@
-import { GuildMember, MessageOptions, SelectMenuInteraction } from "discord.js";
+import { GuildMember, BaseMessageOptions, SelectMenuInteraction } from "discord.js";
 import { MAX_BENCH_SIZE } from "../../constants";
 import { ISelectMenuHandler } from "../../handlers/selectMenuHandler";
 import { ILineup } from "../../mongoSchema";
@@ -36,7 +36,7 @@ export default {
         }
         lineup = (await teamService.joinBench(interaction.user, lineup, selectedRolesNames, interaction.member as GuildMember)) as ILineup
 
-        let reply = await interactionUtils.createReplyForLineup(lineup) as MessageOptions
+        let reply = await interactionUtils.createReplyForLineup(lineup) as BaseMessageOptions
         let informationEmbed
         if (lineup.isAnonymous()) {
             informationEmbed = interactionUtils.createInformationEmbed(':inbox_tray: A player joined the bench')
