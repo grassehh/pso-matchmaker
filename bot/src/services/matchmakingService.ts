@@ -1,4 +1,4 @@
-import { ActionRowBuilder, ButtonBuilder, ButtonInteraction, ButtonStyle, ChannelType, Client, CommandInteraction, EmbedBuilder, Interaction, InteractionReplyOptions, Message, BaseMessageOptions, SelectMenuBuilder, SelectMenuInteraction, TextChannel, User } from "discord.js";
+import { ActionRowBuilder, BaseMessageOptions, ButtonBuilder, ButtonInteraction, ButtonStyle, ChannelType, Client, CommandInteraction, EmbedBuilder, Interaction, InteractionReplyOptions, Message, SelectMenuBuilder, SelectMenuInteraction, TextChannel, User } from "discord.js";
 import { DeleteResult } from "mongodb";
 import { UpdateWriteOpResult } from "mongoose";
 import { Elo } from "simple-elo-rating";
@@ -133,6 +133,11 @@ class MatchmakingService {
                     }
                 }
             }
+
+            let challengingLineupQueue = await matchmakingService.findLineupQueueById(lineupQueue._id.toString())
+            if (challengingLineupQueue?.challengeId != null) {
+                continue
+            }
             const lineupQueueToChallenge = await LineupQueue.aggregate([
                 {
                     $match: match
@@ -217,7 +222,6 @@ class MatchmakingService {
             'lineup.team.region': region,
             'lineup.size': lineupSize,
             'lineup.type': LINEUP_TYPE_TEAM,
-            'lineup.autoMatchmaking': false,
             'challengeId': null,
             ranked
         }
@@ -319,45 +323,39 @@ class MatchmakingService {
     }
 
 
-    async joinQueue(lineup: ILineup, ranked: boolean): Promise<ILineupQueue> {
+    async joinQueue(client: Client, lineup: ILineup, ranked: boolean): Promise<ILineupQueue> {
         const lineupQueue = new LineupQueue({ lineup, ranked })
-        // const channelIds = await teamService.findAllChannelIdToNotify(lineup.team.region, lineup.channelId, lineup.size)
+        const channelIds = await teamService.findAllChannelIdToNotify(lineup.team.region, lineup.channelId, lineup.size)
 
-        //FIXME This eventually causes rate limit exceeding
-        /*let description = `**${teamService.formatTeamName(lineup)}**`
+        let playersSigned = lineup.numberOfSignedPlayers().toString()
+        if (!lineup.hasSignedRole(GK.name)) {
+            playersSigned += ' *(no GK)*'
+        }
         const teamEmbed = new EmbedBuilder()
             .setColor('#566573')
             .setTitle('A team is looking for a match !')
+            .addFields([
+                { name: "Team", value: lineup.prettyPrintName(), inline: true },
+                { name: "Players Signed", value: playersSigned, inline: true },
+                { name: "Game Mode", value: ranked ? '**Ranked**' : 'Casual', inline: true }
+            ])
             .setTimestamp()
-        description += `\n${lineup.roles.filter(role => role.user != null).length} players signed`
-        if (!teamService.hasGkSigned(lineupQueue.lineup)) {
-            description += ' **(no GK)**'
-        }
-        description += `\n\n*Contact ${user} for more information*`
-        teamEmbed.setDescription(description)
 
-        const challengeTeamRow = new ActionRowBuilder().addComponents(
+        const challengeTeamRow = new ActionRowBuilder<ButtonBuilder>().addComponents(
             new ButtonBuilder()
                 .setCustomId(`challenge_${lineupQueue.id}`)
                 .setLabel('Challenge them !')
                 .setEmoji('⚽')
-                .setStyle('PRIMARY')
+                .setStyle(ButtonStyle.Primary)
         )
-        
-        await Promise.all(channelIds.map(async (channelId: string) => {
+
+        for (let channelId of channelIds) {
             const [channel] = await handle(client.channels.fetch(channelId))
             if (!(channel instanceof TextChannel)) {
-                return null
+                continue
             }
-            const [message] = await handle(channel.send({ embeds: [teamEmbed], components: [challengeTeamRow] }))
-            return message ? { channelId: message.channelId, messageId: message.id } : null
-        }))
-            .then(notificationsMessages => {
-                lineupQueue.notificationMessages = notificationsMessages.filter(notEmpty)
-            })
-            .catch(console.error)
-            .finally(() => lineupQueue.save())
-            */
+            handle(channel.send({ embeds: [teamEmbed], components: [challengeTeamRow] }))
+        }
 
         lineupQueue.save()
         return lineupQueue
@@ -368,14 +366,6 @@ class MatchmakingService {
         if (lineupQueue.lineup.isNotTeam()) {
             return
         }
-
-        /*
-        await Promise.all(lineupQueue.notificationMessages.map(async (notificationMessage) => {
-            const channel = await client.channels.fetch(notificationMessage.channelId) as TextChannel
-            handle(channel.messages.delete(notificationMessage.messageId))
-        }))
-            .catch(console.error)
-            */
 
         await this.deleteLineupQueuesByChannelId(lineupQueue.lineup.channelId)
     }
@@ -529,11 +519,6 @@ class MatchmakingService {
 
         let lineupQueue = await this.findLineupQueueByChannelId(interaction.channelId) || undefined
 
-        if (lineupQueue && lineup.autoMatchmaking) {
-            await interaction.reply({ content: "⛔ You can't challenge a team while searching with the auto-matchmaking option enabled", ephemeral: true })
-            return
-        }
-
         const duplicatedUsersReply = await this.checkForDuplicatedPlayers(interaction.client, lineup, lineupQueueToChallenge.lineup)
         if (duplicatedUsersReply) {
             await interaction.reply(duplicatedUsersReply)
@@ -609,7 +594,7 @@ class MatchmakingService {
         }
 
         if (lineup.autoSearch === true && this.isLineupAllowedToJoinQueue(lineup) && !lineupQueue) {
-            autoSearchResult.updatedLineupQueue = await this.joinQueue(lineup, lineup.isAllowedToPlayRanked())
+            autoSearchResult.updatedLineupQueue = await this.joinQueue(client, lineup, lineup.isAllowedToPlayRanked())
             autoSearchResult.joinedQueue = true
             return autoSearchResult
         }

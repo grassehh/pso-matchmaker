@@ -560,7 +560,7 @@ class TeamService {
             {
                 $match: {
                     'team.region': region,
-                    type: { $nin: [LINEUP_TYPE_MIX, LINEUP_TYPE_CAPTAINS] },
+                    type: LINEUP_TYPE_TEAM,
                     channelId: { $ne: channelId },
                     size: lineupSize
                 }
