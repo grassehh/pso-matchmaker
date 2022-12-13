@@ -12,6 +12,7 @@ export enum Region {
     NORTH_AMERICA = 'NA',
     SOUTH_AMERICA = 'SA',
     EAST_ASIA = 'AS',
+    OCEANIA = 'OC',
     INTERNATIONAL = 'INTERNATIONAL'
 }
 

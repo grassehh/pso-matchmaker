@@ -22,7 +22,8 @@ export default {
                 { name: regionService.getRegionData(Region.EUROPE).label, value: Region.EUROPE },
                 { name: regionService.getRegionData(Region.NORTH_AMERICA).label, value: Region.NORTH_AMERICA },
                 { name: regionService.getRegionData(Region.SOUTH_AMERICA).label, value: Region.SOUTH_AMERICA },
-                { name: regionService.getRegionData(Region.EAST_ASIA).label, value: Region.EAST_ASIA }
+                { name: regionService.getRegionData(Region.EAST_ASIA).label, value: Region.EAST_ASIA },
+                { name: regionService.getRegionData(Region.OCEANIA).label, value: Region.OCEANIA }
             )
         ),
     authorizedRoles: [BOT_ADMIN_ROLE],
