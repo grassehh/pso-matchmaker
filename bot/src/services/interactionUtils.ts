@@ -194,6 +194,12 @@ class InteractionUtils {
                         label: 'East Asia',
                         value: Region.EAST_ASIA,
                         default: region === Region.EAST_ASIA
+                    },
+                    {
+                        emoji: '🇦🇺',
+                        label: 'Oceania',
+                        value: Region.OCEANIA,
+                        default: region === Region.OCEANIA
                     }
                 ])
         )
@@ -275,6 +281,12 @@ class InteractionUtils {
                         label: 'East Asia',
                         value: Region.EAST_ASIA,
                         default: region === Region.EAST_ASIA
+                    },
+                    {
+                        emoji: '🇦🇺',
+                        label: 'Oceania',
+                        value: Region.OCEANIA,
+                        default: region === Region.OCEANIA
                     }
                 ])
         )
@@ -362,6 +374,12 @@ class InteractionUtils {
                         label: 'East Asia',
                         value: Region.EAST_ASIA,
                         default: searchOptions.region === Region.EAST_ASIA
+                    },
+                    {
+                        emoji: '🇦🇺',
+                        label: 'Oceania',
+                        value: Region.OCEANIA,
+                        default: searchOptions.region === Region.OCEANIA
                     }
                 ])
         )

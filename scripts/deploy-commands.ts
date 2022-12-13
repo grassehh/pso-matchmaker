@@ -23,8 +23,10 @@ const rest = new REST({ version: '9' }).setToken(process.env.TOKEN as string);
 
 let putCommandsRoute
 if (process.env.GUILD_ID) {
+    console.log("GUILD_ID found in env. Updating guild commands.")
     putCommandsRoute = Routes.applicationGuildCommands(process.env.CLIENT_ID as string, process.env.GUILD_ID as string)
 } else {
+    console.log("GUILD_ID not found in env. Updating whole Discord commands.")
     putCommandsRoute = Routes.applicationCommands(process.env.CLIENT_ID as string)
 }
 rest.put(putCommandsRoute, { body: commands })
