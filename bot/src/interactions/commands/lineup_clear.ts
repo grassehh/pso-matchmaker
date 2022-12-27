@@ -5,11 +5,13 @@ import { ILineup } from "../../mongoSchema";
 import { interactionUtils } from "../../services/interactionUtils";
 import { matchmakingService } from "../../services/matchmakingService";
 import { teamService } from "../../services/teamService";
+import { BOT_ADMIN_ROLE } from "../../constants";
 
 export default {
     data: new SlashCommandBuilder()
         .setName('lineup_clear')
         .setDescription('Clears every roles in this lineup'),
+    authorizedRoles: [BOT_ADMIN_ROLE],
     async execute(interaction: ChatInputCommandInteraction) {
         let challenge = await matchmakingService.findChallengeByChannelId(interaction.channelId)
         if (challenge) {
