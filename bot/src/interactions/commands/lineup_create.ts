@@ -53,7 +53,7 @@ export default {
 
         const lineupSize = interaction.options.getInteger("size")!
         const autoSearch = interaction.options.getBoolean("auto_search") === true
-        const autoMatchmaking = interaction.options.getBoolean("auto_matchmaking") !== null ? interaction.options.getBoolean("auto_matchmaking")! : true
+        const autoMatchmaking = interaction.options.getBoolean("auto_matchmaking") === true
         const allowRanked = interaction.options.getBoolean("allow_ranked") !== null ? interaction.options.getBoolean("allow_ranked")! : true
 
         const lineup = teamService.createLineup(interaction.channelId, lineupSize, undefined, autoSearch, allowRanked, team, LINEUP_TYPE_TEAM, LINEUP_VISIBILITY_PUBLIC, autoMatchmaking)
