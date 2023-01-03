@@ -113,3 +113,6 @@ dist
 
 # Application build folder
 build
+
+# JetBrains Fleet
+.fleet/
