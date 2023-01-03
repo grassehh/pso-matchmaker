@@ -43,7 +43,7 @@ async function resetStats(): Promise<void> {
             await Promise.all(members.map(async (member) => {
                 if (member) {
                     const stats = statsChunk.find(stats => stats.userId === member.id)!
-                    const activityRoleId = regionService.getActivityRoleId(stats.numberOfRankedGames)
+                    const activityRoleId = regionService.getActivityRoleId(region, stats.numberOfRankedGames)
                     let newRating = DEFAULT_RATING
                     if (activityRoleId === process.env.PSO_EU_DISCORD_SENIOR_ROLE_ID) {
                         newRating = 1000

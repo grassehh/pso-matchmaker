@@ -66,13 +66,7 @@ class StatsService {
                     const [member] = await handle(regionGuild.members.fetch(userStats._id.toString()))
                     if (member instanceof GuildMember) {
                         await regionService.updateMemberTierRole(region, member, stats)
-
-                        /**
-                         * This is deprecated but we will keep it just for information
-                         */
-                        if (region === Region.EUROPE) {
-                            await regionService.updateMemberActivityRole(member, stats.numberOfRankedGames)
-                        }
+                        await regionService.updateMemberActivityRole(region, member, stats.numberOfRankedGames)
                     }
                 }))
             }
