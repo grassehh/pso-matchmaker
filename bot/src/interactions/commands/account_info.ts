@@ -50,6 +50,8 @@ export default {
                 { name: '\u200B', value: '\u200B' },
                 { name: 'Steam ID', value: userInDb.steamId ? userInDb.steamId : '*Account not linked*', inline: true },
                 { name: 'Steam profile', value: userInDb.steamId ? `https://steamcommunity.com/profiles/${userInDb.steamId}` : '*Account not linked*', inline: true },
+                { name: '\u200B', value: '\u200B' },
+                { name: 'Steam details', value:userInDb.steamId ? `https://steamid.uk/profile/${userInDb.steamId}` : '*Account not linked*', inline:true}
             ])
 
 
