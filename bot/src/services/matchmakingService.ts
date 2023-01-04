@@ -403,7 +403,7 @@ class MatchmakingService {
                         teamsActionRow.addComponents(
                             new ButtonBuilder()
                                 .setCustomId(`challenge_${availableTeam._id}`)
-                                .setLabel(availableTeam.lineup.prettyPrintName(TeamLogoDisplay.NONE))
+                                .setLabel(availableTeam.lineup.prettyPrintName(TeamLogoDisplay.NONE, false, false))
                                 .setStyle(ButtonStyle.Primary)
                         )
                     }
@@ -412,7 +412,7 @@ class MatchmakingService {
                         .setCustomId(`select_challenge`)
                         .setPlaceholder('Select a Team to challenge')
                     for (let availableTeam of availableTeams) {
-                        challengesSelectMenu.addOptions([{ label: availableTeam.lineup.prettyPrintName(TeamLogoDisplay.LEFT, availableTeam.lineup.team.verified), value: availableTeam._id.toString() }])
+                        challengesSelectMenu.addOptions([{ label: availableTeam.lineup.prettyPrintName(TeamLogoDisplay.LEFT, false, false), value: availableTeam._id.toString() }])
                     }
                     teamsActionRow.addComponents(challengesSelectMenu)
                 }
@@ -445,7 +445,7 @@ class MatchmakingService {
                 if (!teamService.hasGkSigned(availableMix.lineup)) {
                     lineupFieldValue += ' **(no GK)**'
                 }
-                mixLineupsEmbed.addFields([{ name: `${availableMix.lineup.prettyPrintName(TeamLogoDisplay.LEFT, true)}`, value: lineupFieldValue }])
+                mixLineupsEmbed.addFields([{ name: `${availableMix.lineup.prettyPrintName(TeamLogoDisplay.LEFT)}`, value: lineupFieldValue }])
             }
             let mixesActionRow = new ActionRowBuilder<ButtonBuilder | SelectMenuBuilder>()
             if (availableMixes.length < 6) {
@@ -453,7 +453,7 @@ class MatchmakingService {
                     mixesActionRow.addComponents(
                         new ButtonBuilder()
                             .setCustomId(`challenge_${availableMix._id}`)
-                            .setLabel(availableMix.lineup.prettyPrintName(TeamLogoDisplay.NONE))
+                            .setLabel(`${availableMix.lineup.prettyPrintName(TeamLogoDisplay.LEFT, false, false)}`)
                             .setStyle(ButtonStyle.Secondary)
                     )
                 }
@@ -462,7 +462,7 @@ class MatchmakingService {
                     .setCustomId(`select_challenge`)
                     .setPlaceholder('Select a Mix to challenge')
                 for (let availableMix of availableMixes) {
-                    challengesSelectMenu.addOptions([{ label: availableMix.lineup.prettyPrintName(TeamLogoDisplay.LEFT, true), value: availableMix._id.toString() }])
+                    challengesSelectMenu.addOptions([{ label: availableMix.lineup.prettyPrintName(TeamLogoDisplay.LEFT, false, false), value: availableMix._id.toString() }])
                 }
                 mixesActionRow.addComponents(challengesSelectMenu)
             }
