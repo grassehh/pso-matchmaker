@@ -31,7 +31,7 @@ userSchema.methods.isMerc = function (): boolean {
 export const User = model<IUser>('User', userSchema, 'users')
 
 export interface ITeam {
-    prettyPrintName(teamLogoDisplay?: TeamLogoDisplay): string,
+    prettyPrintName(teamLogoDisplay?: TeamLogoDisplay, useTextStyle?: boolean): string,
     getTierRoleId(): string | undefined,
     getAvailableTierRoleIds(): string[],
     hasPlayerOrCaptain(userId: string): boolean,
@@ -64,12 +64,12 @@ const teamSchema = new Schema<ITeam>({
     captains: { type: [userSchema], required: true, default: () => [] },
     players: { type: [userSchema], required: true, default: () => [] }
 })
-teamSchema.methods.prettyPrintName = function (teamLogoDisplay: TeamLogoDisplay = TeamLogoDisplay.LEFT) {
+teamSchema.methods.prettyPrintName = function (teamLogoDisplay: TeamLogoDisplay = TeamLogoDisplay.LEFT, useTextStyle: boolean = true) {
     let name: string = ''
     if (teamLogoDisplay === TeamLogoDisplay.LEFT) {
         name += `${this.logo ? `${this.logo} ` : ''}`
     }
-    name += `**${this.name}**`
+    name += `${useTextStyle ? `**${this.name}**` : `${this.name}`}`
     if (teamLogoDisplay === TeamLogoDisplay.RIGHT) {
         name += ` ${this.logo ? `${this.logo}` : ''}`
     }
@@ -123,7 +123,7 @@ export interface ILineup {
     getMercSignedRoles(lineupNumber?: number): IRole[],
     computePlayersAverageRating(lineupNumber?: number): number,
     isAllowedToPlayRanked(): boolean,
-    prettyPrintName(teamLogoDisplay?: TeamLogoDisplay, includeRating?: boolean): string,
+    prettyPrintName(teamLogoDisplay?: TeamLogoDisplay, includeRating?: boolean, useTextStyle?: boolean): string,
     getTierRoleId(client: Client): Promise<string>,
     isAnonymous(): boolean,
     hasSignedRole(roleName: string): boolean,
@@ -317,11 +317,11 @@ lineupSchema.methods.isAllowedToPlayRanked = function () {
         && !hasPlayersNotInVerifiedTeam
         && this.size >= MIN_LINEUP_SIZE_FOR_RANKED
 }
-lineupSchema.methods.prettyPrintName = function (teamLogoDisplay: TeamLogoDisplay = TeamLogoDisplay.LEFT, includeRating: boolean = false) {
-    let name: string = this.team.prettyPrintName(teamLogoDisplay)
+lineupSchema.methods.prettyPrintName = function (teamLogoDisplay: TeamLogoDisplay = TeamLogoDisplay.LEFT, includeRating: boolean = false, useTextStyle: boolean = true) {
+    let name: string = this.team.prettyPrintName(teamLogoDisplay, useTextStyle)
 
     if (this.name) {
-        name += ` - *${this.name}*`
+        name += ` - ${useTextStyle ? `*${this.name}*`:`${this.name}`}`
     }
 
     if (includeRating) {
@@ -331,7 +331,7 @@ lineupSchema.methods.prettyPrintName = function (teamLogoDisplay: TeamLogoDispla
         } else {
             rating = this.team.rating
         }
-        name += ` *(${rating})*`
+        name += ` ${useTextStyle ? `*(${rating})*`:`(${rating})`}`
     }
 
     return name
