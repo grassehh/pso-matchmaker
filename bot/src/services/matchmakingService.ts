@@ -400,19 +400,21 @@ class MatchmakingService {
                 let teamsActionRow = new ActionRowBuilder<ButtonBuilder | SelectMenuBuilder>()
                 if (availableTeams.length < 6) {
                     for (let availableTeam of availableTeams) {
-                        teamsActionRow.addComponents(
-                            new ButtonBuilder()
-                                .setCustomId(`challenge_${availableTeam._id}`)
-                                .setLabel(availableTeam.lineup.prettyPrintName(TeamLogoDisplay.NONE, false, false))
-                                .setStyle(ButtonStyle.Primary)
-                        )
+                        const button = new ButtonBuilder()
+                            .setCustomId(`challenge_${availableTeam._id}`)
+                            .setLabel(availableTeam.lineup.prettyPrintName(TeamLogoDisplay.NONE, false, false))
+                            .setStyle(ButtonStyle.Primary)
+                        if (availableTeam.lineup.team.logo) {
+                            button.setEmoji(availableTeam.lineup.team.logo)
+                        }
+                        teamsActionRow.addComponents(button)
                     }
                 } else {
                     const challengesSelectMenu = new SelectMenuBuilder()
                         .setCustomId(`select_challenge`)
                         .setPlaceholder('Select a Team to challenge')
                     for (let availableTeam of availableTeams) {
-                        challengesSelectMenu.addOptions([{ label: availableTeam.lineup.prettyPrintName(TeamLogoDisplay.LEFT, false, false), value: availableTeam._id.toString() }])
+                        challengesSelectMenu.addOptions([{ label: availableTeam.lineup.prettyPrintName(TeamLogoDisplay.NONE, false, false), emoji: availableTeam.lineup.team.logo, value: availableTeam._id.toString() }])
                     }
                     teamsActionRow.addComponents(challengesSelectMenu)
                 }
@@ -450,19 +452,21 @@ class MatchmakingService {
             let mixesActionRow = new ActionRowBuilder<ButtonBuilder | SelectMenuBuilder>()
             if (availableMixes.length < 6) {
                 for (let availableMix of availableMixes) {
-                    mixesActionRow.addComponents(
-                        new ButtonBuilder()
-                            .setCustomId(`challenge_${availableMix._id}`)
-                            .setLabel(`${availableMix.lineup.prettyPrintName(TeamLogoDisplay.LEFT, false, false)}`)
-                            .setStyle(ButtonStyle.Secondary)
-                    )
+                    const button = new ButtonBuilder()
+                        .setCustomId(`challenge_${availableMix._id}`)
+                        .setLabel(availableMix.lineup.prettyPrintName(TeamLogoDisplay.NONE, false, false))
+                        .setStyle(ButtonStyle.Primary)
+                    if (availableMix.lineup.team.logo) {
+                        button.setEmoji(availableMix.lineup.team.logo)
+                    }
+                    mixesActionRow.addComponents(button)
                 }
             } else {
                 const challengesSelectMenu = new SelectMenuBuilder()
                     .setCustomId(`select_challenge`)
                     .setPlaceholder('Select a Mix to challenge')
                 for (let availableMix of availableMixes) {
-                    challengesSelectMenu.addOptions([{ label: availableMix.lineup.prettyPrintName(TeamLogoDisplay.LEFT, false, false), value: availableMix._id.toString() }])
+                    challengesSelectMenu.addOptions([{ label: availableMix.lineup.prettyPrintName(TeamLogoDisplay.NONE, false, false), emoji: availableMix.lineup.team.logo, value: availableMix._id.toString() }])
                 }
                 mixesActionRow.addComponents(challengesSelectMenu)
             }
