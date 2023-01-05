@@ -1,4 +1,4 @@
-import { ActionRowBuilder, ButtonBuilder, ButtonInteraction, ButtonStyle, Client, CommandInteraction, EmbedBuilder, Interaction, InteractionReplyOptions, InteractionUpdateOptions, Message, BaseMessageOptions, SelectMenuBuilder, SelectMenuInteraction, User, UserManager } from "discord.js";
+import { ActionRowBuilder, ButtonBuilder, ButtonInteraction, ButtonStyle, Client, CommandInteraction, EmbedBuilder, Interaction, InteractionReplyOptions, InteractionUpdateOptions, Message, BaseMessageOptions, StringSelectMenuBuilder, SelectMenuInteraction, User, UserManager } from "discord.js";
 import { BOT_ADMIN_ROLE, DEFAULT_RATING, MAX_TEAM_CAPTAINS, MAX_TEAM_PLAYERS } from "../constants";
 import { IChallenge, ILineup, ILineupQueue, IRole, IRoleBench, IPlayerStats, ITeam, IUser, PlayerStats, TeamStats, ITeamStats } from "../mongoSchema";
 import { handle } from "../utils";
@@ -156,8 +156,8 @@ class InteractionUtils {
     }
 
     async createPlayerStatsReply(user: User, region: Region): Promise<InteractionReplyOptions | InteractionUpdateOptions> {
-        const statsTypeComponent = new ActionRowBuilder<SelectMenuBuilder>().addComponents(
-            new SelectMenuBuilder()
+        const statsTypeComponent = new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(
+            new StringSelectMenuBuilder()
                 .setCustomId(`player_stats_scope_select_${user.id}`)
                 .setPlaceholder('Stats Type')
                 .addOptions([
@@ -243,8 +243,8 @@ class InteractionUtils {
     }
 
     async createTeamStatsReply(team: ITeam, region: Region): Promise<InteractionReplyOptions | InteractionUpdateOptions> {
-        const statsTypeComponent = new ActionRowBuilder<SelectMenuBuilder>().addComponents(
-            new SelectMenuBuilder()
+        const statsTypeComponent = new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(
+            new StringSelectMenuBuilder()
                 .setCustomId(`team_stats_scope_select_${team.guildId}`)
                 .setPlaceholder('Stats Type')
                 .addOptions([
@@ -336,8 +336,8 @@ class InteractionUtils {
         }
 
         const leaderboardEmbed: EmbedBuilder = await this.createLeaderboardEmbed(interaction, numberOfPages, searchOptions)
-        const scopeActionRow = new ActionRowBuilder<SelectMenuBuilder>().addComponents(
-            new SelectMenuBuilder()
+        const scopeActionRow = new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(
+            new StringSelectMenuBuilder()
                 .setCustomId(`leaderboard_scope_select_${searchOptions.statsType}_${searchOptions.gameType}`)
                 .setPlaceholder('Stats Scope')
                 .addOptions([
@@ -379,8 +379,8 @@ class InteractionUtils {
                     }
                 ])
         )
-        const statsTypeActionRow = new ActionRowBuilder<SelectMenuBuilder>().addComponents(
-            new SelectMenuBuilder()
+        const statsTypeActionRow = new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(
+            new StringSelectMenuBuilder()
                 .setCustomId(`leaderboard_type_select_${searchOptions.region}_${searchOptions.gameType}`)
                 .setPlaceholder('Stats Type')
                 .addOptions([
@@ -398,8 +398,8 @@ class InteractionUtils {
                     }
                 ])
         )
-        const gameTypeActionRow = new ActionRowBuilder<SelectMenuBuilder>().addComponents(
-            new SelectMenuBuilder()
+        const gameTypeActionRow = new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(
+            new StringSelectMenuBuilder()
                 .setCustomId(`leaderboard_game_type_select_${searchOptions.statsType}_${searchOptions.region}`)
                 .setPlaceholder('Game Type')
                 .addOptions([
@@ -419,7 +419,7 @@ class InteractionUtils {
         )
 
         const paginationActionRow = this.createLeaderboardPaginationActionRow(numberOfPages, searchOptions)
-        const components: ActionRowBuilder<ButtonBuilder | SelectMenuBuilder>[] = [scopeActionRow, statsTypeActionRow]
+        const components: ActionRowBuilder<ButtonBuilder | StringSelectMenuBuilder>[] = [scopeActionRow, statsTypeActionRow]
         if (searchOptions.statsType === StatsType.PLAYERS) {
             components.push(gameTypeActionRow)
         }

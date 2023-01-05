@@ -1,4 +1,4 @@
-import { ActionRowBuilder, BaseMessageOptions, ButtonBuilder, ButtonInteraction, ButtonStyle, ChannelType, Client, CommandInteraction, EmbedBuilder, Interaction, InteractionReplyOptions, Message, SelectMenuBuilder, SelectMenuInteraction, TextChannel, User } from "discord.js";
+import { ActionRowBuilder, BaseMessageOptions, ButtonBuilder, ButtonInteraction, ButtonStyle, ChannelType, Client, CommandInteraction, EmbedBuilder, Interaction, InteractionReplyOptions, Message, StringSelectMenuBuilder, SelectMenuInteraction, TextChannel, User } from "discord.js";
 import { DeleteResult } from "mongodb";
 import { UpdateWriteOpResult } from "mongoose";
 import { Elo } from "simple-elo-rating";
@@ -378,7 +378,7 @@ class MatchmakingService {
             const teamLineupsEmbed = new EmbedBuilder()
                 .setColor('#5865f2')
                 .setTitle(`Teams (${gameMode})`)
-            let teamsActionComponents: ActionRowBuilder<ButtonBuilder | SelectMenuBuilder>[] = []
+            let teamsActionComponents: ActionRowBuilder<ButtonBuilder | StringSelectMenuBuilder>[] = []
             if (availableTeams.length === 0) {
                 teamLineupsEmbed.setDescription(`No Team available for ${lineup.size}v${lineup.size}`)
             } else {
@@ -389,7 +389,7 @@ class MatchmakingService {
                     teamLineupEmbedDescription += '\n\n'
                 }
                 teamLineupsEmbed.setDescription(teamLineupEmbedDescription)
-                let teamsActionRow = new ActionRowBuilder<ButtonBuilder | SelectMenuBuilder>()
+                let teamsActionRow = new ActionRowBuilder<ButtonBuilder | StringSelectMenuBuilder>()
                 if (availableTeams.length < 6) {
                     for (let availableTeam of availableTeams) {
                         const button = new ButtonBuilder()
@@ -402,7 +402,7 @@ class MatchmakingService {
                         teamsActionRow.addComponents(button)
                     }
                 } else {
-                    const challengesSelectMenu = new SelectMenuBuilder()
+                    const challengesSelectMenu = new StringSelectMenuBuilder()
                         .setCustomId(`select_challenge`)
                         .setPlaceholder('Select a Team to challenge')
                     for (let availableTeam of availableTeams) {
@@ -430,7 +430,7 @@ class MatchmakingService {
             }
             availableMixes = filteredMixes
         }
-        let mixesActionComponents: ActionRowBuilder<ButtonBuilder | SelectMenuBuilder>[] = []
+        let mixesActionComponents: ActionRowBuilder<ButtonBuilder | StringSelectMenuBuilder>[] = []
         if (availableMixes.length === 0) {
             mixLineupsEmbed.setDescription(`No Mix available for ${lineup.size}v${lineup.size}`)
         } else {
@@ -444,7 +444,7 @@ class MatchmakingService {
                 mixLineupEmbedDescription += '\n\n'
             }
             mixLineupsEmbed.setDescription(mixLineupEmbedDescription)
-            let mixesActionRow = new ActionRowBuilder<ButtonBuilder | SelectMenuBuilder>()
+            let mixesActionRow = new ActionRowBuilder<ButtonBuilder | StringSelectMenuBuilder>()
             if (availableMixes.length < 6) {
                 for (let availableMix of availableMixes) {
                     const button = new ButtonBuilder()
@@ -457,7 +457,7 @@ class MatchmakingService {
                     mixesActionRow.addComponents(button)
                 }
             } else {
-                const challengesSelectMenu = new SelectMenuBuilder()
+                const challengesSelectMenu = new StringSelectMenuBuilder()
                     .setCustomId(`select_challenge`)
                     .setPlaceholder('Select a Mix to challenge')
                 for (let availableMix of availableMixes) {

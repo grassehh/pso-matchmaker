@@ -9,7 +9,7 @@ import { handle } from '../utils';
 export default {
     name: 'interactionCreate',
     async execute(interaction: Interaction) {
-        if (!interaction.isChatInputCommand() && !interaction.isButton() && !interaction.isSelectMenu()) {
+        if (!interaction.isChatInputCommand() && !interaction.isButton() && !interaction.isAnySelectMenu()) {
             return
         }
 
@@ -54,7 +54,7 @@ export default {
                 return
             }
 
-            if (interaction.isButton() || interaction.isSelectMenu()) {
+            if (interaction.isButton() || interaction.isAnySelectMenu()) {
                 for (const componentInteraction of componentInteractions) {
                     if (interaction.customId.startsWith(componentInteraction.customId)) {
                         componentInteraction.execute(interaction);

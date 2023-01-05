@@ -1,4 +1,4 @@
-import { ActionRowBuilder, ButtonBuilder, ButtonInteraction, ButtonStyle, EmbedBuilder, InteractionUpdateOptions, Message, SelectMenuBuilder } from "discord.js";
+import { ActionRowBuilder, ButtonBuilder, ButtonInteraction, ButtonStyle, EmbedBuilder, InteractionUpdateOptions, Message, StringSelectMenuBuilder } from "discord.js";
 import { MAX_TEAM_CODE_LENGTH, MAX_TEAM_NAME_LENGTH } from "../../constants";
 import { IButtonHandler } from "../../handlers/buttonHandler";
 import { ITeam } from "../../mongoSchema";
@@ -164,9 +164,9 @@ async function editTeamCode(interaction: ButtonInteraction, guildId: string) {
 }
 
 async function editTeamType(interaction: ButtonInteraction, guildId: string) {
-    const teamTypeActionRow = new ActionRowBuilder<SelectMenuBuilder>()
+    const teamTypeActionRow = new ActionRowBuilder<StringSelectMenuBuilder>()
         .addComponents(
-            new SelectMenuBuilder()
+            new StringSelectMenuBuilder()
                 .setCustomId(`team_edit_type_${guildId}`)
                 .setPlaceholder('Select a new type')
                 .addOptions([
