@@ -79,18 +79,14 @@ class InteractionUtils {
             reply.embeds = reply.embeds?.concat(this.createInformationEmbed(`${challenge.initiatingTeam.lineup.prettyPrintName()} is challenging the mix`, interaction.user))
             return reply
         } else {
-            let description = challenge.initiatingTeam.lineup.prettyPrintName(TeamLogoDisplay.LEFT, challenge.initiatingTeam.lineup.team.verified)
+            let teamEmbedDescription = challenge.initiatingTeam.lineup.prettyPrintName(TeamLogoDisplay.LEFT, challenge.initiatingTeam.lineup.team.verified)
+            teamEmbedDescription += `\n**${challenge.initiatingTeam.lineup.numberOfSignedPlayers()}** players${!challenge.initiatingTeam.lineup.hasGkSigned() ? ' **(no Goal Keeper)**' : ''}`
             const challengeEmbed = new EmbedBuilder()
                 .setColor('#566573')
                 .setTitle(`A team wants to play against you !`)
+                .setDescription(teamEmbedDescription)
                 .setTimestamp()
                 .setFooter({ text: `Author: ${interaction.user.username}` })
-            description += `\n${challenge.initiatingTeam.lineup.roles.filter(role => role.user != null).length} players signed`
-            if (!teamService.hasGkSigned(challenge.initiatingTeam.lineup)) {
-                description += ' **(no GK)**'
-            }
-            description += `\n\n*Contact ${challenge.initiatingUser.mention} for more information*`
-            challengeEmbed.setDescription(description)
             let challengeActionRow = new ActionRowBuilder<ButtonBuilder>()
                 .addComponents(
                     new ButtonBuilder()
@@ -899,7 +895,7 @@ class InteractionUtils {
                 .setColor('#0099ff')
                 .setTitle(`:vs:`)
             let fieldValue = challengingLineup.roles.filter(role => role.user != null).length + ' players signed'
-            if (!teamService.hasGkSigned(challengingLineup)) {
+            if (!challengingLineup.hasGkSigned()) {
                 fieldValue += ' **(no GK)**'
             }
             secondLineupEmbed.addFields([{ name: challengingLineup.prettyPrintName(TeamLogoDisplay.LEFT, lineup.team.verified), value: fieldValue }])

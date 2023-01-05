@@ -54,19 +54,12 @@ export default {
             if (challenge.initiatingTeam.lineup.channelId === lineup.channelId) {
                 const challengedTeamLineup = (await teamService.retrieveLineup(challenge.challengedTeam.lineup.channelId))!
                 let description = challengedTeamLineup.prettyPrintName(TeamLogoDisplay.LEFT, challengedTeamLineup.team.verified)
-                description += `\n${challengedTeamLineup.roles.filter(role => role.user != null).length} players signed`
-                if (!teamService.hasGkSigned(challengedTeamLineup)) {
-                    description += ' **(no GK)**'
-                }
-                lineupStatusEmbed.setTitle(`💬 You are challenging a ${challengedTeamLineup.isMix() ? 'mix' : 'team'}`)
-                    .setDescription(description)
+                description += `\n**${challengedTeamLineup.numberOfSignedPlayers()}** players${!challengedTeamLineup.hasGkSigned() ? ' **(no Goal Keeper)**' : ''}`
+                lineupStatusEmbed.setTitle(`💬 You are challenging a ${challengedTeamLineup.isMix() ? 'mix' : 'team'}`).setDescription(description)
             } else {
                 const initiatingTeamLineup = (await teamService.retrieveLineup(challenge.initiatingTeam.lineup.channelId))!
                 let description = initiatingTeamLineup.prettyPrintName(TeamLogoDisplay.LEFT, initiatingTeamLineup.team.verified)
-                description += `\n${initiatingTeamLineup.roles.filter(role => role.user != null).length} players signed`
-                if (!teamService.hasGkSigned(initiatingTeamLineup)) {
-                    description += ' **(no GK)**'
-                }
+                description += `\n**${initiatingTeamLineup.numberOfSignedPlayers()}** players${!initiatingTeamLineup.hasGkSigned() ? ' **(no Goal Keeper)**' : ''}`
                 description += `\n\n*Contact ${challenge.initiatingUser.mention} for more information*`
                 lineupStatusEmbed.setTitle(`🤝 A team wants to play against you`)
                     .setDescription(description)

@@ -112,10 +112,6 @@ class TeamService {
         return name.length > 0 && name.length <= MAX_LINEUP_NAME_LENGTH
     }
 
-    hasGkSigned(lineup: ILineup): boolean {
-        return lineup.roles.find(role => role.name.includes('GK'))?.user != null;
-    }
-
     async deleteTeam(guildId: string): Promise<void> {
         Promise.all([
             matchmakingService.deleteChallengesByGuildId(guildId),
