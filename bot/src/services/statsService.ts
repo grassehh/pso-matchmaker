@@ -1,4 +1,4 @@
-import { Client, GuildMember, Role } from "discord.js"
+import { Client, GuildMember } from "discord.js"
 import { MERC_USER_ID, MIN_LINEUP_SIZE_FOR_RANKED, RATING_DOWNGRADE_AMOUNT } from "../constants"
 import { IPlayerStats, ITeamStats, PlayerStats, TeamStats } from "../mongoSchema"
 import { handle } from "../utils"
@@ -6,22 +6,6 @@ import { GameType } from "./interactionUtils"
 import { Region, regionService } from "./regionService"
 
 class StatsService {
-    getLevelEmojiFromMember(member: GuildMember): string {
-        if (member.roles.cache.some((role: Role) => role.id === process.env.PSO_EU_DISCORD_VETERAN_ROLE_ID)) {
-            return '🔴 '
-        }
-        if (member.roles.cache.some((role: Role) => role.id === process.env.PSO_EU_DISCORD_SENIOR_ROLE_ID)) {
-            return '🟣 '
-        }
-        if (member.roles.cache.some((role: Role) => role.id === process.env.PSO_EU_DISCORD_REGULAR_ROLE_ID)) {
-            return '🟠 '
-        }
-        if (member.roles.cache.some((role: Role) => role.id === process.env.PSO_EU_DISCORD_CASUAL_ROLE_ID)) {
-            return '🟡 '
-        }
-
-        return ''
-    }
 
     async countNumberOfPlayers(region: Region): Promise<number> {
         return (await PlayerStats.distinct('userId', region !== Region.INTERNATIONAL ? { region } : {})).length
