@@ -1,5 +1,5 @@
 
-import { ActionRowBuilder, ButtonInteraction, GuildMember, SelectMenuBuilder } from "discord.js";
+import { ActionRowBuilder, ButtonInteraction, GuildMember, StringSelectMenuBuilder } from "discord.js";
 import { IButtonHandler } from "../../handlers/buttonHandler";
 import { authorizationService } from "../../services/authorizationService";
 import { interactionUtils } from "../../services/interactionUtils";
@@ -20,7 +20,7 @@ export default {
             return
         }
 
-        const clearRoleSelectMenu = new SelectMenuBuilder()
+        const clearRoleSelectMenu = new StringSelectMenuBuilder()
             .setCustomId(`select_clearRole_${selectedLineupNumber}`)
             .setPlaceholder('Select a position')
 
@@ -29,6 +29,6 @@ export default {
             clearRoleSelectMenu.addOptions([{ label: role.name, value: role.name }])
         }
 
-        await interaction.reply({ content: 'Select the position you want to clear', components: [new ActionRowBuilder<SelectMenuBuilder>().addComponents(clearRoleSelectMenu)], ephemeral: true })
+        await interaction.reply({ content: 'Select the position you want to clear', components: [new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(clearRoleSelectMenu)], ephemeral: true })
     }
 } as IButtonHandler

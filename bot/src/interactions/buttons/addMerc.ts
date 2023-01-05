@@ -1,5 +1,5 @@
 
-import { ActionRowBuilder, ButtonInteraction, GuildMember, SelectMenuBuilder } from "discord.js";
+import { ActionRowBuilder, ButtonInteraction, GuildMember, StringSelectMenuBuilder } from "discord.js";
 import { IButtonHandler } from "../../handlers/buttonHandler";
 import { authorizationService } from "../../services/authorizationService";
 import { interactionUtils } from "../../services/interactionUtils";
@@ -20,7 +20,7 @@ export default {
         }
 
         const selectedLineupNumber = parseInt(interaction.customId.split('_')[1])
-        const mercRoleSelectMenu = new SelectMenuBuilder()
+        const mercRoleSelectMenu = new StringSelectMenuBuilder()
             .setCustomId(`select_addMerc_${selectedLineupNumber}`)
             .setPlaceholder('Select a position')
 
@@ -29,7 +29,7 @@ export default {
             mercRoleSelectMenu.addOptions([{ label: role.name, value: role.name }])
         }
 
-        const component = new ActionRowBuilder<SelectMenuBuilder>().addComponents(mercRoleSelectMenu)
+        const component = new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(mercRoleSelectMenu)
 
         await interaction.reply({ content: 'Which position do you want to sign the player on ?', components: [component], ephemeral: true })
     }

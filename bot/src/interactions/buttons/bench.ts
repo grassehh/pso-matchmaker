@@ -1,4 +1,4 @@
-import { ActionRowBuilder, ButtonBuilder, ButtonInteraction, SelectMenuBuilder } from "discord.js";
+import { ActionRowBuilder, ButtonBuilder, ButtonInteraction, StringSelectMenuBuilder } from "discord.js";
 import { IButtonHandler } from "../../handlers/buttonHandler";
 import { IRole } from "../../mongoSchema";
 import { interactionUtils } from "../../services/interactionUtils";
@@ -27,7 +27,7 @@ export default {
             availableRolesToBench = lineup.roles.filter(role => role.lineupNumber === selectedLineupNumber).filter(role => role.user)
         }
 
-        const benchRoleSelectMenu = new SelectMenuBuilder()
+        const benchRoleSelectMenu = new StringSelectMenuBuilder()
             .setCustomId(`select_bench`)
             .setPlaceholder('... or select multiple positions !')
             .setMaxValues(availableRolesToBench.length + 1)
@@ -36,7 +36,7 @@ export default {
             benchRoleSelectMenu.addOptions([{ label: role.name, value: `${role.name}_${role.lineupNumber}` }])
         }
 
-        let components: ActionRowBuilder<SelectMenuBuilder | ButtonBuilder>[] = []
+        let components: ActionRowBuilder<StringSelectMenuBuilder | ButtonBuilder>[] = []
         let roles: IRole[] = []
         if (lineup.isSoloQueue()) {
             const firstLineupRoles = lineup.roles.filter(r => r.lineupNumber === 1)
@@ -52,7 +52,7 @@ export default {
             roles = lineup.roles.filter(role => role.lineupNumber === selectedLineupNumber)
         }
         components = interactionUtils.createRolesActionRows(roles, true)
-        components.push(new ActionRowBuilder<SelectMenuBuilder>().addComponents(benchRoleSelectMenu))
+        components.push(new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(benchRoleSelectMenu))
 
         await interaction.reply({ content: '**Select one position you want to bench ...**', components, ephemeral: true })
     }

@@ -1,5 +1,5 @@
 import { SlashCommandBuilder } from "@discordjs/builders";
-import { ActionRowBuilder, ChatInputCommandInteraction, SelectMenuBuilder } from "discord.js";
+import { ActionRowBuilder, ChatInputCommandInteraction, StringSelectMenuBuilder } from "discord.js";
 import { ICommandHandler } from "../../handlers/commandHandler";
 import { interactionUtils } from "../../services/interactionUtils";
 import { matchmakingService } from "../../services/matchmakingService";
@@ -30,8 +30,8 @@ export default {
             return
         }
 
-        const subSelectActionRow = new ActionRowBuilder<SelectMenuBuilder>()
-        const subRoleSelectMenu = new SelectMenuBuilder()
+        const subSelectActionRow = new ActionRowBuilder<StringSelectMenuBuilder>()
+        const subRoleSelectMenu = new StringSelectMenuBuilder()
             .setCustomId(`subRequest_select_${match.matchId}`)
             .setPlaceholder('Which position do you need a sub for ?')
 
