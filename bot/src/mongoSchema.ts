@@ -321,7 +321,7 @@ lineupSchema.methods.prettyPrintName = function (teamLogoDisplay: TeamLogoDispla
     let name: string = this.team.prettyPrintName(teamLogoDisplay, useTextStyle)
 
     if (this.name) {
-        name += ` - ${useTextStyle ? `*${this.name}*`:`${this.name}`}`
+        name += ` - ${useTextStyle ? `*${this.name}*` : `${this.name}`}`
     }
 
     if (includeRating) {
@@ -331,7 +331,7 @@ lineupSchema.methods.prettyPrintName = function (teamLogoDisplay: TeamLogoDispla
         } else {
             rating = this.team.rating
         }
-        name += ` ${useTextStyle ? `*(${rating})*`:`(${rating})`}`
+        name += ` ${useTextStyle ? `*(${rating})*` : `(${rating})`}`
     }
 
     return name
@@ -349,7 +349,7 @@ lineupSchema.methods.isAnonymous = function (): boolean {
     return this.isSoloQueue() && this.allowRanked
 }
 lineupSchema.methods.hasGkSigned = function (): boolean {
-    return this.roles.filter((role: IRole) => role.user).some((role: IRole) => role.name === GK.name)
+    return this.roles.filter((role: IRole) => role.lineupNumber === 1).filter((role: IRole) => role.user).some((role: IRole) => role.name === GK.name)
 }
 lineupSchema.methods.distributeRolesForSoloQueue = function (): void {
     const newRoles: IRole[] = []
