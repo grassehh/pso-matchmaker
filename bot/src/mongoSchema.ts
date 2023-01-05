@@ -3,7 +3,7 @@ import { model, Schema, Types } from "mongoose";
 import { DEFAULT_RATING, MERC_USER_ID, MIN_LINEUP_SIZE_FOR_RANKED } from "./constants";
 import { MatchResult } from "./services/matchmakingService";
 import { Region, regionService } from "./services/regionService";
-import { LINEUP_TYPE_CAPTAINS, LINEUP_TYPE_MIX, LINEUP_TYPE_SOLO, LINEUP_TYPE_TEAM, LINEUP_VISIBILITY_PUBLIC, LINEUP_VISIBILITY_TEAM, ROLE_NAME_ANY, TeamLogoDisplay, TeamType } from "./services/teamService";
+import { GK, LINEUP_TYPE_CAPTAINS, LINEUP_TYPE_MIX, LINEUP_TYPE_SOLO, LINEUP_TYPE_TEAM, LINEUP_VISIBILITY_PUBLIC, LINEUP_VISIBILITY_TEAM, ROLE_NAME_ANY, TeamLogoDisplay, TeamType } from "./services/teamService";
 import { notEmpty } from "./utils";
 
 export interface IUser {
@@ -126,7 +126,7 @@ export interface ILineup {
     prettyPrintName(teamLogoDisplay?: TeamLogoDisplay, includeRating?: boolean, useTextStyle?: boolean): string,
     getTierRoleId(client: Client): Promise<string>,
     isAnonymous(): boolean,
-    hasSignedRole(roleName: string): boolean,
+    hasGkSigned(): boolean,
     distributeRolesForSoloQueue(): void,
     channelId: string,
     size: number,
@@ -348,8 +348,8 @@ lineupSchema.methods.getTierRoleId = async function (client: Client): Promise<st
 lineupSchema.methods.isAnonymous = function (): boolean {
     return this.isSoloQueue() && this.allowRanked
 }
-lineupSchema.methods.hasSignedRole = function (roleName: string): boolean {
-    return this.roles.filter((role: IRole) => role.user).some((role: IRole) => role.name === roleName)
+lineupSchema.methods.hasGkSigned = function (): boolean {
+    return this.roles.filter((role: IRole) => role.user).some((role: IRole) => role.name === GK.name)
 }
 lineupSchema.methods.distributeRolesForSoloQueue = function (): void {
     const newRoles: IRole[] = []

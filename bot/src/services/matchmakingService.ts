@@ -9,7 +9,7 @@ import { handle, notEmpty } from "../utils";
 import { interactionUtils } from "./interactionUtils";
 import { Region, regionService } from "./regionService";
 import { statsService } from "./statsService";
-import { GK, LINEUP_TYPE_CAPTAINS, LINEUP_TYPE_MIX, LINEUP_TYPE_TEAM, LINEUP_VISIBILITY_PUBLIC, LINEUP_VISIBILITY_TEAM, RankedStats, ROLE_GOAL_KEEPER, TeamLogoDisplay, teamService } from "./teamService";
+import { LINEUP_TYPE_CAPTAINS, LINEUP_TYPE_MIX, LINEUP_TYPE_TEAM, LINEUP_VISIBILITY_PUBLIC, LINEUP_VISIBILITY_TEAM, RankedStats, ROLE_GOAL_KEEPER, TeamLogoDisplay, teamService } from "./teamService";
 const ZScore = require("math-z-score");
 
 export enum MatchResult {
@@ -125,7 +125,7 @@ class MatchmakingService {
                 ranked: lineupQueue.ranked,
                 challengeId: null
             }
-            if (!lineupQueue.lineup.hasSignedRole(GK.name)) {
+            if (!lineupQueue.lineup.hasGkSigned()) {
                 match['lineup.roles'] = {
                     $elemMatch: {
                         type: ROLE_GOAL_KEEPER,
@@ -331,17 +331,12 @@ class MatchmakingService {
         const channelIds = await teamService.findAllChannelIdToNotify(lineup.team.region, lineup.channelId, lineup.size)
 
         if (!ranked) {
-            let playersSigned = lineup.numberOfSignedPlayers().toString()
-            if (!lineup.hasSignedRole(GK.name)) {
-                playersSigned += ' *(no GK)*'
-            }
+            let teamEmbedDescription = lineup.prettyPrintName()
+            teamEmbedDescription += `\n**${lineup.numberOfSignedPlayers()}** players${!lineup.hasGkSigned() ? ' **(no Goal Keeper)**' : ''}`
             const teamEmbed = new EmbedBuilder()
                 .setColor('#566573')
                 .setTitle('A team wants to play a casual match !')
-                .addFields([
-                    { name: "Team", value: lineup.prettyPrintName(), inline: true },
-                    { name: "Players Signed", value: playersSigned, inline: true }
-                ])
+                .setDescription(teamEmbedDescription)
                 .setTimestamp()
 
             const challengeTeamRow = new ActionRowBuilder<ButtonBuilder>().addComponents(
@@ -390,10 +385,7 @@ class MatchmakingService {
                 let teamLineupEmbedDescription = ''
                 for (let availableTeam of availableTeams) {
                     teamLineupEmbedDescription += `${availableTeam.lineup.prettyPrintName(TeamLogoDisplay.LEFT, availableTeam.lineup.team.verified)}\n`
-                    teamLineupEmbedDescription += availableTeam.lineup.roles.filter(role => role.lineupNumber === 1).filter(role => role.user != null).length + ' players signed'
-                    if (!teamService.hasGkSigned(availableTeam.lineup)) {
-                        teamLineupEmbedDescription += ' **(no GK)**'
-                    }
+                    teamLineupEmbedDescription += `**${availableTeam.lineup.numberOfSignedPlayers()}** players${!availableTeam.lineup.hasGkSigned() ? ' **(no Goal Keeper)**' : ''}`
                     teamLineupEmbedDescription += '\n\n'
                 }
                 teamLineupsEmbed.setDescription(teamLineupEmbedDescription)
@@ -442,13 +434,16 @@ class MatchmakingService {
         if (availableMixes.length === 0) {
             mixLineupsEmbed.setDescription(`No Mix available for ${lineup.size}v${lineup.size}`)
         } else {
+            let mixLineupEmbedDescription = ''
             for (let availableMix of availableMixes) {
-                let lineupFieldValue = availableMix.lineup.roles.filter(role => role.lineupNumber === 1).filter(role => role.user != null).length + ' players signed'
-                if (!teamService.hasGkSigned(availableMix.lineup)) {
-                    lineupFieldValue += ' **(no GK)**'
+                mixLineupEmbedDescription += `${availableMix.lineup.prettyPrintName(TeamLogoDisplay.LEFT)}\n`
+                mixLineupEmbedDescription += `**${availableMix.lineup.numberOfSignedPlayers()}** players`
+                if (availableMix.lineup.numberOfSignedPlayers() > 0 && !availableMix.lineup.hasGkSigned()) {
+                    mixLineupEmbedDescription += ' **(no Goal Keeper)**'
                 }
-                mixLineupsEmbed.addFields([{ name: `${availableMix.lineup.prettyPrintName(TeamLogoDisplay.LEFT)}`, value: lineupFieldValue }])
+                mixLineupEmbedDescription += '\n\n'
             }
+            mixLineupsEmbed.setDescription(mixLineupEmbedDescription)
             let mixesActionRow = new ActionRowBuilder<ButtonBuilder | SelectMenuBuilder>()
             if (availableMixes.length < 6) {
                 for (let availableMix of availableMixes) {
