@@ -1,4 +1,4 @@
-import { Client, Guild, GuildMember, BaseMessageOptions, PermissionFlagsBits, TextChannel } from "discord.js"
+import { Client, Guild, GuildMember, BaseMessageOptions, PermissionFlagsBits, TextChannel, Role } from "discord.js"
 import { MINIMUM_MATCHES_BEFORE_RANKED } from "../constants"
 import { IPlayerStats, ITeam } from "../mongoSchema"
 import { handle } from "../utils"
@@ -140,11 +140,11 @@ class RegionService {
     }
 
     getAvailableTierRoleIds(region: Region, rating: number): string[] {
-        const regionData = this.getRegionData(region)
-        if (!this.areTierRoleIdsDefined(regionData)) {
+        if (!this.areTierRoleIdsDefined(region)) {
             return []
         }
 
+        const regionData = this.getRegionData(region)
         const tierRoleIds: string[] = []
         if (rating >= regionData.tier3Threshold!) {
             tierRoleIds.push(regionData.tier3RoleId as string)
@@ -158,11 +158,11 @@ class RegionService {
     }
 
     getTierRoleId(region: Region, rating: number): string | undefined {
-        const regionData = this.getRegionData(region)
-        if (!this.areTierRoleIdsDefined(regionData)) {
+        if (!this.areTierRoleIdsDefined(region)) {
             return undefined
         }
 
+        const regionData = this.getRegionData(region)
         if (rating >= regionData.tier3Threshold!) {
             return regionData.tier3RoleId as string
         }
@@ -173,11 +173,11 @@ class RegionService {
     }
 
     getAllTierRoleIds(region: Region): string[] {
-        const regionData = this.getRegionData(region)
-        if (!this.areTierRoleIdsDefined(regionData)) {
+        if (!this.areTierRoleIdsDefined(region)) {
             return []
         }
 
+        const regionData = this.getRegionData(region)
         return [
             regionData.tier3RoleId as string,
             regionData.tier2RoleId as string,
@@ -186,11 +186,11 @@ class RegionService {
     }
 
     getActivityRoleId(region: Region, numberOfGames: number): string | undefined {
-        const regionData = this.getRegionData(region)
-        if (!this.areActivityRoleIdsDefined(regionData)) {
+        if (!this.areActivityRoleIdsDefined(region)) {
             return undefined
         }
 
+        const regionData = this.getRegionData(region)
         if (numberOfGames >= 800) {
             return regionData.veteranRoleId
         }
@@ -204,12 +204,34 @@ class RegionService {
         return regionData.casualRoleId
     }
 
-    private getAllActivityRolesId(region: Region): string[] {
+    getActivityRoleEmoji(region: Region, member: GuildMember): string | undefined {
+        if (!this.areActivityRoleIdsDefined(region)) {
+            return undefined
+        }
+
         const regionData = this.getRegionData(region)
-        if (!this.areTierRoleIdsDefined(regionData)) {
+        if (member.roles.cache.some((role: Role) => role.id === regionData.veteranRoleId)) {
+            return '🔴 '
+        }
+        if (member.roles.cache.some((role: Role) => role.id === regionData.seniorRoleId)) {
+            return '🟣 '
+        }
+        if (member.roles.cache.some((role: Role) => role.id === regionData.regularRoleId)) {
+            return '🟠 '
+        }
+        if (member.roles.cache.some((role: Role) => role.id === regionData.casualRoleId)) {
+            return '🟡 '
+        }
+
+        return ''
+    }
+
+    private getAllActivityRolesId(region: Region): string[] {
+        if (!this.areTierRoleIdsDefined(region)) {
             return []
         }
 
+        const regionData = this.getRegionData(region)
         return [
             regionData.casualRoleId as string,
             regionData.regularRoleId as string,
@@ -218,11 +240,13 @@ class RegionService {
         ]
     }
 
-    private areTierRoleIdsDefined(regionData: RegionData) {
+    private areTierRoleIdsDefined(region: Region) {
+        const regionData = this.getRegionData(region)
         return regionData.tier1RoleId && regionData.tier2RoleId && regionData.tier2Threshold
     }
 
-    private areActivityRoleIdsDefined(regionData: RegionData) {
+    private areActivityRoleIdsDefined(region: Region) {
+        const regionData = this.getRegionData(region)
         return regionData.casualRoleId && regionData.regularRoleId && regionData.seniorRoleId && regionData.veteranRoleId
     }
 }
