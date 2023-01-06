@@ -1,4 +1,4 @@
-import { ActionRowBuilder, BaseMessageOptions, ButtonBuilder, ButtonInteraction, ButtonStyle, ChannelType, Client, CommandInteraction, EmbedBuilder, Interaction, InteractionReplyOptions, Message, StringSelectMenuBuilder, SelectMenuInteraction, TextChannel, User } from "discord.js";
+import { ActionRowBuilder, BaseMessageOptions, ButtonBuilder, ButtonInteraction, ButtonStyle, ChannelType, Client, CommandInteraction, EmbedBuilder, Interaction, InteractionReplyOptions, Message, StringSelectMenuBuilder, SelectMenuInteraction, TextChannel, User, SelectMenuComponentOptionData } from "discord.js";
 import { DeleteResult } from "mongodb";
 import { UpdateWriteOpResult } from "mongoose";
 import { Elo } from "simple-elo-rating";
@@ -390,14 +390,15 @@ class MatchmakingService {
                 }
                 teamLineupsEmbed.setDescription(teamLineupEmbedDescription)
                 let teamsActionRow = new ActionRowBuilder<ButtonBuilder | StringSelectMenuBuilder>()
-                if (availableTeams.length < 6) {
+                if (availableTeams.length > 6) {
                     for (let availableTeam of availableTeams) {
                         const button = new ButtonBuilder()
                             .setCustomId(`challenge_${availableTeam._id}`)
                             .setLabel(availableTeam.lineup.prettyPrintName(TeamLogoDisplay.NONE, false, false))
                             .setStyle(ButtonStyle.Primary)
-                        if (availableTeam.lineup.team.logo) {
-                            button.setEmoji(availableTeam.lineup.team.logo)
+                        const validatedTeamLogo = await teamService.validateTeamLogo(interaction.client, availableTeam.lineup.team.guildId, availableTeam.lineup.team.logo)
+                        if (validatedTeamLogo) {
+                            button.setEmoji(validatedTeamLogo)
                         }
                         teamsActionRow.addComponents(button)
                     }
@@ -406,7 +407,12 @@ class MatchmakingService {
                         .setCustomId(`select_challenge`)
                         .setPlaceholder('Select a Team to challenge')
                     for (let availableTeam of availableTeams) {
-                        challengesSelectMenu.addOptions([{ label: availableTeam.lineup.prettyPrintName(TeamLogoDisplay.NONE, false, false), emoji: availableTeam.lineup.team.logo, value: availableTeam._id.toString() }])
+                        let selectMenuOption: SelectMenuComponentOptionData = { label: availableTeam.lineup.prettyPrintName(TeamLogoDisplay.NONE, false, false), value: availableTeam._id.toString() }
+                        const validatedTeamLogo = await teamService.validateTeamLogo(interaction.client, availableTeam.lineup.team.guildId, availableTeam.lineup.team.logo)
+                        if (validatedTeamLogo) {
+                            selectMenuOption.emoji = validatedTeamLogo
+                        }
+                        challengesSelectMenu.addOptions([selectMenuOption])
                     }
                     teamsActionRow.addComponents(challengesSelectMenu)
                 }
@@ -445,14 +451,15 @@ class MatchmakingService {
             }
             mixLineupsEmbed.setDescription(mixLineupEmbedDescription)
             let mixesActionRow = new ActionRowBuilder<ButtonBuilder | StringSelectMenuBuilder>()
-            if (availableMixes.length < 6) {
+            if (availableMixes.length > 6) {
                 for (let availableMix of availableMixes) {
                     const button = new ButtonBuilder()
                         .setCustomId(`challenge_${availableMix._id}`)
                         .setLabel(availableMix.lineup.prettyPrintName(TeamLogoDisplay.NONE, false, false))
                         .setStyle(ButtonStyle.Primary)
-                    if (availableMix.lineup.team.logo) {
-                        button.setEmoji(availableMix.lineup.team.logo)
+                    const validatedTeamLogo = await teamService.validateTeamLogo(interaction.client, availableMix.lineup.team.guildId, availableMix.lineup.team.logo)
+                    if (validatedTeamLogo) {
+                        button.setEmoji(validatedTeamLogo)
                     }
                     mixesActionRow.addComponents(button)
                 }
@@ -461,7 +468,12 @@ class MatchmakingService {
                     .setCustomId(`select_challenge`)
                     .setPlaceholder('Select a Mix to challenge')
                 for (let availableMix of availableMixes) {
-                    challengesSelectMenu.addOptions([{ label: availableMix.lineup.prettyPrintName(TeamLogoDisplay.NONE, false, false), emoji: availableMix.lineup.team.logo, value: availableMix._id.toString() }])
+                    let selectMenuOption: SelectMenuComponentOptionData = { label: availableMix.lineup.prettyPrintName(TeamLogoDisplay.NONE, false, false), value: availableMix._id.toString() }
+                    const validatedTeamLogo = await teamService.validateTeamLogo(interaction.client, availableMix.lineup.team.guildId, availableMix.lineup.team.logo)
+                    if (validatedTeamLogo) {
+                        selectMenuOption.emoji = validatedTeamLogo
+                    }
+                    challengesSelectMenu.addOptions([selectMenuOption])
                 }
                 mixesActionRow.addComponents(challengesSelectMenu)
             }

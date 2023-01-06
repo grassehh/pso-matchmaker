@@ -13,7 +13,7 @@ export function notEmpty<TValue>(value: TValue | null | undefined): value is TVa
     return value !== null && value !== undefined;
 }
 
-export function getEmojis(text: string): string[] {
+export function getUnicodeEmojis(text: string): string[] {
     const regex = emojiRegex();
     let match;
     let emojis = [];
@@ -22,9 +22,4 @@ export function getEmojis(text: string): string[] {
     }
 
     return emojis
-}
-
-const customEmojiRegex = /(<a?)?:\w+:(\d{18}>)?/
-export function isCustomEmoji(text: string): boolean {
-    return customEmojiRegex.exec(text) !== null
 }
