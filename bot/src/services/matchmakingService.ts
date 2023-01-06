@@ -390,7 +390,7 @@ class MatchmakingService {
                 }
                 teamLineupsEmbed.setDescription(teamLineupEmbedDescription)
                 let teamsActionRow = new ActionRowBuilder<ButtonBuilder | StringSelectMenuBuilder>()
-                if (availableTeams.length > 6) {
+                if (availableTeams.length < 6) {
                     for (let availableTeam of availableTeams) {
                         const button = new ButtonBuilder()
                             .setCustomId(`challenge_${availableTeam._id}`)
@@ -451,7 +451,7 @@ class MatchmakingService {
             }
             mixLineupsEmbed.setDescription(mixLineupEmbedDescription)
             let mixesActionRow = new ActionRowBuilder<ButtonBuilder | StringSelectMenuBuilder>()
-            if (availableMixes.length > 6) {
+            if (availableMixes.length < 6) {
                 for (let availableMix of availableMixes) {
                     const button = new ButtonBuilder()
                         .setCustomId(`challenge_${availableMix._id}`)
