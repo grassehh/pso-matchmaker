@@ -5,7 +5,6 @@ import { ITeam } from "../../mongoSchema";
 import { interactionUtils } from "../../services/interactionUtils";
 import { regionService } from "../../services/regionService";
 import { teamService, TeamType, TeamTypeHelper } from "../../services/teamService";
-import { getEmojis, isCustomEmoji } from "../../utils";
 
 async function editTeamLogo(interaction: ButtonInteraction, guildId: string) {
     const filter = (m: Message) => interaction.user.id === m.author.id
@@ -17,19 +16,13 @@ async function editTeamLogo(interaction: ButtonInteraction, guildId: string) {
         if (m.content === 'delete') {
             team = await teamService.updateTeamLogo(guildId, null) as ITeam
         } else {
-            let logo
-            const emojis = getEmojis(m.content)
-            if (emojis.length > 0) {
-                logo = emojis[0]
-            } else if (isCustomEmoji(m.content)) {
-                logo = m.content
-            }
-            if (!logo) {
+            const validatedTeamLogo = await teamService.validateTeamLogo(interaction.client, guildId, m.content)
+            if (!validatedTeamLogo) {
+                await interaction.followUp({ content: '⛔ Only valid emojis are allowed (example: :flag_eu:)', ephemeral: true })
                 collector.resetTimer()
-                await interaction.followUp({ content: '⛔ Only emojis are allowed (example: :flag_eu:)', ephemeral: true })
                 return
             }
-            team = await teamService.updateTeamLogo(guildId, logo) as ITeam
+            team = await teamService.updateTeamLogo(guildId, validatedTeamLogo) as ITeam
         }
 
         teamChanged = true
