@@ -3,7 +3,7 @@ import { DeleteResult } from "mongodb";
 import { UpdateWriteOpResult } from "mongoose";
 import { MAX_LINEUP_NAME_LENGTH, MAX_TEAM_CODE_LENGTH, MAX_TEAM_NAME_LENGTH } from "../constants";
 import { Bans, IBan, ILineup, IRole, IRoleBench, IPlayerStats, ITeam, IUser, Lineup, LineupQueue, Team, TeamStats, ITeamStats } from "../mongoSchema";
-import { getEmojis, handle } from "../utils";
+import { getUnicodeEmojis, handle } from "../utils";
 import { interactionUtils } from "./interactionUtils";
 import { matchmakingService } from "./matchmakingService";
 import { Region, regionService } from "./regionService";
@@ -87,7 +87,7 @@ class TeamService {
             return null
         }
 
-        if (getEmojis(filteredName).length !== 0) {
+        if (getUnicodeEmojis(filteredName).length !== 0) {
             return null
         }
 
@@ -100,7 +100,7 @@ class TeamService {
             return null
         }
 
-        if (getEmojis(filteredName).length !== 0) {
+        if (getUnicodeEmojis(filteredName).length !== 0) {
             return null
         }
 
@@ -109,6 +109,35 @@ class TeamService {
 
     validateLineupName(name: string): boolean {
         return name.length > 0 && name.length <= MAX_LINEUP_NAME_LENGTH
+    }
+
+    async validateTeamLogo(client: Client, guildId: string, logo?: string): Promise<string | null> {
+        if (!logo) {
+            return null
+        }
+
+        const emojis = getUnicodeEmojis(logo)
+        if (emojis.length > 0) {
+            return emojis[0]
+        } else {
+            const [guild] = await handle(client.guilds.fetch(guildId))
+            if (!guild) {
+                return null
+            }
+            const emojiIdentifier = guild.emojis.resolveIdentifier(logo)
+            if (!emojiIdentifier) {
+                return null
+            }
+            const customEmojiIdentifierSplit = emojiIdentifier.split("%3A")
+            if (customEmojiIdentifierSplit.length !== 2) {
+                return null
+            }
+            const [customEmoji] = await handle(guild.emojis.fetch(customEmojiIdentifierSplit[1], { force: true }))
+            if (!customEmoji || !customEmoji.available) {
+                return null
+            }
+            return customEmoji.toString()
+        }
     }
 
     async deleteTeam(guildId: string): Promise<void> {
