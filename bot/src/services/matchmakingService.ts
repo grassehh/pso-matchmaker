@@ -871,23 +871,10 @@ class MatchmakingService {
 
         pipeline = pipeline.concat([
             {
-                $group: {
-                    _id: '$userId',
-                    rating: {
-                        $avg: '$mixCaptainsRating',
-                    }
-                }
+                $sort: { 'numberOfRankedGames': -1 },
             },
             {
-                $sort: { 'rating': -1 },
-            },
-            {
-                $limit: 4
-            },
-            {
-                $sample: {
-                    size: 4
-                }
+                $limit: 2
             }
         ])
 
