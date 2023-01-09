@@ -1,7 +1,7 @@
 import { ButtonInteraction, ComponentType, EmbedBuilder, GuildMember, Interaction, BaseMessageOptions } from "discord.js";
 import { DEFAULT_RATING } from "../../constants";
 import { IButtonHandler } from "../../handlers/buttonHandler";
-import { ILineup, IRole, IUser } from "../../mongoSchema";
+import { ILineup, IRole, IUser, IPlayerStats } from "../../mongoSchema";
 import { interactionUtils } from "../../services/interactionUtils";
 import { matchmakingService } from "../../services/matchmakingService";
 import { statsService } from "../../services/statsService";
@@ -59,7 +59,7 @@ export default {
             lineup = await teamService.startPicking(lineup.channelId) as ILineup
 
             const allUserIds = lineup.roles.filter(role => role.type !== ROLE_GOAL_KEEPER).map(role => role.user).filter(notEmpty).map(user => user.id)
-            let captainsIds = (await matchmakingService.findTwoMostRelevantCaptains(allUserIds)).map((result: any) => result._id)
+            let captainsIds = (await matchmakingService.findTwoMostRelevantCaptains(allUserIds)).map((result: IPlayerStats) => result.userId)
             if (captainsIds.length < 2) {
                 captainsIds = [allUserIds.splice(Math.floor(Math.random() * allUserIds.length), 1)[0], allUserIds.splice(Math.floor(Math.random() * allUserIds.length), 1)[0]]
             }
