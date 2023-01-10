@@ -13,7 +13,7 @@ class AuthorizationService {
         }
 
         if (!interaction.guild?.members.me) {
-            return null
+            return false
         }
 
         return interaction.channel.permissionsFor(interaction.guild.members.me).has([PermissionsBitField.Flags.ViewChannel, PermissionsBitField.Flags.SendMessages]);
