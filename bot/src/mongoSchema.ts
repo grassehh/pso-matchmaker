@@ -141,6 +141,7 @@ export interface ILineup {
     isPicking?: boolean | false,
     allowRanked: boolean,
     lastNotificationTime?: Date | null,
+    lastSearchTime: Date,
     lastMatchDate?: Date
 }
 const lineupSchema = new Schema<ILineup>({
@@ -204,6 +205,11 @@ const lineupSchema = new Schema<ILineup>({
     lastNotificationTime: {
         type: Date,
         required: false
+    },
+    lastSearchTime: {
+        type: Date,
+        required: false,
+        default: () => new Date("1970-01-01")
     },
     lastMatchDate: {
         type: Date,

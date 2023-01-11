@@ -330,7 +330,9 @@ class MatchmakingService {
         const lineupQueue = new LineupQueue({ lineup, ranked })
         const channelIds = await teamService.findAllChannelIdToNotify(lineup.team.region, lineup.channelId, lineup.size)
 
-        if (!ranked) {
+        if (!ranked && lineup.lastSearchTime && Math.abs(lineup.lastSearchTime.getTime() - Date.now()) > 5 * 60 * 1000) {
+            await teamService.updateLastSearchTime(lineup.channelId, new Date())
+
             let teamEmbedDescription = lineup.prettyPrintName()
             teamEmbedDescription += `\n**${lineup.numberOfSignedPlayers()}** players${!lineup.hasGkSigned() ? ' **(no Goal Keeper)**' : ''}`
             const teamEmbed = new EmbedBuilder()
@@ -1098,7 +1100,7 @@ class MatchmakingService {
                 .setDescription(`
                     **Please join the match as soon as possible**
                     The lobby can be found in the **"Custom Lobbies"** menu of the game
-                    ${match.ranked ? '' : '*If you need a sub, use the **/request_sub** command*'}`)
+                    ${match.ranked ? '' : '*If you need a sub, use the **/sub_request** command*'}`)
                 .addFields([
                     { name: 'Match ID', value: `${match.matchId}` },
                     { name: 'Lobby Name', value: `${match.lobbyName}`, inline: true },

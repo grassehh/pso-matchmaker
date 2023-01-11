@@ -39,7 +39,7 @@ export default {
         const playerDmEmbed = new EmbedBuilder()
             .setColor('#6aa84f')
             .setTitle(`⚽ Sub Request Accepted ⚽`)
-            .setDescription(`You are playing **${position}**${match.ranked ? '' : '\n\n*If you need a sub, use the **/request_sub** command*'}`)
+            .setDescription(`You are playing **${position}**${match.ranked ? '' : '\n\n*If you need a sub, use the **/sub_request** command*'}`)
             .addFields([
                 { name: 'Match ID', value: `${match.matchId}` },
                 { name: 'Lobby Name', value: `${match.lobbyName}`, inline: true },

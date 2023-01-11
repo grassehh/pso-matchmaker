@@ -645,6 +645,10 @@ class TeamService {
         return Lineup.updateOne({ channelId }, { 'lastNotificationTime': time })
     }
 
+    async updateLastSearchTime(channelId: string, time: Date): Promise<UpdateWriteOpResult> {
+        return Lineup.updateOne({ channelId }, { 'lastSearchTime': time })
+    }
+
     async deleteBansByGuildId(guildId: string): Promise<DeleteResult> {
         return Bans.deleteMany({ guildId })
     }
