@@ -1,8 +1,9 @@
 # Description
-<figure align="center">
-    <img src="./doc/images/logo.png"  width="250" height="250"  >
-    <figcaption>(Image credits: Reis)</figcaption>
-</figure>
+<p align="center">
+    <img src="./doc/images/logo.png" width="250" height="250"/>
+    <br/>
+    <i>(Image credits: Reis)</i>
+</p>
 
 **pso-matchmaker** is a Discord bot initially developped for the game [Pro Soccer Online](https://store.steampowered.com/app/1583320/Pro_Soccer_Online/).
 <br>You are free to fork it and use it for your own purpose, by adapting some of the text content in the code.
