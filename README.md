@@ -1,4 +1,9 @@
 # Description
+<figure align="center">
+    <img src="./doc/images/logo.png"  width="250" height="250"  >
+    <figcaption>(Image credits: Reis)</figcaption>
+</figure>
+
 **pso-matchmaker** is a Discord bot initially developped for the game [Pro Soccer Online](https://store.steampowered.com/app/1583320/Pro_Soccer_Online/).
 <br>You are free to fork it and use it for your own purpose, by adapting some of the text content in the code.
 
@@ -9,7 +14,7 @@ Use the **/help** command to see a list of useful commands and how to use the bo
 
 ## Ranked mode
 **pso-matchmaker** implements an **Elo ranking system** that rates both teams and players depending on their match results.<br>
-The ratings are region-specific (4 regions exist so far: Europe, North America, South America and East Asia).<br>
+The ratings are region-specific (5 regions exist so far: Europe, North America, South America, East Asia and Oceania).<br>
 You can display the teams and players leaderboard by using the **/leaderboard** command.<br>
 To see your own stats, use the **/player_stats** command.<br>
 Every game mode supports ranked mode *(read [Game modes section](#game-modes) for more information)*. However, only the **official community discords** are allowed to create a ranked line-up. 
@@ -76,15 +81,40 @@ This game mode brings up a single queue that players can join in. Once enough pl
 ![Example](./doc/images/game_mode_captains.png)<br>
 *(Example of a mix captains line-up)*
 
-# How to run the bot locally
-- Install [NPM](https://www.npmjs.com/) and [NodeJS](https://nodejs.org/en/)
-- Build the project using `npm run build`
+# Dependencies
+- [NodeJS 17.9.1](https://nodejs.org/download/release/v17.9.1/)
+- A [MongoDB](https://www.mongodb.com/) database
+
+# Environment configuration
 - Create a **.env** file in the project root directory with at least the following variables
 ```
 CLIENT_ID=<BOT CLIENT ID>
 TOKEN=<BOT TOKEN ID>
 MONGO_URI=<MONGO URI>
+GUILD_ID=<YOUR DISCORD TEST GUILD ID>
+
+PSO_EU_REGION_LABEL=Europe
+PSO_EU_DISCORD_GUILD_ID=<SAME AS GUILD_ID>
+
+PSO_NA_REGION_LABEL=North America
+PSO_NA_DISCORD_GUILD_ID=0000000000000000000
+
+PSO_SA_REGION_LABEL=South America
+PSO_SA_DISCORD_GUILD_ID=0000000000000000000
+
+PSO_AS_REGION_LABEL=East Asia
+PSO_AS_DISCORD_GUILD_ID=0000000000000000000
+
+PSO_OC_REGION_LABEL=Oceania
+PSO_OC_DISCORD_GUILD_ID=0000000000000000000
 ```
-An additional **GUILD_ID** env variable can be used to deploy the commands on a specific guild (useful for test environment)
-- Deploy the commands using `node build/scripts/deploys-commands.js`
-- Start the bot with nodemon using `npm run dev`
+
+# How to build
+- `npm run build`
+
+# How to deploy the Discord commands
+- `node build/scripts/deploys-commands.js`<br>
+*Note: If **GUILD_ID** environment variable is defined, the commands will be deployed only the this guild*
+
+# How to run with nodemon
+- `npm run dev`
