@@ -4,6 +4,7 @@ import { ICommandHandler } from "../../handlers/commandHandler";
 import { Bans } from "../../mongoSchema";
 import { interactionUtils } from "../../services/interactionUtils";
 import { teamService } from "../../services/teamService";
+import parse from 'parse-duration'
 
 export default {
     data: new SlashCommandBuilder()
@@ -15,9 +16,9 @@ export default {
         .addStringOption(option => option.setName('reason')
             .setRequired(false)
             .setDescription('The reason of the ban'))
-        .addIntegerOption(option => option.setName('duration')
+        .addStringOption(option => option.setName('duration')
             .setRequired(false)
-            .setDescription('The duration of the ban in days. A value of -1 means unlimited ban. (Default value is 1)')),
+            .setDescription('The duration of the ban (ex: 1d2h. Minimum 1h. Permanent ban if not specified)')),
     authorizedRoles: [BOT_ADMIN_ROLE],
     async execute(interaction: ChatInputCommandInteraction) {
         const team = await teamService.findTeamByGuildId(interaction.guildId!)
@@ -26,10 +27,19 @@ export default {
             return
         }
 
-        const duration = interaction.options.getInteger('duration') || -1
-        if (duration != null && (duration != -1 && duration < 1)) {
-            await interaction.reply({ content: `⛔ Please chose a duration of either -1 or greater than 0`, ephemeral: true })
-            return
+        let duration = null
+        const durationOption = interaction.options.getString('duration')
+        if (durationOption != null) {
+            duration = parse(durationOption)
+            if (duration == null) {
+                await interaction.reply({ content: `⛔ Unkown duration format ${durationOption}`, ephemeral: true })
+                return
+            }
+
+            if (duration < 60 * 60 * 1000) {
+                await interaction.reply({ content: `⛔ Please choose a duration greater than or equal to 1h`, ephemeral: true })
+                return
+            }
         }
 
         const player = interaction.options.getUser('player')!
@@ -37,6 +47,7 @@ export default {
             await interaction.reply({ content: `⛔ You cannot ban the bot !`, ephemeral: true })
             return
         }
+        
         if (player.id === interaction.user.id) {
             await interaction.reply({ content: `⛔ You surely don't want to ban yourself !`, ephemeral: true })
             return
@@ -44,12 +55,7 @@ export default {
 
         const reason = interaction.options.getString('reason');
         const now = Date.now()
-        let expireAt = null
-        if (duration > 0) {
-            expireAt = now + duration * 24 * 60 * 60 * 1000
-        } else if (duration != -1) {
-            expireAt = now + 24 * 60 * 60 * 1000
-        }
+        let expireAt = duration ? now + duration : null
         await Bans.updateOne({ userId: player.id, guildId: team.guildId }, { userId: player.id, reason, expireAt }, { upsert: true })
 
         let formattedDate
