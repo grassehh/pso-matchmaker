@@ -1,4 +1,4 @@
-import { Message, BaseMessageOptions, SelectMenuInteraction } from "discord.js";
+import { Message, BaseMessageOptions, AnySelectMenuInteraction } from "discord.js";
 import { DEFAULT_RATING, MAX_NUMBER_OF_MERCS, MERC_USER_ID } from "../../constants";
 import { ISelectMenuHandler } from "../../handlers/selectMenuHandler";
 import { ILineup, IUser } from "../../mongoSchema";
@@ -10,7 +10,7 @@ import { userService } from "../../services/userService";
 
 export default {
     customId: 'select_addMerc_',
-    async execute(interaction: SelectMenuInteraction) {
+    async execute(interaction: AnySelectMenuInteraction) {
         const selectedLineupNumber = parseInt(interaction.customId.split('_')[2])
         const selectedMercRole = interaction.values[0]
 

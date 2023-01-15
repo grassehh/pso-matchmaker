@@ -1,4 +1,4 @@
-import { GuildMember, BaseMessageOptions, SelectMenuInteraction } from "discord.js";
+import { GuildMember, BaseMessageOptions, AnySelectMenuInteraction } from "discord.js";
 import { MAX_BENCH_SIZE } from "../../constants";
 import { ISelectMenuHandler } from "../../handlers/selectMenuHandler";
 import { ILineup } from "../../mongoSchema";
@@ -7,7 +7,7 @@ import { ROLE_NAME_ANY, teamService } from "../../services/teamService";
 
 export default {
     customId: 'select_bench',
-    async execute(interaction: SelectMenuInteraction) {
+    async execute(interaction: AnySelectMenuInteraction) {
         let lineup = await teamService.retrieveLineup(interaction.channelId)
         if (lineup === null) {
             await interaction.reply(interactionUtils.createReplyLineupNotSetup())

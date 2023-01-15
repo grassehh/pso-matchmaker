@@ -1,11 +1,11 @@
-import { ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder, SelectMenuInteraction } from "discord.js";
+import { ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder, AnySelectMenuInteraction } from "discord.js";
 import { ISelectMenuHandler } from "../../handlers/selectMenuHandler";
 import { interactionUtils } from "../../services/interactionUtils";
 import { matchmakingService } from "../../services/matchmakingService";
 
 export default {
     customId: 'subRequest_select_',
-    async execute(interaction: SelectMenuInteraction) {
+    async execute(interaction: AnySelectMenuInteraction) {
         const matchId = interaction.customId.split('_')[2]
         const position = interaction.values[0]
 
@@ -19,13 +19,14 @@ export default {
             .setColor('#566573')
             .setTitle("📣 A sub is required !")
             .addFields([
+                { name: 'Requester', value: `${interaction.user}` },
                 { name: 'Lobby', value: `${match.lobbyName}`, inline: true },
                 { name: 'Format', value: `${match.firstLineup.size}v${match.firstLineup.size}`, inline: true },
                 { name: 'Position', value: position, inline: true }
             ])
             .setDescription('*Accepting a sub request commits you to play. Doing otherwise can result in warns/bans*')
             .setTimestamp()
-            .setFooter({ text: `Author: ${interaction.user.username}` })
+            .setFooter({ text: `Match ID: ${matchId}` })
         const subActionRow = new ActionRowBuilder<ButtonBuilder>()
 
         subActionRow.addComponents(

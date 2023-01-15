@@ -1,4 +1,4 @@
-import { SelectMenuInteraction, User } from "discord.js";
+import { AnySelectMenuInteraction, User } from "discord.js";
 import { ISelectMenuHandler } from "../../handlers/selectMenuHandler";
 import { ITeam } from "../../mongoSchema";
 import { interactionUtils } from "../../services/interactionUtils";
@@ -6,7 +6,7 @@ import { teamService, TeamType, TeamTypeHelper } from "../../services/teamServic
 
 export default {
     customId: 'team_edit_type_',
-    async execute(interaction: SelectMenuInteraction) {
+    async execute(interaction: AnySelectMenuInteraction) {
         const split = interaction.customId.split('_')
         const type: TeamType = parseInt(interaction.values[0])
         const guildId = split[3]
