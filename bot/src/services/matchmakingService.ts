@@ -1,4 +1,4 @@
-import { ActionRowBuilder, BaseMessageOptions, ButtonBuilder, ButtonInteraction, ButtonStyle, ChannelType, Client, CommandInteraction, EmbedBuilder, Interaction, InteractionReplyOptions, Message, StringSelectMenuBuilder, SelectMenuInteraction, TextChannel, User, SelectMenuComponentOptionData } from "discord.js";
+import { ActionRowBuilder, BaseMessageOptions, ButtonBuilder, ButtonInteraction, ButtonStyle, ChannelType, Client, CommandInteraction, EmbedBuilder, Interaction, InteractionReplyOptions, Message, StringSelectMenuBuilder, AnySelectMenuInteraction, TextChannel, User, SelectMenuComponentOptionData } from "discord.js";
 import { DeleteResult } from "mongodb";
 import { UpdateWriteOpResult } from "mongoose";
 import { Elo } from "simple-elo-rating";
@@ -485,7 +485,7 @@ class MatchmakingService {
         await interaction.editReply({ embeds: [mixLineupsEmbed], components: mixesActionComponents })
     }
 
-    async challenge(interaction: ButtonInteraction | SelectMenuInteraction, lineupQueueIdToChallenge: string): Promise<void> {
+    async challenge(interaction: ButtonInteraction | AnySelectMenuInteraction, lineupQueueIdToChallenge: string): Promise<void> {
         let lineupQueueToChallenge = await this.findLineupQueueById(lineupQueueIdToChallenge)
         if (!lineupQueueToChallenge) {
             await interaction.reply({ content: "⛔ This team is no longer challenging", ephemeral: true })

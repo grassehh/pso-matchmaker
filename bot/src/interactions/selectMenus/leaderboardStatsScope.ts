@@ -1,4 +1,4 @@
-import { InteractionUpdateOptions, SelectMenuInteraction } from "discord.js";
+import { InteractionUpdateOptions, AnySelectMenuInteraction } from "discord.js";
 import { DEFAULT_LEADERBOARD_PAGE_SIZE } from "../../constants";
 import { ISelectMenuHandler } from "../../handlers/selectMenuHandler";
 import { GameType, interactionUtils, StatsType } from "../../services/interactionUtils";
@@ -6,7 +6,7 @@ import { Region } from "../../services/regionService";
 
 export default {
     customId: 'leaderboard_scope_select',
-    async execute(interaction: SelectMenuInteraction) {
+    async execute(interaction: AnySelectMenuInteraction) {
         const region: Region = interaction.values[0] as Region
         const statsType: StatsType = parseInt(interaction.customId.split('_')[3])
         const gameType: GameType = parseInt(interaction.customId.split('_')[4])

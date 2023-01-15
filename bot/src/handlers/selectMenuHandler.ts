@@ -1,4 +1,4 @@
-import { SelectMenuInteraction } from "discord.js";
+import { AnySelectMenuInteraction } from "discord.js";
 import { IComponentHandler } from "./componentHandler";
 
-export interface ISelectMenuHandler extends IComponentHandler<SelectMenuInteraction> {}
+export interface ISelectMenuHandler extends IComponentHandler<AnySelectMenuInteraction> {}

@@ -1,4 +1,4 @@
-import { BaseMessageOptions, SelectMenuInteraction } from "discord.js";
+import { BaseMessageOptions, AnySelectMenuInteraction } from "discord.js";
 import { ISelectMenuHandler } from "../../handlers/selectMenuHandler";
 import { ILineup } from "../../mongoSchema";
 import { interactionUtils } from "../../services/interactionUtils";
@@ -7,7 +7,7 @@ import { teamService } from "../../services/teamService";
 
 export default {
     customId: 'select_clearRole_',
-    async execute(interaction: SelectMenuInteraction) {
+    async execute(interaction: AnySelectMenuInteraction) {
         const selectedLineupNumber = parseInt(interaction.customId.split('_')[2])
         const selectedRoleToClear = interaction.values[0]
 

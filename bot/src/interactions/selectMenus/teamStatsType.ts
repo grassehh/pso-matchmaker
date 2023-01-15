@@ -1,4 +1,4 @@
-import { InteractionUpdateOptions, SelectMenuInteraction } from "discord.js";
+import { InteractionUpdateOptions, AnySelectMenuInteraction } from "discord.js";
 import { ISelectMenuHandler } from "../../handlers/selectMenuHandler";
 import { ITeam } from "../../mongoSchema";
 import { interactionUtils } from "../../services/interactionUtils";
@@ -7,7 +7,7 @@ import { teamService } from "../../services/teamService";
 
 export default {
     customId: 'team_stats_scope_select_',
-    async execute(interaction: SelectMenuInteraction) {
+    async execute(interaction: AnySelectMenuInteraction) {
         const split = interaction.customId.split('_')
         const guildId = split[4]
         const team = await teamService.findTeamByGuildId(guildId) as ITeam

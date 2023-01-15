@@ -1,4 +1,4 @@
-import { ActionRowBuilder, ButtonBuilder, ButtonInteraction, ButtonStyle, Client, CommandInteraction, EmbedBuilder, Interaction, InteractionReplyOptions, InteractionUpdateOptions, Message, BaseMessageOptions, StringSelectMenuBuilder, SelectMenuInteraction, User, UserManager } from "discord.js";
+import { ActionRowBuilder, ButtonBuilder, ButtonInteraction, ButtonStyle, Client, CommandInteraction, EmbedBuilder, Interaction, InteractionReplyOptions, InteractionUpdateOptions, Message, BaseMessageOptions, StringSelectMenuBuilder, AnySelectMenuInteraction, User, UserManager } from "discord.js";
 import { BOT_ADMIN_ROLE, DEFAULT_RATING, MAX_TEAM_CAPTAINS, MAX_TEAM_PLAYERS } from "../constants";
 import { IChallenge, ILineup, ILineupQueue, IRole, IRoleBench, IPlayerStats, ITeam, IUser, PlayerStats, TeamStats, ITeamStats } from "../mongoSchema";
 import { handle } from "../utils";
@@ -50,7 +50,7 @@ class InteractionUtils {
         }
     }
 
-    createCancelChallengeReply(interaction: ButtonInteraction | CommandInteraction | SelectMenuInteraction, challenge: IChallenge): InteractionReplyOptions {
+    createCancelChallengeReply(interaction: ButtonInteraction | CommandInteraction | AnySelectMenuInteraction, challenge: IChallenge): InteractionReplyOptions {
         let embed = new EmbedBuilder()
             .setColor('#566573')
             .setFooter({ text: `Author: ${interaction.user.username}` })
@@ -73,7 +73,7 @@ class InteractionUtils {
         return { embeds: [embed], components: [cancelChallengeRow] }
     }
 
-    createDecideChallengeReply(interaction: ButtonInteraction | CommandInteraction | SelectMenuInteraction, challenge: IChallenge): InteractionReplyOptions {
+    createDecideChallengeReply(interaction: ButtonInteraction | CommandInteraction | AnySelectMenuInteraction, challenge: IChallenge): InteractionReplyOptions {
         if (challenge.challengedTeam.lineup.isMix()) {
             let reply = this.createReplyForMixLineup(challenge.challengedTeam.lineup, challenge.initiatingTeam.lineup)
             reply.embeds = reply.embeds?.concat(this.createInformationEmbed(`${challenge.initiatingTeam.lineup.prettyPrintName()} is challenging the mix`, interaction.user))
@@ -151,7 +151,7 @@ class InteractionUtils {
         return captainActionsComponents
     }
 
-    async replyNotAllowed(interaction: ButtonInteraction | CommandInteraction | SelectMenuInteraction): Promise<void> {
+    async replyNotAllowed(interaction: ButtonInteraction | CommandInteraction | AnySelectMenuInteraction): Promise<void> {
         await interaction.reply({ content: `⛔ You are not allowed to execute this command. Make sure that you have either admin permissions on the discord, or a role named **${BOT_ADMIN_ROLE}**`, ephemeral: true })
     }
 

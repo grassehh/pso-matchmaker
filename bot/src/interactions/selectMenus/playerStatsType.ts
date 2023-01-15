@@ -1,11 +1,11 @@
-import { InteractionUpdateOptions, SelectMenuInteraction } from "discord.js";
+import { InteractionUpdateOptions, AnySelectMenuInteraction } from "discord.js";
 import { ISelectMenuHandler } from "../../handlers/selectMenuHandler";
 import { interactionUtils } from "../../services/interactionUtils";
 import { Region } from "../../services/regionService";
 
 export default {
     customId: 'player_stats_scope_select_',
-    async execute(interaction: SelectMenuInteraction) {
+    async execute(interaction: AnySelectMenuInteraction) {
         const split = interaction.customId.split('_')
         const userId = split[4]
         const user = interaction.client.users.resolve(userId)!
