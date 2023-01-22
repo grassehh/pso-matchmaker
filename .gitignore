@@ -116,3 +116,6 @@ build
 
 # JetBrains Fleet
 .fleet/
+
+# JetBrains IntelliJ
+.idea/

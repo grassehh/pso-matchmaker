@@ -87,14 +87,14 @@ class MatchmakingService {
     async updateBansListChannel(client: Client): Promise<void> {
         regionService.getAllRegionsData().forEach(async (regionData) => {
             if (regionData.bansListChannelId) {
-                const banListEmbed = await interactionUtils.createBanListEmbed(client, regionData.guildId)
+                const banListEmbeds = await interactionUtils.createBanListEmbeds(client, regionData.guildId)
                 const channel = await client.channels.fetch(regionData.bansListChannelId) as TextChannel
                 const messages = await channel.messages.fetch({ limit: 1 })
                 if (messages.size === 0) {
-                    handle(channel.send({ embeds: [banListEmbed] }))
+                    handle(channel.send({ embeds: banListEmbeds }))
                 } else {
-                    messages.first()?.edit({ embeds: [banListEmbed] })
-                        .catch(async () => handle(channel.send({ embeds: [banListEmbed] })))
+                    messages.first()?.edit({ embeds: banListEmbeds })
+                        .catch(async () => handle(channel.send({ embeds: banListEmbeds })))
                 }
             }
         })
