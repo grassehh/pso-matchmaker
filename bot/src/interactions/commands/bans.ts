@@ -17,8 +17,8 @@ export default {
             return
         }
 
-        const banListEmbed = await interactionUtils.createBanListEmbed(interaction.client, interaction.guildId!)
+        const banListEmbeds = await interactionUtils.createBanListEmbeds(interaction.client, interaction.guildId!)
 
-        await interaction.reply({ embeds: [banListEmbed], ephemeral: true })
+        await interaction.reply({ embeds: banListEmbeds, ephemeral: true })
     }
 } as ICommandHandler;

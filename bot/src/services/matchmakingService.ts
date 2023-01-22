@@ -87,14 +87,14 @@ class MatchmakingService {
     async updateBansListChannel(client: Client): Promise<void> {
         regionService.getAllRegionsData().forEach(async (regionData) => {
             if (regionData.bansListChannelId) {
-                const banListEmbed = await interactionUtils.createBanListEmbed(client, regionData.guildId)
+                const banListEmbeds = await interactionUtils.createBanListEmbeds(client, regionData.guildId)
                 const channel = await client.channels.fetch(regionData.bansListChannelId) as TextChannel
                 const messages = await channel.messages.fetch({ limit: 1 })
                 if (messages.size === 0) {
-                    handle(channel.send({ embeds: [banListEmbed] }))
+                    handle(channel.send({ embeds: banListEmbeds }))
                 } else {
-                    messages.first()?.edit({ embeds: [banListEmbed] })
-                        .catch(async () => handle(channel.send({ embeds: [banListEmbed] })))
+                    messages.first()?.edit({ embeds: banListEmbeds })
+                        .catch(async () => handle(channel.send({ embeds: banListEmbeds })))
                 }
             }
         })
@@ -252,11 +252,9 @@ class MatchmakingService {
         return Challenge.findOne({ $or: [{ 'initiatingTeam.lineup.channelId': channelId }, { 'challengedTeam.lineup.channelId': channelId }] })
     }
 
-
     async deleteChallengeById(id: string): Promise<DeleteResult> {
         return Challenge.deleteOne({ '_id': id })
     }
-
 
     async deleteChallengesByGuildId(guildId: string): Promise<void> {
         await Promise.all(
@@ -267,7 +265,6 @@ class MatchmakingService {
             Challenge.deleteMany({ $or: [{ 'initiatingTeam.lineup.team.guildId': guildId }, { 'challengedTeam.lineup.team.guildId': guildId }] })])
     }
 
-
     async deleteChallengesByChannelId(channelId: string): Promise<void> {
         await Promise.all(
             [async () => {
@@ -276,7 +273,6 @@ class MatchmakingService {
             },
             Challenge.deleteMany({ $or: [{ 'initiatingTeam.lineup.channelId': channelId }, { 'challengedTeam.lineup.channelId': channelId }] })])
     }
-
 
     async addUserToLineupQueue(channelId: string, roleName: string, user: IUser, selectedLineup: number = 1): Promise<ILineupQueue | null> {
         return LineupQueue.findOneAndUpdate(
@@ -295,11 +291,9 @@ class MatchmakingService {
         )
     }
 
-
     async removeUserFromLineupQueue(channelId: string, userId: string): Promise<ILineupQueue | null> {
         return LineupQueue.findOneAndUpdate({ 'lineup.channelId': channelId, 'lineup.roles.user.id': userId }, { $set: { "lineup.roles.$.user": null } }, { new: true })
     }
-
 
     async clearLineupQueue(channelId: string, selectedLineups = [1]): Promise<ILineupQueue | null> {
         return LineupQueue.findOneAndUpdate(
@@ -317,11 +311,9 @@ class MatchmakingService {
         )
     }
 
-
     async updateLineupQueueRoles(channelId: string, roles: IRole[]): Promise<ILineupQueue | null> {
         return LineupQueue.findOneAndUpdate({ 'lineup.channelId': channelId }, { 'lineup.roles': roles }, { new: true })
     }
-
 
     async joinQueue(client: Client, lineup: ILineup, ranked: boolean): Promise<ILineupQueue> {
         if (ranked) {
@@ -361,7 +353,6 @@ class MatchmakingService {
         lineupQueue.save()
         return lineupQueue
     }
-
 
     async leaveQueue(lineupQueue: ILineupQueue): Promise<void> {
         if (lineupQueue.lineup.isNotTeam()) {
@@ -820,7 +811,7 @@ class MatchmakingService {
                 statsService.updatePlayersStats(client, challenge.challengedTeam.lineup.team.region, challenge.challengedTeam.lineup.size, challengedTeamUsers.map(user => user.id))
             ])
         }
-        else { //This is a mix vs mix match     
+        else { //This is a mix vs mix match
             const allUsers = mixLineup!.roles.map(role => role.user).filter(notEmpty)
             let newMixLineup = mixLineup!
             if (newMixLineup.isCaptains()) {

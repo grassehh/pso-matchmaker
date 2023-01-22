@@ -1,6 +1,6 @@
 import { ActionRowBuilder, ButtonBuilder, ButtonInteraction, ButtonStyle, Client, CommandInteraction, EmbedBuilder, Interaction, InteractionReplyOptions, InteractionUpdateOptions, Message, BaseMessageOptions, StringSelectMenuBuilder, AnySelectMenuInteraction, User, UserManager } from "discord.js";
 import { BOT_ADMIN_ROLE, DEFAULT_RATING, MAX_TEAM_CAPTAINS, MAX_TEAM_PLAYERS } from "../constants";
-import { IChallenge, ILineup, ILineupQueue, IRole, IRoleBench, IPlayerStats, ITeam, IUser, PlayerStats, TeamStats, ITeamStats } from "../mongoSchema";
+import { IChallenge, ILineup, ILineupQueue, IRole, IRoleBench, IPlayerStats, ITeam, IUser, PlayerStats, TeamStats, ITeamStats, IBan } from "../mongoSchema";
 import { handle } from "../utils";
 import { matchmakingService, MatchResult, RoleWithDiscordUser } from "./matchmakingService";
 import { Region, regionService } from "./regionService";
@@ -561,28 +561,42 @@ class InteractionUtils {
         return embed
     }
 
-    async createBanListEmbed(client: Client, guildId: string): Promise<EmbedBuilder> {
+    async createBanListEmbeds(client: Client, guildId: string): Promise<EmbedBuilder[]> {
+        const bans = await teamService.findBansByGuildId(guildId)
+
+        return [
+            await this.createBanListEmbed(client, 'Permanent Bans', bans.filter(ban => !ban.expireAt)),
+            await this.createBanListEmbed(client, 'Temporary Bans', bans.filter(ban => ban.expireAt))
+        ]
+    }
+
+    private async createBanListEmbed(client: Client, title: string, bans: IBan[]) {
         const banListEmbed = new EmbedBuilder()
             .setColor('#566573')
-            .setTitle(`Matchmaking Bans`)
-        const bans = await teamService.findBansByGuildId(guildId)
+            .setTitle(title)
 
         if (bans.length === 0) {
             banListEmbed.setDescription("✅ No user is banned")
-        } else {
-            for (let ban of bans) {
-                const [user] = await handle(client.users.fetch(ban.userId))
-                if (!user) {
-                    continue
-                }
-                let bansEmbedFieldValue = ban.expireAt ? ban.expireAt.toUTCString() : '*Permanent*'
-                if (ban.reason) {
-                    bansEmbedFieldValue += ` ***(Reason: ${ban.reason})***`
-                }
-                banListEmbed.addFields([{ name: user.username, value: bansEmbedFieldValue }])
-            }
+            return banListEmbed
         }
 
+        let description = ''
+        for (let ban of bans) {
+            const [user] = await handle(client.users.fetch(ban.userId))
+            if (!user) {
+                continue
+            }
+            description += `**${user.username}**`
+            if (ban.reason) {
+                description += ` (Reason: *${ban.reason}*)`
+            }
+            if (ban.expireAt) {
+                description += `\nExpiracy: <t:${Math.floor(ban.expireAt.getTime() / 1000)}:R>`
+            }
+            description += '\n\n'
+        }
+
+        banListEmbed.setDescription(description)
         return banListEmbed
     }
 
