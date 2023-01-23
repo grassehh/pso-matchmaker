@@ -1,14 +1,15 @@
 import { ChatInputCommandInteraction, SlashCommandBuilder } from "discord.js";
 import { BOT_ADMIN_ROLE } from "../../constants";
 import { ICommandHandler } from "../../handlers/commandHandler";
-import { Bans } from "../../mongoSchema";
+import { IPlayerBan, PlayerBans } from "../../mongoSchema";
 import { interactionUtils } from "../../services/interactionUtils";
 import { teamService } from "../../services/teamService";
 import parse from 'parse-duration'
+import { userService } from "../../services/userService";
 
 export default {
     data: new SlashCommandBuilder()
-        .setName('ban')
+        .setName('player_ban')
         .setDescription('Ban a player from using the bot in this team')
         .addUserOption(option => option.setName('player')
             .setRequired(true)
@@ -47,7 +48,7 @@ export default {
             await interaction.reply({ content: `⛔ You cannot ban the bot !`, ephemeral: true })
             return
         }
-        
+
         if (player.id === interaction.user.id) {
             await interaction.reply({ content: `⛔ You surely don't want to ban yourself !`, ephemeral: true })
             return
@@ -55,13 +56,11 @@ export default {
 
         const reason = interaction.options.getString('reason');
         const now = Date.now()
-        let expireAt = duration ? now + duration : null
-        await Bans.updateOne({ userId: player.id, guildId: team.guildId }, { userId: player.id, reason, expireAt }, { upsert: true })
+        const expireAt = duration ? new Date(now + duration) : null
+        const ban = { userId: player.id, guildId: team.guildId, reason, expireAt } as IPlayerBan
 
-        let formattedDate
-        if (expireAt) {
-            formattedDate = new Date(expireAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: '2-digit', hour: '2-digit', minute: 'numeric' })
-        }
-        await interaction.reply({ content: `Player **${player.username}** is now ${formattedDate ? `banned until ${formattedDate}` : 'permanently banned'}` })
+        await PlayerBans.updateOne({ userId: player.id, guildId: team.guildId }, ban, { upsert: true })
+        await userService.notifyBanned(interaction.client, ban)
+        await interaction.reply({ content: `Player **${player.username}** is now ${expireAt ? `banned until ${expireAt.toUTCString()}` : 'permanently banned'}` })
     }
 } as ICommandHandler;

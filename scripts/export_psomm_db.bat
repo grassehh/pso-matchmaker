@@ -6,3 +6,4 @@ mongoexport.exe --uri="XXX" --collection=lineup-queues --out=lineup-queues.json
 mongoexport.exe --uri="XXX" --collection=lineups --out=lineups.json
 mongoexport.exe --uri="XXX" --collection=matches --out=matches.json
 mongoexport.exe --uri="XXX" --collection=teams --out=teams.json
+mongoexport.exe --uri="XXX" --collection=users --out=users.json

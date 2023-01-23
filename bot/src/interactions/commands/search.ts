@@ -10,25 +10,35 @@ export default {
         .setName('search')
         .setDescription('Put your team in the matchmaking queue'),
     async execute(interaction: ChatInputCommandInteraction) {
+        const ban = await teamService.findTeamBanByGuildId(interaction.guildId!)
+        if (ban) {
+            await interaction.reply(interactionUtils.createReplyTeamBanned(ban))
+            return
+        }
+
         let challenge = await matchmakingService.findChallengeByChannelId(interaction.channelId)
         if (challenge) {
             await interaction.reply(interactionUtils.createReplyAlreadyChallenging(challenge))
             return
         }
+
         let team = await teamService.findTeamByGuildId(interaction.guildId!)
         if (!team) {
             await interaction.reply(interactionUtils.createReplyTeamNotRegistered())
             return
         }
+
         let lineup = await teamService.retrieveLineup(interaction.channelId)
         if (!lineup) {
             await interaction.reply(interactionUtils.createReplyLineupNotSetup())
             return
         }
+
         if (lineup.isNotTeam()) {
             await interaction.reply({ content: `⛔ Mix lineups are always visible in the matchmaking queue`, ephemeral: true })
             return
         }
+        
         let currentQueuedLineup = await matchmakingService.findLineupQueueByChannelId(interaction.channelId)
         if (currentQueuedLineup) {
             await interaction.reply(interactionUtils.createReplyAlreadyQueued(currentQueuedLineup.lineup.size))

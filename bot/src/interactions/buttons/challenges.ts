@@ -7,6 +7,12 @@ import { teamService } from "../../services/teamService";
 export default {
     customId: 'challenges_',
     async execute(interaction: ButtonInteraction) {
+        const ban = await teamService.findTeamBanByGuildId(interaction.guildId!)
+        if (ban) {
+            await interaction.reply(interactionUtils.createReplyTeamBanned(ban))
+            return
+        }
+
         const lineup = await teamService.retrieveLineup(interaction.channelId)
         if (lineup === null) {
             await interaction.reply(interactionUtils.createReplyLineupNotSetup())

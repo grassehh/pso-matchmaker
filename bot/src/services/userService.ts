@@ -1,7 +1,8 @@
-import { Client, User as DiscordUser } from "discord.js"
+import { Client, User as DiscordUser, EmbedBuilder } from "discord.js"
 import { UpdateWriteOpResult } from "mongoose"
-import { IUser, User, PlayerStats, Lineup, Team } from "../mongoSchema"
+import { IUser, User, PlayerStats, Lineup, Team, IPlayerBan } from "../mongoSchema"
 import { teamService } from "./teamService"
+import { handle } from "../utils"
 
 class UserService {
     async findUserByDiscordUserId(discordUserId: string): Promise<IUser | null> {
@@ -29,6 +30,36 @@ class UserService {
             Lineup.updateMany({}, { $pull: { 'team.players': { id: user.id }, 'team.captains': { id: user.id } } }),
             Team.updateMany({}, { $pull: { players: { id: user.id }, captains: { id: user.id } } })
         ])
+    }
+
+    async notifyBanned(client: Client, ban: IPlayerBan) {
+        const [user] = await handle(client.users.fetch(ban.userId))
+        const [guild] = await handle(client.guilds.fetch(ban.guildId))
+        if (user && guild) {
+            const informationEmbed = new EmbedBuilder()
+                .setColor('#566573')
+                .setTimestamp()
+                .setTitle('⛔ Banned')
+            let description = `You have been ${ban.expireAt ? `banned until **${ban.expireAt.toUTCString()}**` : '**permanently** banned'} from the **${guild.name}** Discord matchmaking`
+            informationEmbed.setDescription(description)
+            if (ban.reason) {
+                informationEmbed.addFields([{ name: 'Reason', value: `*${ban.reason}*` }])
+            }
+            await handle(user.send({ embeds: [informationEmbed] }))
+        }
+    }
+
+    async notifyUnbanned(client: Client, userId: string) {
+        const [user] = await handle(client.users.fetch(userId))
+        if (user) {
+            const informationEmbed = new EmbedBuilder()
+                .setColor('#566573')
+                .setTimestamp()
+                .setTitle('✅ Unbanned')
+            let description = 'You are now **unbanned**'
+            informationEmbed.setDescription(description)
+            await handle(user.send({ embeds: [informationEmbed] }))
+        }
     }
 }
 

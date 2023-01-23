@@ -57,7 +57,7 @@ export default {
                     await interaction.followUp({ content: `⛔ This user is not registered in PSO Matchmaker`, ephemeral: true })
                     return
                 }
-                const ban = await teamService.findBanByUserIdAndGuildId(user.id, interaction.guildId!)
+                const ban = await teamService.findPlayerBanByUserIdAndGuildId(user.id, interaction.guildId!)
                 if (ban) {
                     await interaction.followUp({ content: `⛔ Player ${m.content} is banned and cannot be signed.`, ephemeral: true })
                     return

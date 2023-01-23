@@ -13,7 +13,7 @@
         "dev": "npx nodemon bot/src/bot.ts",
         "start": "node index.js",
         "deploy-commands": "node build/scripts/deploy-commands.js",
-        "end-season": "node build/scripts/end-season.js"
+        "end-season": "ts-node scripts/end-season.ts"
     },
     "dependencies": {
         "@discordjs/rest": "1.5.0",
