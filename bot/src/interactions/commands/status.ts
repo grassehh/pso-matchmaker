@@ -47,6 +47,11 @@ export default {
                 { name: 'Auto-search', value: `${lineup.autoSearch ? '**enabled**' : '*disabled*'}`, inline: true }
             ])
 
+        const ban = await teamService.findTeamBanByGuildId(interaction.guildId!)
+        if (ban) {
+            lineupInfoEmbed.setDescription(`⚠ You team is ${ban.expireAt ? `banned until **${ban.expireAt.toUTCString()}**` : '**permanently** banned'}.`)
+        }
+
         let lineupStatusEmbed = new EmbedBuilder()
             .setColor('#566573')
 

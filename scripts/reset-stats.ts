@@ -1,11 +1,16 @@
 import mongoose from 'mongoose';
 import { DEFAULT_RATING } from '../bot/src/constants';
-import { Lineup, LineupQueue, PlayerStats, Team, TeamStats } from '../bot/src/mongoSchema';
+import { Lineup, LineupQueue, PlayerStats, Team, TeamStats, User } from '../bot/src/mongoSchema';
 import dotenv = require('dotenv');
 dotenv.config()
 
 async function resetStats(): Promise<void> {
     await mongoose.connect(process.env.MONGO_URI || '', { keepAlive: true })
+    await User.updateMany({}, {
+        $set: {
+            rating: DEFAULT_RATING
+        }
+    })
     await PlayerStats.updateMany({}, {
         $set: {
             numberOfRankedWins: 0,
@@ -14,8 +19,7 @@ async function resetStats(): Promise<void> {
             totalNumberOfRankedWins: 0,
             totalNumberOfRankedDraws: 0,
             totalNumberOfRankedLosses: 0,
-            rating: DEFAULT_RATING,
-            mixCaptainsRating: DEFAULT_RATING
+            rating: DEFAULT_RATING
         }
     })
     await Team.updateMany({}, { $set: { rating: DEFAULT_RATING } })

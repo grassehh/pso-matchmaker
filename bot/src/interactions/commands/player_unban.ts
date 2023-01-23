@@ -4,10 +4,11 @@ import { BOT_ADMIN_ROLE } from "../../constants";
 import { ICommandHandler } from "../../handlers/commandHandler";
 import { interactionUtils } from "../../services/interactionUtils";
 import { teamService } from "../../services/teamService";
+import { userService } from "../../services/userService";
 
 export default {
     data: new SlashCommandBuilder()
-        .setName('unban')
+        .setName('player_unban')
         .setDescription('Unban a player from using the bot in this team')
         .addUserOption(option => option.setName('player')
             .setRequired(true)
@@ -21,11 +22,13 @@ export default {
         }
 
         const player = interaction.options.getUser('player')!
-        const res = await teamService.deleteBanByUserIdAndGuildId(player.id, team.guildId)
+        const res = await teamService.deletePlayerBanByUserIdAndGuildId(player.id, team.guildId)
         if (res.deletedCount === 0) {
             await interaction.reply({ content: `⛔ User **${player.username}** is not banned`, ephemeral: true })
             return
         }
+
+        await userService.notifyUnbanned(interaction.client, player.id)
         await interaction.reply({ content: `✅ Player **${player.username}** is now unbanned` })
         return
     }

@@ -7,6 +7,12 @@ import { teamService } from "../../services/teamService";
 export default {
     customId: 'search_',
     async execute(interaction: ButtonInteraction) {
+        const ban = await teamService.findTeamBanByGuildId(interaction.guildId!)
+        if (ban) {
+            await interaction.reply(interactionUtils.createReplyTeamBanned(ban))
+            return
+        }
+
         const challenge = await matchmakingService.findChallengeByChannelId(interaction.channelId)
         if (challenge) {
             await interaction.reply({ content: "⛔ You are currently challenging", ephemeral: true })
