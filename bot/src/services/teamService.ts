@@ -702,8 +702,8 @@ class TeamService {
     }
 
     async addPlayer(guildId: string, user: IUser): Promise<ITeam | null> {
-        await Lineup.updateMany({ 'team.guildId': guildId }, { $push: { 'team.players': user }, 'team.verified': false })
-        return Team.findOneAndUpdate({ guildId }, { $push: { players: user }, verified: false }, { new: true })
+        await Lineup.updateMany({ 'team.guildId': guildId }, { $addToSet: { 'team.players': user }, 'team.verified': false })
+        return Team.findOneAndUpdate({ guildId }, { $addToSet: { players: user }, verified: false }, { new: true })
     }
 
     async removePlayer(guildId: string, userId: string): Promise<ITeam | null> {
