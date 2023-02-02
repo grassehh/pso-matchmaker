@@ -740,7 +740,7 @@ class MatchmakingService {
                 await this.freeLineupQueuesByChallengeId(challenge._id.toString())
             ])
         } else {
-            if (mixLineup!.isSoloQueue() && mixLineup?.allowRanked) {
+            if (mixLineup?.isSoloQueue() && mixLineup?.allowRanked) {
                 mixLineup.distributeRolesForSoloQueue()
             }
             initiatingLineup = Lineup.hydrate((mixLineup as any).toObject())
@@ -827,8 +827,10 @@ class MatchmakingService {
                     await challengedTeamChannel.send(reply)
                 } else {
                     await this.leaveQueue(challenge.challengedTeam)
+                    nonNullChallengedLineup.lastMatchDate = match.schedule
                     const newChallengedTeamLineup = nonNullChallengedLineup.moveAllBenchToLineup()
                     await teamService.upsertLineup(newChallengedTeamLineup)
+                    await teamService.updateTeamLastMatchDateByGuildId(newChallengedTeamLineup.team.guildId, match.schedule)
                     const reply = await interactionUtils.createReplyForLineup(newChallengedTeamLineup) as BaseMessageOptions
                     const [channel] = await handle(client.channels.fetch(newChallengedTeamLineup.channelId)) as TextChannel[]
                     await channel?.send(reply)

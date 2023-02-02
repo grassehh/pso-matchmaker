@@ -40,7 +40,7 @@ export default {
         const name = teamService.validateTeamName(interaction.options.getString('team_name')!)
         if (name === null) {
             await interaction.reply({
-                content: `⛔ Please choose a name with less than ${MAX_TEAM_NAME_LENGTH} characters.`,
+                content: `⛔ The name must be less than ${MAX_TEAM_NAME_LENGTH} characters and must not contain emojis.`,
                 ephemeral: true
             })
             return
