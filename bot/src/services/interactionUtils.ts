@@ -1,4 +1,4 @@
-import { ActionRowBuilder, ButtonBuilder, ButtonInteraction, ButtonStyle, Client, CommandInteraction, EmbedBuilder, Interaction, InteractionReplyOptions, InteractionUpdateOptions, Message, BaseMessageOptions, StringSelectMenuBuilder, AnySelectMenuInteraction, User, UserManager } from "discord.js";
+import { ActionRowBuilder, ButtonBuilder, ButtonInteraction, ButtonStyle, Client, CommandInteraction, EmbedBuilder, Interaction, InteractionReplyOptions, InteractionUpdateOptions, Message, BaseMessageOptions, StringSelectMenuBuilder, AnySelectMenuInteraction, User, UserManager, Attachment } from "discord.js";
 import { BOT_ADMIN_ROLE, DEFAULT_RATING, MAX_TEAM_CAPTAINS, MAX_TEAM_PLAYERS } from "../constants";
 import { IChallenge, ILineup, ILineupQueue, IPlayerBan, IPlayerStats, IRole, IRoleBench, ITeam, ITeamBan, ITeamStats, IUser, PlayerStats, TeamStats } from "../mongoSchema";
 import { handle } from "../utils";
@@ -159,7 +159,10 @@ class InteractionUtils {
     }
 
     async replyNotAllowed(interaction: ButtonInteraction | CommandInteraction | AnySelectMenuInteraction): Promise<void> {
-        await interaction.reply({ content: `⛔ You are not allowed to execute this command. Make sure that you have either admin permissions on the discord, or a role named **${BOT_ADMIN_ROLE}**`, ephemeral: true })
+        await interaction.reply({
+            content: `⛔ You are not allowed to execute this command. Make sure that you have either admin permissions on the discord, or a role named **${BOT_ADMIN_ROLE}**`,
+            ephemeral: true
+        })
     }
 
     async createPlayerStatsReply(user: User, region: Region): Promise<InteractionReplyOptions | InteractionUpdateOptions> {
@@ -240,9 +243,20 @@ class InteractionUtils {
                 .setColor('#566573')
                 .setTitle(`Stats for ${user.username}`)
                 .addFields([
-                    { name: '⚽ Current Season', value: `**Wins:** ${stats.numberOfRankedWins} \n **Draws:** ${stats.numberOfRankedDraws} \n **Losses:** ${stats.numberOfRankedLosses}`, inline: true },
-                    { name: '📅 All Seasons', value: `**Wins:** ${stats.totalNumberOfRankedWins} \n **Draws:** ${stats.totalNumberOfRankedDraws} \n **Losses:** ${stats.totalNumberOfRankedLosses}`, inline: true },
-                    { name: '📈 Ratings', value: `**Teams & Solo Queue:** ${stats.rating || DEFAULT_RATING} \n **Captains Mix:** ${stats.mixCaptainsRating || DEFAULT_RATING}` },
+                    {
+                        name: '⚽ Current Season',
+                        value: `**Wins:** ${stats.numberOfRankedWins} \n **Draws:** ${stats.numberOfRankedDraws} \n **Losses:** ${stats.numberOfRankedLosses}`,
+                        inline: true
+                    },
+                    {
+                        name: '📅 All Seasons',
+                        value: `**Wins:** ${stats.totalNumberOfRankedWins} \n **Draws:** ${stats.totalNumberOfRankedDraws} \n **Losses:** ${stats.totalNumberOfRankedLosses}`,
+                        inline: true
+                    },
+                    {
+                        name: '📈 Ratings',
+                        value: `**Teams & Solo Queue:** ${stats.rating || DEFAULT_RATING} \n **Captains Mix:** ${stats.mixCaptainsRating || DEFAULT_RATING}`
+                    },
                     { name: '\u200B', value: '\u200B' },
                     { name: 'Number of games (6v6 and more)', value: stats.numberOfRankedGames.toString() }
                 ])
@@ -322,8 +336,16 @@ class InteractionUtils {
                 .setColor('#566573')
                 .setTitle(`Stats for ${team.prettyPrintName()}`)
                 .addFields([
-                    { name: '⚽ Current Season', value: `**Wins:** ${stats.numberOfRankedWins} \n **Draws:** ${stats.numberOfRankedDraws} \n **Losses:** ${stats.numberOfRankedLosses}`, inline: true },
-                    { name: '📅 All Seasons', value: `**Wins:** ${stats.totalNumberOfRankedWins} \n **Draws:** ${stats.totalNumberOfRankedDraws} \n **Losses:** ${stats.totalNumberOfRankedLosses}`, inline: true },
+                    {
+                        name: '⚽ Current Season',
+                        value: `**Wins:** ${stats.numberOfRankedWins} \n **Draws:** ${stats.numberOfRankedDraws} \n **Losses:** ${stats.numberOfRankedLosses}`,
+                        inline: true
+                    },
+                    {
+                        name: '📅 All Seasons',
+                        value: `**Wins:** ${stats.totalNumberOfRankedWins} \n **Draws:** ${stats.totalNumberOfRankedDraws} \n **Losses:** ${stats.totalNumberOfRankedLosses}`,
+                        inline: true
+                    },
                     { name: '📈 Rating', value: `${stats.rating || DEFAULT_RATING}` }
                 ])
         ]
@@ -428,8 +450,7 @@ class InteractionUtils {
                         }
                     ])
             ))
-        }
-        else if (searchOptions.statsType === StatsType.TEAMS) {
+        } else if (searchOptions.statsType === StatsType.TEAMS) {
             components.push(new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(
                 new StringSelectMenuBuilder()
                     .setCustomId(`leaderboard_team_type_select_${searchOptions.region}`)
@@ -529,7 +550,6 @@ class InteractionUtils {
 
         return playersStatsEmbed
     }
-
 
     createLeaderboardPaginationActionRow(numberOfPages: number, searchOptions: StatsSearchOptions): ActionRowBuilder<ButtonBuilder> {
         const paginationActionsRow = new ActionRowBuilder<ButtonBuilder>()
@@ -794,7 +814,7 @@ class InteractionUtils {
             )
             .setDescription(
                 `Ranks will be updated **ONLY** if **BOTH TEAMS** votes are consistent.
-                **Be fair and honest and submit real result.** 
+                **Be fair and honest and submit real result.**
                 ${region === Region.EUROPE ? 'If needed, use the [Ticket Tool](https://discord.com/channels/913821068811178045/914202504747688006) on EU server to report any abuse.' : ''}
             `)
             .setTimestamp()
@@ -835,6 +855,27 @@ class InteractionUtils {
         return { embeds: [matchVoteEmbed] }
     }
 
+    createTeamOfferMessage(team: ITeam, description: string, teamImage?: Attachment, teamDiscordLink?: string): BaseMessageOptions {
+        const embed = new EmbedBuilder()
+            .setColor('#566573')
+            .setTitle("A team sent an offer !")
+            .setDescription(description)
+            .addFields([
+                { name: "Team Name", value: team.prettyPrintName(), inline: true },
+                { name: "Team Type", value: TeamTypeHelper.toString(team.type), inline: true }
+            ])
+
+        if (teamImage) {
+            embed.setImage(teamImage.url)
+        }
+
+        if (teamDiscordLink) {
+            embed.addFields([{ name: "Discord Link", value: teamDiscordLink }])
+        }
+
+        return { embeds: [embed] }
+    }
+
     createTeamManagementReply(interaction: Interaction, team: ITeam): InteractionReplyOptions {
         const captainsList = team.captains.map(captain => `${captain.name} (${captain.mention})`).join('\n')
         const playersList = team.players.map(player => `${player.name} (${player.mention})`).join('\n')
@@ -851,7 +892,11 @@ class InteractionUtils {
                 { name: 'Logo', value: `${team.logo ? `${team.logo}` : '*None*'}`, inline: true },
                 { name: 'Code', value: `${team.code ? `**${team.code}**` : '*None*'}`, inline: true },
                 { name: 'Rating', value: `${team.rating}` },
-                { name: `Captains *(${team.captains.length}/${MAX_TEAM_CAPTAINS})*`, value: `${captainsList.length > 0 ? captainsList : '*None*'}`, inline: true },
+                {
+                    name: `Captains *(${team.captains.length}/${MAX_TEAM_CAPTAINS})*`,
+                    value: `${captainsList.length > 0 ? captainsList : '*None*'}`,
+                    inline: true
+                },
                 { name: `Players *(${team.players.length}/${MAX_TEAM_PLAYERS})*`, value: `${playersList.length > 0 ? playersList : '*None*'}`, inline: true },
             ])
 

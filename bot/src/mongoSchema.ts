@@ -35,6 +35,7 @@ export interface ITeam {
     getTierRoleId(): string | undefined,
     getAvailableTierRoleIds(): string[],
     hasPlayerOrCaptain(userId: string): boolean,
+    hasCaptain(userId: string): boolean,
     guildId: string,
     name: string,
     nameUpperCase: string,
@@ -47,7 +48,8 @@ export interface ITeam {
     rating: number,
     verified: boolean,
     captains: IUser[],
-    players: IUser[]
+    players: IUser[],
+    lastOfferDate: Date
 }
 const teamSchema = new Schema<ITeam>({
     guildId: { type: String, required: true },
@@ -62,7 +64,8 @@ const teamSchema = new Schema<ITeam>({
     rating: { type: Number, required: true, default: DEFAULT_RATING },
     verified: { type: Boolean, required: true, default: false },
     captains: { type: [userSchema], required: true, default: () => [] },
-    players: { type: [userSchema], required: true, default: () => [] }
+    players: { type: [userSchema], required: true, default: () => [] },
+    lastOfferDate: { type: Date, required: true, default: () => new Date(-8640000000000000) }
 })
 teamSchema.methods.prettyPrintName = function (teamLogoDisplay: TeamLogoDisplay = TeamLogoDisplay.LEFT, useTextStyle: boolean = true) {
     let name: string = ''
@@ -83,7 +86,10 @@ teamSchema.methods.getAvailableTierRoleIds = function () {
     return regionService.getAvailableTierRoleIds(this.region, this.rating)
 }
 teamSchema.methods.hasPlayerOrCaptain = function (userId: string) {
-    return this.players.some((player: IUser) => player.id === userId) || this.captains.some((captain: IUser) => captain.id === userId)
+    return this.players.some((player: IUser) => player.id === userId) || this.hasCaptain(userId)
+}
+teamSchema.methods.hasCaptain = function (userId: string) {
+    return this.captains.some((captain: IUser) => captain.id === userId)
 }
 export const Team = model<ITeam>('Team', teamSchema, 'teams')
 

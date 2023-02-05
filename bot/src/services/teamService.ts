@@ -166,6 +166,10 @@ class TeamService {
         return Team.updateOne({ guildId }, { lastMatchDate: date })
     }
 
+    async updateLastOfferDateByGuildId(guildId: string): Promise<UpdateWriteOpResult> {
+        return Team.updateOne({ guildId }, { 'lastOfferDate': Date.now() })
+    }
+
     async updateTeamRating(guildId: string, region: Region, newStats: ITeamStats): Promise<void> {
         await Promise.all([
             Team.updateOne({ guildId }, { rating: newStats.rating }),
@@ -724,13 +728,21 @@ class TeamService {
     }
 
     async updateTeamName(guildId: string, name: string): Promise<ITeam | null> {
-        await LineupQueue.updateMany({ 'lineup.team.guildId': guildId }, { 'lineup.team.name': name, 'lineup.team.nameUpperCase': name.toUpperCase(), 'lineup.team.verified': false })
+        await LineupQueue.updateMany({ 'lineup.team.guildId': guildId }, {
+            'lineup.team.name': name,
+            'lineup.team.nameUpperCase': name.toUpperCase(),
+            'lineup.team.verified': false
+        })
         await Lineup.updateMany({ 'team.guildId': guildId }, { 'team.name': name, 'team.nameUpperCase': name.toUpperCase(), 'team.verified': false })
         return Team.findOneAndUpdate({ guildId }, { name, nameUpperCase: name.toUpperCase(), verified: false }, { new: true })
     }
 
     async updateTeamCode(guildId: string, code: string): Promise<ITeam | null> {
-        await LineupQueue.updateMany({ 'lineup.team.guildId': guildId }, { 'lineup.team.code': code, 'lineup.team.codeUpperCase': code.toUpperCase(), 'lineup.team.verified': false })
+        await LineupQueue.updateMany({ 'lineup.team.guildId': guildId }, {
+            'lineup.team.code': code,
+            'lineup.team.codeUpperCase': code.toUpperCase(),
+            'lineup.team.verified': false
+        })
         await Lineup.updateMany({ 'team.guildId': guildId }, { 'team.code': code, 'team.codeUpperCase': code.toUpperCase(), 'team.verified': false })
         return Team.findOneAndUpdate({ guildId }, { code: code, codeUpperCase: code.toUpperCase(), verified: false }, { new: true })
     }
@@ -817,7 +829,10 @@ class TeamService {
             await this.deleteTeam(guildId)
         })
 
-        const inactiveTeamsToWarn = (await Team.find({ lastMatchDate: { "$lt": dateBeforeWarning }, guildId: { $nin: inactiveGuildIdsToDelete } }, { guildId: 1, lastMatchDate: 1 }))
+        const inactiveTeamsToWarn = (await Team.find({ lastMatchDate: { "$lt": dateBeforeWarning }, guildId: { $nin: inactiveGuildIdsToDelete } }, {
+            guildId: 1,
+            lastMatchDate: 1
+        }))
         inactiveTeamsToWarn.forEach(async (team) => {
             const deletionDate = Math.floor((new Date().getTime() + team.lastMatchDate!.getTime() - dateBeforeDeletion.getTime()) / 1000)
             const informationEmbed = new EmbedBuilder()
@@ -829,7 +844,10 @@ class TeamService {
         })
 
         const guildIdsToIgnore = inactiveGuildIdsToDelete.concat(inactiveTeamsToWarn.map(team => team.guildId))
-        const inactiveChannelIdsToDelete = (await Lineup.find({ lastMatchDate: { "$lt": dateBeforeDeletion }, 'team.guildId': { $nin: guildIdsToIgnore } }, { channelId: 1 })).map(lineup => lineup.channelId)
+        const inactiveChannelIdsToDelete = (await Lineup.find({
+            lastMatchDate: { "$lt": dateBeforeDeletion },
+            'team.guildId': { $nin: guildIdsToIgnore }
+        }, { channelId: 1 })).map(lineup => lineup.channelId)
         inactiveChannelIdsToDelete.forEach(async (channelId) => {
             const informationEmbed = new EmbedBuilder()
                 .setColor('#566573')
@@ -843,7 +861,11 @@ class TeamService {
             await this.deleteLineup(channelId)
         })
 
-        const inactiveLineupsToWarn = (await Lineup.find({ lastMatchDate: { "$lt": dateBeforeWarning }, channelId: { $nin: inactiveChannelIdsToDelete }, 'team.guildId': { $nin: guildIdsToIgnore } }, { channelId: 1, lastMatchDate: 1 }))
+        const inactiveLineupsToWarn = (await Lineup.find({
+            lastMatchDate: { "$lt": dateBeforeWarning },
+            channelId: { $nin: inactiveChannelIdsToDelete },
+            'team.guildId': { $nin: guildIdsToIgnore }
+        }, { channelId: 1, lastMatchDate: 1 }))
         inactiveLineupsToWarn.forEach(async (lineup) => {
             const deletionDate = Math.floor((new Date().getTime() + lineup.lastMatchDate!.getTime() - dateBeforeDeletion.getTime()) / 1000)
             const informationEmbed = new EmbedBuilder()
