@@ -1,5 +1,5 @@
 import { ActionRowBuilder, ButtonBuilder, ButtonStyle, ChatInputCommandInteraction, ComponentType, InteractionReplyOptions, Message, SlashCommandBuilder } from "discord.js";
-import { BOT_ADMIN_ROLE, MIN_DAYS_BETWEEN_TEAM_OFFERS } from "../../constants";
+import { MIN_DAYS_BETWEEN_TEAM_OFFERS } from "../../constants";
 import { ICommandHandler } from "../../handlers/commandHandler";
 import { teamService } from "../../services/teamService";
 import { interactionUtils } from "../../services/interactionUtils";
@@ -15,7 +15,6 @@ export default {
             .setRequired(false)
             .setDescription("The Discord invitation link to your team"))
         .setDescription('Sends an offer message for your team on the regional community Discord'),
-    authorizedRoles: [BOT_ADMIN_ROLE],
     async execute(interaction: ChatInputCommandInteraction) {
         const team = await teamService.findTeamByGuildId(interaction.guildId!!)
         if (!team) {
