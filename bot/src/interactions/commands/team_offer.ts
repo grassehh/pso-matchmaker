@@ -1,4 +1,4 @@
-import { ActionRowBuilder, ButtonBuilder, ButtonStyle, ChatInputCommandInteraction, ComponentType, Message, SlashCommandBuilder } from "discord.js";
+import { ActionRowBuilder, ButtonBuilder, ButtonStyle, ChatInputCommandInteraction, ComponentType, InteractionReplyOptions, Message, SlashCommandBuilder } from "discord.js";
 import { BOT_ADMIN_ROLE, MIN_DAYS_BETWEEN_TEAM_OFFERS } from "../../constants";
 import { ICommandHandler } from "../../handlers/commandHandler";
 import { teamService } from "../../services/teamService";
@@ -61,10 +61,13 @@ export default {
                 )
             await interaction.followUp({
                 content: "Below is the preview of your offer message. \nIf you are happy with it, click on the **'Send'** button. \nIf not, simply re-write another description below.",
-                components: [sendActionRow]
+                components: [sendActionRow],
+                ephemeral: true
             })
             teamOfferDescription = m.content
-            await interaction.followUp(interactionUtils.createTeamOfferMessage(team, teamOfferDescription, teamImage, teamDiscordLink))
+            let teamOfferMessage = interactionUtils.createTeamOfferMessage(team, teamOfferDescription, teamImage, teamDiscordLink) as InteractionReplyOptions
+            teamOfferMessage.ephemeral = true
+            await interaction.followUp(teamOfferMessage)
         })
 
         const messageComponentCollector = interaction.channel!.createMessageComponentCollector({
