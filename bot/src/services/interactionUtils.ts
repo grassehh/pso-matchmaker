@@ -862,7 +862,8 @@ class InteractionUtils {
             .setDescription(description)
             .addFields([
                 { name: "Team Name", value: team.prettyPrintName(), inline: true },
-                { name: "Team Type", value: TeamTypeHelper.toString(team.type), inline: true }
+                { name: "Team Type", value: TeamTypeHelper.toString(team.type), inline: true },
+                { name: "Team Captains", value: team.captains.map(captain => captain.mention).join(', '), inline: true }
             ])
 
         if (teamImage) {
