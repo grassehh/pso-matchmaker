@@ -372,7 +372,7 @@ class StatsService {
                         **Players ratings** will be reset depending on their tier:
                         - Tier 1 (< **${regionData.tier2Threshold}**) will be reset to **${newTier1PlayersRating}**
                         - Tier 2 (**${regionData.tier2Threshold}-${regionData.tier3Threshold}**) will be reset to **${newTier2PlayersRating}**
-                        - Tier 3 (> **${regionData.tier2Threshold}**) will be reset to **${newTier3PlayersRating}**
+                        - Tier 3 (> **${regionData.tier3Threshold}**) will be reset to **${newTier3PlayersRating}**
                 `)
                 announcementMessage.embeds!.push(statsResetEmbed)
 
