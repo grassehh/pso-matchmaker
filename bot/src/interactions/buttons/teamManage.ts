@@ -1,4 +1,4 @@
-import { ActionRowBuilder, ButtonBuilder, ButtonInteraction, ButtonStyle, EmbedBuilder, InteractionUpdateOptions, Message, StringSelectMenuBuilder } from "discord.js";
+import { ActionRowBuilder, ButtonBuilder, ButtonInteraction, ButtonStyle, EmbedBuilder, InteractionUpdateOptions, Message, StringSelectMenuBuilder, TextChannel } from "discord.js";
 import { MAX_TEAM_CODE_LENGTH, MAX_TEAM_NAME_LENGTH } from "../../constants";
 import { IButtonHandler } from "../../handlers/buttonHandler";
 import { ITeam } from "../../mongoSchema";
@@ -8,7 +8,7 @@ import { teamService, TeamType, TeamTypeHelper } from "../../services/teamServic
 
 async function editTeamLogo(interaction: ButtonInteraction, guildId: string) {
     const filter = (m: Message) => interaction.user.id === m.author.id
-    const collector = interaction.channel!.createMessageCollector({ filter, time: 20000 });
+    const collector = (interaction.channel as TextChannel).createMessageCollector({ filter, time: 20000 });
     let team = await teamService.findTeamByGuildId(guildId) as ITeam
     const teamWasVerified = team.verified
     let teamChanged = false
@@ -44,7 +44,7 @@ async function editTeamLogo(interaction: ButtonInteraction, guildId: string) {
 
 async function editTeamName(interaction: ButtonInteraction, guildId: string) {
     const filter = (m: Message) => interaction.user.id === m.author.id
-    const collector = interaction.channel!.createMessageCollector({ filter, time: 20000 });
+    const collector = (interaction.channel as TextChannel).createMessageCollector({ filter, time: 20000 });
     let team = await teamService.findTeamByGuildId(guildId) as ITeam
     const teamWasVerified = team.verified
     let teamChanged = false
@@ -99,7 +99,7 @@ async function editTeamName(interaction: ButtonInteraction, guildId: string) {
 
 async function editTeamCode(interaction: ButtonInteraction, guildId: string) {
     const filter = (m: Message) => interaction.user.id === m.author.id
-    const collector = interaction.channel!.createMessageCollector({ filter, time: 20000 });
+    const collector = (interaction.channel as TextChannel).createMessageCollector({ filter, time: 20000 });
     let team = await teamService.findTeamByGuildId(guildId) as ITeam
     const regionGuild = await regionService.getRegionGuild(interaction.client, team.region)
     const teamWasVerified = team.verified

@@ -1,4 +1,4 @@
-import { GuildMember, BaseMessageOptions, AnySelectMenuInteraction } from "discord.js";
+import { GuildMember, BaseMessageOptions, AnySelectMenuInteraction, TextChannel } from "discord.js";
 import { MAX_BENCH_SIZE } from "../../constants";
 import { ISelectMenuHandler } from "../../handlers/selectMenuHandler";
 import { ILineup } from "../../mongoSchema";
@@ -44,6 +44,6 @@ export default {
             informationEmbed = interactionUtils.createInformationEmbed(`:inbox_tray: ${interaction.user} benched as **${selectedRolesNames.map(r => r.split('_')[0]).join(', ')}**`, interaction.user)
         }
         reply.embeds = (reply.embeds || []).concat(informationEmbed)
-        await interaction.channel?.send(reply)
+        await (interaction.channel as TextChannel).send(reply)
     }
 } as ISelectMenuHandler

@@ -1,4 +1,4 @@
-import { BaseMessageOptions, AnySelectMenuInteraction } from "discord.js";
+import { BaseMessageOptions, AnySelectMenuInteraction, TextChannel } from "discord.js";
 import { ISelectMenuHandler } from "../../handlers/selectMenuHandler";
 import { ILineup } from "../../mongoSchema";
 import { interactionUtils } from "../../services/interactionUtils";
@@ -46,6 +46,6 @@ export default {
         const embed = interactionUtils.createInformationEmbed(description, interaction.user)
         reply.embeds = (reply.embeds || []).concat(embed)
         await interaction.update({ components: [] })
-        await interaction.channel?.send(reply)
+        await (interaction.channel as TextChannel).send(reply)
     }
 } as ISelectMenuHandler

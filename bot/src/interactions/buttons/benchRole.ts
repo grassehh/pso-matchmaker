@@ -1,4 +1,4 @@
-import { ButtonInteraction, GuildMember, BaseMessageOptions } from "discord.js";
+import { ButtonInteraction, GuildMember, BaseMessageOptions, TextChannel } from "discord.js";
 import { MAX_BENCH_SIZE } from "../../constants";
 import { IButtonHandler } from "../../handlers/buttonHandler";
 import { ILineup } from "../../mongoSchema";
@@ -38,6 +38,6 @@ export default {
             informationEmbed = interactionUtils.createInformationEmbed(`:inbox_tray: ${interaction.user} benched as **${roleSelected.split('_')[0]}**`, interaction.user)
         }
         reply.embeds = (reply.embeds || []).concat(informationEmbed)
-        await interaction.channel?.send(reply)
+        await (interaction.channel as TextChannel).send(reply)
     }
 } as IButtonHandler

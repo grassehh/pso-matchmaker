@@ -1,4 +1,4 @@
-import { ButtonInteraction, Message, User } from "discord.js";
+import { ButtonInteraction, Message, TextChannel, User } from "discord.js";
 import { MAX_TEAM_CAPTAINS, MAX_TEAM_PLAYERS } from "../../constants";
 import { IButtonHandler } from "../../handlers/buttonHandler";
 import { ITeam } from "../../mongoSchema";
@@ -22,7 +22,7 @@ export default {
         const regionGuild = await regionService.getRegionGuild(interaction.client, team.region)
         await interaction.update({ content: `Type the ids or the mentions (@user) of the users you want to ${action}\nType **end** once you have finished.`, components: [] })
         const filter = (m: Message) => interaction.user.id === m.author.id
-        const collector = interaction.channel!.createMessageCollector({ filter, time: 20000 });
+        const collector = (interaction.channel as TextChannel).createMessageCollector({ filter, time: 20000 });
         collector.on('collect', async m => {
             collector.resetTimer()
 

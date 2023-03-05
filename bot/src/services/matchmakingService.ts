@@ -436,7 +436,7 @@ class MatchmakingService {
                 }
                 teamsActionComponents = [teamsActionRow]
             }
-            await interaction.channel?.send({ embeds: [teamLineupsEmbed], components: teamsActionComponents })
+            await (interaction.channel as TextChannel).send({ embeds: [teamLineupsEmbed], components: teamsActionComponents })
         }
 
         let availableMixes = await matchmakingService.findAvailableQueuedMixes(lineup.team.region, lineup.channelId, lineup.size, ranked)

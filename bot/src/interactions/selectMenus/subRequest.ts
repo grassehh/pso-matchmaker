@@ -1,4 +1,4 @@
-import { ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder, AnySelectMenuInteraction } from "discord.js";
+import { ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder, AnySelectMenuInteraction, TextChannel } from "discord.js";
 import { ISelectMenuHandler } from "../../handlers/selectMenuHandler";
 import { interactionUtils } from "../../services/interactionUtils";
 import { matchmakingService } from "../../services/matchmakingService";
@@ -41,6 +41,6 @@ export default {
         )
 
         await interaction.update({ content: 'Sub request sent !', components: [] })
-        await interaction.channel?.send({ components: [subActionRow], embeds: [subRequestEmbed] })
+        await (interaction.channel as TextChannel).send({ components: [subActionRow], embeds: [subRequestEmbed] })
     }
 } as ISelectMenuHandler

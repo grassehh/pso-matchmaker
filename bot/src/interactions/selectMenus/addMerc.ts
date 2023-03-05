@@ -1,4 +1,4 @@
-import { Message, BaseMessageOptions, AnySelectMenuInteraction } from "discord.js";
+import { Message, BaseMessageOptions, AnySelectMenuInteraction, TextChannel } from "discord.js";
 import { DEFAULT_RATING, MAX_NUMBER_OF_MERCS, MERC_USER_ID } from "../../constants";
 import { ISelectMenuHandler } from "../../handlers/selectMenuHandler";
 import { ILineup, IUser } from "../../mongoSchema";
@@ -32,7 +32,7 @@ export default {
         }
 
         const filter = (m: Message) => interaction.user.id === m.author.id
-        const collector = interaction.channel!.createMessageCollector({ filter, time: 10000, max: 1 });
+        const collector = (interaction.channel as TextChannel).createMessageCollector({ filter, time: 10000, max: 1 });
         collector.on('collect', async m => {
             let lineup = await teamService.retrieveLineup(interaction.channelId)
             if (lineup === null) {
@@ -90,7 +90,7 @@ export default {
             }
             const embed = interactionUtils.createInformationEmbed(description, interaction.user)
             if (await matchmakingService.isNotTeamAndReadyToStart(lineup)) {
-                await interaction.channel?.send({ embeds: [embed] })
+                await (interaction.channel as TextChannel).send({ embeds: [embed] })
                 const challenge = await matchmakingService.findChallengeByChannelId(interaction.channelId) || undefined
                 const secondLineup = challenge ?
                     (await teamService.retrieveLineup(challenge.initiatingTeam.lineup.channelId === interaction.channelId ? challenge.challengedTeam.lineup.channelId : challenge.initiatingTeam.lineup.channelId))
@@ -108,7 +108,7 @@ export default {
 
             let reply = await interactionUtils.createReplyForLineup(lineup, autoSearchResult.updatedLineupQueue) as BaseMessageOptions
             reply.embeds = (reply.embeds || []).concat(embed)
-            await interaction.channel?.send(reply)
+            await (interaction.channel as TextChannel).send(reply)
         })
 
         collector.on('end', async (collected: any) => {

@@ -1,4 +1,4 @@
-import { ActionRowBuilder, ButtonBuilder, ButtonStyle, ChatInputCommandInteraction, ComponentType, InteractionReplyOptions, Message, SlashCommandBuilder } from "discord.js";
+import { ActionRowBuilder, ButtonBuilder, ButtonStyle, ChatInputCommandInteraction, ComponentType, InteractionReplyOptions, Message, SlashCommandBuilder, TextChannel } from "discord.js";
 import { MIN_DAYS_BETWEEN_TEAM_OFFERS } from "../../constants";
 import { ICommandHandler } from "../../handlers/commandHandler";
 import { teamService } from "../../services/teamService";
@@ -44,7 +44,7 @@ export default {
         let teamOfferDescription: string
 
         const filter = (m: Message) => interaction.user.id === m.author.id
-        const messageCollector = interaction.channel!.createMessageCollector({ filter, time: 5 * 60 * 1000 });
+        const messageCollector = (interaction.channel as TextChannel).createMessageCollector({ filter, time: 5 * 60 * 1000 });
         messageCollector.on('collect', async m => {
             messageCollector.resetTimer()
             const sendActionRow = new ActionRowBuilder<ButtonBuilder>()
@@ -69,7 +69,7 @@ export default {
             await interaction.followUp(teamOfferMessage)
         })
 
-        const messageComponentCollector = interaction.channel!.createMessageComponentCollector({
+        const messageComponentCollector = (interaction.channel as TextChannel).createMessageComponentCollector({
             componentType: ComponentType.Button,
             time: 5 * 60 * 1000
         });
