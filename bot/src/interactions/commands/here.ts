@@ -1,5 +1,5 @@
 import { SlashCommandBuilder } from "@discordjs/builders";
-import { ChatInputCommandInteraction, BaseMessageOptions } from "discord.js";
+import { ChatInputCommandInteraction, BaseMessageOptions, TextChannel } from "discord.js";
 import { ICommandHandler } from "../../handlers/commandHandler";
 import { interactionUtils } from "../../services/interactionUtils";
 import { teamService } from "../../services/teamService";
@@ -32,7 +32,7 @@ export default {
         reply.content = "Wake up @everyone ! It's time to sign !"
 
         await teamService.updateLastNotificationTime(interaction.channelId, now)
-        await interaction.channel?.send(reply)
+        await (interaction.channel as TextChannel).send(reply)
         await interaction.reply({ content: 'You notified everyone', ephemeral: true })
     }
 } as ICommandHandler

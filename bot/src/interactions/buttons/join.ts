@@ -1,4 +1,4 @@
-import { ButtonInteraction, ComponentType, EmbedBuilder, GuildMember, Interaction, BaseMessageOptions } from "discord.js";
+import { ButtonInteraction, ComponentType, EmbedBuilder, GuildMember, Interaction, BaseMessageOptions, TextChannel } from "discord.js";
 import { DEFAULT_RATING } from "../../constants";
 import { IButtonHandler } from "../../handlers/buttonHandler";
 import { ILineup, IRole, IUser, IPlayerStats } from "../../mongoSchema";
@@ -120,10 +120,10 @@ export default {
             const embed = interactionUtils.createInformationEmbed(description, interaction.user)
             reply.embeds = reply.embeds!.concat(embed)
             reply.components = interactionUtils.createCaptainsPickComponent(remainingRoles)
-            await interaction.channel?.send(reply)
+            await (interaction.channel as TextChannel).send(reply)
 
             const filter = (interaction: ButtonInteraction) => interaction.customId.startsWith('pick_') ? true : false;
-            const collector = interaction.channel!.createMessageComponentCollector<ComponentType.Button>({ filter, time: 150000 })
+            const collector = (interaction.channel as TextChannel).createMessageComponentCollector<ComponentType.Button>({ filter, time: 150000 })
             let roundNumber = 1
             collector.on('collect', async (i: Interaction) => {
                 if (!(i instanceof ButtonInteraction)) {
@@ -202,6 +202,6 @@ export default {
         const embed = interactionUtils.createInformationEmbed(description, interaction.user)
         let reply = await interactionUtils.createReplyForLineup(lineup) as BaseMessageOptions
         reply.embeds = reply.embeds!.concat(embed)
-        await interaction.channel?.send(reply)
+        await (interaction.channel as TextChannel).send(reply)
     }
 } as IButtonHandler

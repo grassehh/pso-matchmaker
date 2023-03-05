@@ -1,4 +1,4 @@
-import { ButtonInteraction, GuildMember, BaseMessageOptions } from "discord.js";
+import { ButtonInteraction, GuildMember, BaseMessageOptions, TextChannel } from "discord.js";
 import { interactionUtils } from "../../services/interactionUtils";
 import { matchmakingService } from "../../services/matchmakingService";
 import { statsService } from "../../services/statsService";
@@ -122,6 +122,6 @@ export default {
         let reply = await interactionUtils.createReplyForLineup(lineup, autoSearchResult.updatedLineupQueue) as BaseMessageOptions
         const informationEmbed = interactionUtils.createInformationEmbed(description, lineup.isAnonymous() ? undefined : interaction.user)
         reply.embeds = (reply.embeds || []).concat(informationEmbed)
-        await interaction.channel?.send(reply)
+        await (interaction.channel as TextChannel).send(reply)
     }
 } as IButtonHandler
