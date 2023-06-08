@@ -1,6 +1,6 @@
 import { ActionRowBuilder, ButtonBuilder, ButtonInteraction, ButtonStyle, Client, CommandInteraction, EmbedBuilder, Interaction, InteractionReplyOptions, InteractionUpdateOptions, Message, BaseMessageOptions, StringSelectMenuBuilder, AnySelectMenuInteraction, User, UserManager, Attachment } from "discord.js";
 import { BOT_ADMIN_ROLE, DEFAULT_RATING, MAX_TEAM_CAPTAINS, MAX_TEAM_PLAYERS } from "../constants";
-import { IChallenge, ILineup, ILineupQueue, IPlayerBan, IPlayerStats, IRole, IRoleBench, ITeam, ITeamBan, ITeamStats, IUser, PlayerStats, TeamStats } from "../mongoSchema";
+import { IChallenge, ILineup, ILineupQueue, IPlayerBan, IPlayerStats, IRole, IRoleBench, ITeam, ITeamBan, ITeamStats, IUser, TeamStats } from "../mongoSchema";
 import { handle } from "../utils";
 import { matchmakingService, MatchResult, RoleWithDiscordUser } from "./matchmakingService";
 import { Region, regionService } from "./regionService";
@@ -218,22 +218,7 @@ class InteractionUtils {
         const foundStats = await statsService.findPlayersStats([user.id], region)
         let stats: IPlayerStats
         if (foundStats.length === 0) {
-            stats = new PlayerStats({
-                userId: user.id,
-                region,
-                numberOfRankedGames: 0,
-                numberOfRankedWins: 0,
-                numberOfRankedDraws: 0,
-                numberOfRankedLosses: 0,
-                totalNumberOfRankedWins: 0,
-                totalNumberOfRankedDraws: 0,
-                totalNumberOfRankedLosses: 0,
-                attackRating: DEFAULT_RATING,
-                midfieldRating: DEFAULT_RATING,
-                defenseRating: DEFAULT_RATING,
-                goalKeeperRating: DEFAULT_RATING,
-                mixCaptainsRating: DEFAULT_RATING
-            })
+            stats = statsService.createDefaultPlayerStats(user.id, region)
         } else {
             stats = foundStats[0]
         }

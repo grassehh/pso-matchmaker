@@ -9,8 +9,24 @@ class UserService {
         return User.findOne({ id: discordUserId })
     }
 
+    async createUserFromDiscordUser(discordUser: DiscordUser): Promise<IUser> {
+        return await new User({
+            id: discordUser.id,
+            name: discordUser.username,
+            mention: discordUser.toString()
+        } as IUser).save()
+    }
+
+    async findOrCreateUserByDiscordUserId(discordUserId: string): Promise<IUser | null> {
+        return User.findOne({ id: discordUserId })
+    }
+
     async findUserBySteamId(steamId: string): Promise<IUser | null> {
         return User.findOne({ steamId })
+    }
+
+    async updateSteamId(discordUserId: string, newSteamId?: string): Promise<UpdateWriteOpResult | null> {
+        return User.updateOne({ id: discordUserId }, { $set: { steamId: newSteamId } })
     }
 
     async logout(discordUserId: string): Promise<UpdateWriteOpResult | null> {

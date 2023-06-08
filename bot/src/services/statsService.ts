@@ -433,6 +433,13 @@ class StatsService {
         await Lineup.updateMany({}, { $set: { 'team.rating': DEFAULT_RATING } })
         await LineupQueue.updateMany({}, { $set: { 'lineup.team.rating': DEFAULT_RATING } })
     }
+
+    createDefaultPlayerStats(userId: string, region: Region) {
+        return new PlayerStats({
+            userId,
+            region
+        })
+    }
 }
 
 export const statsService = new StatsService()
