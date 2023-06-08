@@ -60,7 +60,7 @@ export default {
 
         const region = regionService.getRegionByGuildId(interaction.guildId!!)!
         const oldPlayerStats = await statsService.findPlayerStats(oldUser.id, region) || statsService.createDefaultPlayerStats(oldUser.id, region)
-        const newPlayerStats = await statsService.findPlayerStats(newUser.id, region) || statsService.createDefaultPlayerStats(oldUser.id, region)
+        const newPlayerStats = await statsService.findPlayerStats(newUser.id, region) || statsService.createDefaultPlayerStats(newUser.id, region)
         await PlayerStats.updateOne(
             { userId: newUser.id },
             {
