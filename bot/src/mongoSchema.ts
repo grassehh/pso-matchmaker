@@ -559,7 +559,7 @@ const matchSchema = new Schema<IMatch>({
         required: false
     }
 })
-matchSchema.index({ schedule: 1 }, { expireAfterSeconds: 24 * 60 * 60 });
+matchSchema.index({ schedule: 1 }, { expireAfterSeconds: 7 * 24 * 60 * 60 });
 matchSchema.methods.findUserRole = function (user: DiscordUser): IRole | null {
     const existingUserInSubs = this.subs.filter((role: IRole) => role.user).find((role: IRole) => role.user?.id === user.id)
     let existingUserInFirstLineup
