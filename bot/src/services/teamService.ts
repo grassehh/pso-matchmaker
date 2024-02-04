@@ -284,7 +284,7 @@ class TeamService {
             },
             {
                 arrayFilters: [{ "i.user.id": userId }],
-                new: true
+                upsert: true
             }
         )
     }
