@@ -27,7 +27,7 @@ function sliceIntoChunks<T>(arr: T[], chunkSize: number): [T[]] {
 
 async function resetStats(): Promise<void> {
     await client.login(process.env.TOKEN)
-    await mongoose.connect(process.env.MONGO_URI || '', { keepAlive: true })
+    await mongoose.connect(process.env.MONGO_URI || '')
 
     const region = Region.EUROPE
     console.log(`Updating member tier role for region ${region}`)

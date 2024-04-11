@@ -5,7 +5,7 @@ import { teamService } from '../bot/src/services/teamService';
 dotenv.config()
 
 async function resetAllowRanked() {
-    await mongoose.connect(process.env.MONGO_URI || '', { keepAlive: true })
+    await mongoose.connect(process.env.MONGO_URI || '')
 
     const teamsBulkWrites = []
     const teams = await Team.find({})

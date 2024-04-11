@@ -13,7 +13,7 @@ const client = new Client({
 
 async function cleanOrphans() {
   await client.login(process.env.TOKEN)
-  await mongoose.connect(process.env.MONGO_URI || '', { keepAlive: true })
+  await mongoose.connect(process.env.MONGO_URI || '')
   await cleanOrphanLineups()
   await cleanOrphanTeams()
   await cleanOrphanStats()

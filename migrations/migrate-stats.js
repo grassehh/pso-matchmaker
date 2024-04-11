@@ -36,7 +36,7 @@ async function migrateStats() {
     const lineupSize = parseInt(process.argv[2])
     const fileName = process.argv[3]
     await client.login(process.env.TOKEN)
-    await mongoose.connect(process.env.MONGO_URI || '', { keepAlive: true })
+    await mongoose.connect(process.env.MONGO_URI || '')
     const guild = await client.guilds.fetch(process.env.GUILD_ID)
     const csvString = await fs.readFile(`./${fileName}`, 'utf-8');
     const rows = await csv.parse(csvString, { headers: false });

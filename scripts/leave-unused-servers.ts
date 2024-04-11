@@ -12,7 +12,7 @@ const client = new Client({
 
 async function leaveUnusedServers() {
   await client.login(process.env.TOKEN)
-  await mongoose.connect(process.env.MONGO_URI || '', { keepAlive: true })
+  await mongoose.connect(process.env.MONGO_URI || '')
   const guilds = client.guilds.cache.values()
   for (let guild of guilds) {
     const team = await Team.findOne({ guildId: guild.id })

@@ -5,7 +5,7 @@ const { MINIMUM_LINEUP_SIZE_FOR_RANKED } = require("../constants")
 dotenv.config()
 
 async function factorizeStats() {
-    await mongoose.connect(process.env.MONGO_URI || '', { keepAlive: true })
+    await mongoose.connect(process.env.MONGO_URI || '')
 
     const statsByUser = await Stats.aggregate([{
         $group: {

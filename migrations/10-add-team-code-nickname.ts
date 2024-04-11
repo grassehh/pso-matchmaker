@@ -14,7 +14,7 @@ const client = new Client({
 
 async function addTeamCodeNickname() {
     await client.login(process.env.TOKEN)
-    await mongoose.connect(process.env.MONGO_URI || '', { keepAlive: true })
+    await mongoose.connect(process.env.MONGO_URI || '')
     const teams = await Team.find({ region: Region.EUROPE, type: TeamType.CLUB })
     const regionDiscord = await regionService.getRegionGuild(client, Region.EUROPE)
     let i = 1

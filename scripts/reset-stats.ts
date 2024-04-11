@@ -5,7 +5,7 @@ import dotenv = require('dotenv');
 dotenv.config()
 
 async function resetStats(): Promise<void> {
-    await mongoose.connect(process.env.MONGO_URI || '', { keepAlive: true })
+    await mongoose.connect(process.env.MONGO_URI || '')
     await User.updateMany({}, {
         $set: {
             rating: DEFAULT_RATING

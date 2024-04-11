@@ -5,7 +5,7 @@ const teamService = require('../services/teamService');
 dotenv.config()
 
 async function addRolePos() {
-    await mongoose.connect(process.env.MONGO_URI || '', { keepAlive: true })
+    await mongoose.connect(process.env.MONGO_URI || '')
 
     await Challenge.deleteMany({})
     await LineupQueue.deleteMany({ "lineup.type": teamService.LINEUP_TYPE_TEAM })

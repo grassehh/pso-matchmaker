@@ -4,7 +4,7 @@ const { Stats } = require('../mongoSchema');
 dotenv.config()
 
 async function addRegionToStats() {
-    await mongoose.connect(process.env.MONGO_URI || '', { keepAlive: true })
+    await mongoose.connect(process.env.MONGO_URI || '')
     await Stats.updateMany({}, { $set: { region: 'EU' } })
 }
 

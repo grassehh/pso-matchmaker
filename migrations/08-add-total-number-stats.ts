@@ -4,7 +4,7 @@ import dotenv = require('dotenv');
 dotenv.config()
 
 async function addTotalNumberStats() {
-    await mongoose.connect(process.env.MONGO_URI || '', { keepAlive: true })
+    await mongoose.connect(process.env.MONGO_URI || '')
 
     const statsBulkWrites = []
     await PlayerStats.updateMany({}, { $unset: { numberOfGames: "" } })

@@ -5,7 +5,7 @@ dotenv.config()
 
 async function addRolePos() {
     const date = new Date()
-    await mongoose.connect(process.env.MONGO_URI || '', { keepAlive: true })
+    await mongoose.connect(process.env.MONGO_URI || '')
     await Lineup.updateMany({}, { $set: { lastMatchDate: date } })
     await Team.updateMany({}, { $set: { lastMatchDate: date } })
 }

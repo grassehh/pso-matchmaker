@@ -13,7 +13,7 @@ const client = new Client({
 
 async function notifyUpdate(): Promise<void> {
     await client.login(process.env.TOKEN)
-    await mongoose.connect(process.env.MONGO_URI || '', { keepAlive: true })
+    await mongoose.connect(process.env.MONGO_URI || '')
 
     let updateEmbed = new EmbedBuilder()
         .setColor('#566573')

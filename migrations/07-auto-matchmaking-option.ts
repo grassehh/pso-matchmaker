@@ -5,7 +5,7 @@ import dotenv = require('dotenv');
 dotenv.config()
 
 async function resetAllowRanked() {
-    await mongoose.connect(process.env.MONGO_URI || '', { keepAlive: true })
+    await mongoose.connect(process.env.MONGO_URI || '')
     await Lineup.updateMany({ type: LINEUP_TYPE_TEAM }, { $set: { autoMatchmaking: true } })
 }
 
