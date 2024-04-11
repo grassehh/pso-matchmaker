@@ -114,7 +114,7 @@ PSO_OC_DISCORD_GUILD_ID=0000000000000000000
 - `npm run build`
 
 # How to deploy the Discord commands
-- `node build/scripts/deploys-commands.js`<br>
+- `node build/scripts/deploy-commands.js`<br>
 *Note: If **GUILD_ID** environment variable is defined, the commands will be deployed only the this guild*
 
 # How to run with nodemon
