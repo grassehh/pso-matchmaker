@@ -20,11 +20,11 @@ You can display the teams and players leaderboard by using the **/leaderboard** 
 To see your own stats, use the **/player_stats** command.<br>
 Every game mode supports ranked mode *(read [Game modes section](#game-modes) for more information)*. However, only the **official community discords** are allowed to create a ranked line-up. 
 
-![Example](./doc/images/leaderboard_teams.png)<br>
-*(Team leaderboard)*
+![Example](./doc/images/leaderboard.png)<br>
+*(Leaderboard)*
 
-![Example](./doc/images/leaderboard_players.png)<br>
-*(Players leaderboard)*
+![Example](./doc/images/player_stats.png)<br>
+*(Player stats)*
 
 ## Auto-matchmaking
 If you want **pso-matchmaker** to automatically search for a match that is matching your team level, you can enable the auto-matchmaking feature when you create your line-up (active by default, and only available for the Team mode).
