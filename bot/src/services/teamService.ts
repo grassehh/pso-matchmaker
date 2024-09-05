@@ -111,7 +111,7 @@ class TeamService {
         return name.length > 0 && name.length <= MAX_LINEUP_NAME_LENGTH
     }
 
-    async validateTeamLogo(client: Client, guildId: string, logo?: string): Promise<string | null> {
+    async sanitizeTeamLogo(client: Client, guildId: string, logo?: string): Promise<string | null> {
         if (!logo) {
             return null
         }
@@ -123,20 +123,41 @@ class TeamService {
             const [guild] = await handle(client.guilds.fetch(guildId))
             if (!guild) {
                 return null
-            }
-            const emojiIdentifier = guild.emojis.resolveIdentifier(logo)
-            if (!emojiIdentifier) {
+            } 
+            const emojiRegexMatch = logo.match("<?a?:?.*:(\\d*)>?")
+            if(!emojiRegexMatch || emojiRegexMatch.length < 2) {
                 return null
-            }
-            const customEmojiIdentifierSplit = emojiIdentifier.split("%3A")
-            if (customEmojiIdentifierSplit.length !== 2) {
-                return null
-            }
-            const [customEmoji] = await handle(guild.emojis.fetch(customEmojiIdentifierSplit[1], { force: true }))
+            }            
+            const [customEmoji] = await handle(guild.emojis.fetch(emojiRegexMatch[1], { force: true }))
             if (!customEmoji || !customEmoji.available) {
                 return null
             }
             return customEmoji.toString()
+        }
+    }
+
+    async resolveTeamEmojiString(client: Client, guildId: string, logo?: string): Promise<string | null> {
+        if (!logo) {
+            return null
+        }
+
+        const emojis = getUnicodeEmojis(logo)
+        if (emojis.length > 0) {
+            return emojis[0]
+        } else {
+            const [guild] = await handle(client.guilds.fetch(guildId))
+            if (!guild) {
+                return null
+            } 
+            const emojiRegexMatch = logo.match("<?a?:?.*:(\\d*)>?")
+            if(!emojiRegexMatch || emojiRegexMatch.length < 2) {
+                return null
+            }            
+            const [customEmoji] = await handle(guild.emojis.fetch(emojiRegexMatch[1], { force: true }))
+            if (!customEmoji || !customEmoji.available) {
+                return null
+            }
+            return customEmoji.id
         }
     }
 

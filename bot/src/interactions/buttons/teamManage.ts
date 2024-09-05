@@ -16,7 +16,7 @@ async function editTeamLogo(interaction: ButtonInteraction, guildId: string) {
         if (m.content === 'delete') {
             team = await teamService.updateTeamLogo(guildId, null) as ITeam
         } else {
-            const validatedTeamLogo = await teamService.validateTeamLogo(interaction.client, guildId, m.content)
+            const validatedTeamLogo = await teamService.sanitizeTeamLogo(interaction.client, guildId, m.content)
             if (!validatedTeamLogo) {
                 await interaction.followUp({ content: '⛔ Only valid emojis are allowed (example: :flag_eu:)', ephemeral: true })
                 collector.resetTimer()
